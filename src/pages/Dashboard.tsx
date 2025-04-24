@@ -60,8 +60,35 @@ const Dashboard = () => {
       <div className="flex-grow flex">
         <DashboardSidebar />
         <main className="flex-grow p-6">
-          <h1 className="text-2xl font-bold mb-6 text-ezwhite">Welcome, {user?.email}</h1>
-          <FileManager />
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-ezwhite mb-2">Welcome back, {user?.email}</h1>
+              <p className="text-ezgray">Manage your files and access your dashboard features below.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+              <div className="bg-eznavy-light p-6 rounded-lg border border-ezgray-dark">
+                <h3 className="text-lg font-semibold text-ezwhite mb-2">Storage Usage</h3>
+                <p className="text-2xl font-bold text-ezblue">0 MB</p>
+                <p className="text-ezgray text-sm mt-1">of available storage</p>
+              </div>
+              
+              <div className="bg-eznavy-light p-6 rounded-lg border border-ezgray-dark">
+                <h3 className="text-lg font-semibold text-ezwhite mb-2">Total Files</h3>
+                <p className="text-2xl font-bold text-ezblue">0</p>
+                <p className="text-ezgray text-sm mt-1">files uploaded</p>
+              </div>
+              
+              <div className="bg-eznavy-light p-6 rounded-lg border border-ezgray-dark">
+                <h3 className="text-lg font-semibold text-ezwhite mb-2">Recent Activity</h3>
+                <p className="text-ezgray">No recent activity</p>
+              </div>
+            </div>
+
+            <div className="bg-eznavy-light rounded-lg border border-ezgray-dark">
+              <FileManager />
+            </div>
+          </div>
         </main>
       </div>
       <Footer />
