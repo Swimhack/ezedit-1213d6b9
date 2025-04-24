@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +10,8 @@ import Logo from "@/components/Logo";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader } from "lucide-react";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -18,6 +19,8 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const navigate = useNavigate();
 
   const sendWelcomeEmail = async (email: string, name: string) => {
     try {
@@ -58,14 +61,58 @@ const Register = () => {
       // Here you would add your registration logic
       // For now, we'll just simulate success and send the welcome email
       await sendWelcomeEmail(email, name);
-      toast.success("Account created successfully!");
-      // In a real application, we would redirect to the dashboard
+      setIsRegistered(true);
+      toast.success("Account created successfully! Please check your email to verify your account.");
+      
+      // Redirect to login page after 5 seconds
+      setTimeout(() => {
+        navigate("/login");
+      }, 5000);
     } catch (error) {
       toast.error("Failed to create account. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isRegistered) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center py-16 px-4">
+          <Card className="w-full max-w-md bg-eznavy-light border-ezgray-dark">
+            <CardHeader>
+              <CardTitle className="text-xl text-center">Registration Successful! 🎉</CardTitle>
+              <CardDescription className="text-center">
+                Just one more step to get started
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <AlertDescription className="text-center">
+                  We've sent a verification email to <span className="font-medium">{email}</span>
+                  <br />Please check your inbox and click the verification link.
+                </AlertDescription>
+              </Alert>
+              <p className="text-sm text-ezgray text-center">
+                You'll be redirected to the login page in a few moments...
+              </p>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/login")}
+                className="text-ezblue hover:text-ezblue-light"
+              >
+                Go to Login Page
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -141,8 +188,19 @@ const Register = () => {
                       </Link>
                     </label>
                   </div>
-                  <Button type="submit" className="bg-ezblue text-eznavy hover:bg-ezblue-light" disabled={isLoading}>
-                    {isLoading ? "Creating account..." : "Create account"}
+                  <Button 
+                    type="submit" 
+                    className="bg-ezblue text-eznavy hover:bg-ezblue-light" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader className="mr-2 h-4 w-4 animate-spin" />
+                        Creating your account...
+                      </>
+                    ) : (
+                      "Create account"
+                    )}
                   </Button>
                 </div>
               </form>
