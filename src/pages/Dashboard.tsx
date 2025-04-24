@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if user is authenticated
-  useState(() => {
+  useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
       
@@ -41,7 +41,7 @@ const Dashboard = () => {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   if (isLoading) {
     return (
