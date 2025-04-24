@@ -13,7 +13,6 @@ const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is authenticated
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
@@ -61,7 +60,7 @@ const Dashboard = () => {
       <div className="flex-grow flex">
         <DashboardSidebar />
         <main className="flex-grow p-6">
-          <h1 className="text-2xl font-bold mb-6 text-ezwhite">Dashboard</h1>
+          <h1 className="text-2xl font-bold mb-6 text-ezwhite">Welcome, {user?.email}</h1>
           <FileManager />
         </main>
       </div>
