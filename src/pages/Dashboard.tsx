@@ -7,11 +7,13 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import FileManager from "@/components/FileManager";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { stats, isLoading: statsLoading } = useDashboardStats();
 
   useEffect(() => {
     const checkUser = async () => {
@@ -69,19 +71,36 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
               <div className="bg-eznavy-light p-6 rounded-lg border border-ezgray-dark">
                 <h3 className="text-lg font-semibold text-ezwhite mb-2">Storage Usage</h3>
-                <p className="text-2xl font-bold text-ezblue">0 MB</p>
+                <p className="text-2xl font-bold text-ezblue">
+                  {statsLoading ? "..." : `${stats.storageUsage} MB`}
+                </p>
                 <p className="text-ezgray text-sm mt-1">of available storage</p>
               </div>
               
               <div className="bg-eznavy-light p-6 rounded-lg border border-ezgray-dark">
                 <h3 className="text-lg font-semibold text-ezwhite mb-2">Total Files</h3>
-                <p className="text-2xl font-bold text-ezblue">0</p>
+                <p className="text-2xl font-bold text-ezblue">
+                  {statsLoading ? "..." : stats.totalFiles}
+                </p>
                 <p className="text-ezgray text-sm mt-1">files uploaded</p>
               </div>
               
               <div className="bg-eznavy-light p-6 rounded-lg border border-ezgray-dark">
                 <h3 className="text-lg font-semibold text-ezwhite mb-2">Recent Activity</h3>
-                <p className="text-ezgray">No recent activity</p>
+                {statsLoading ? (
+                  <p className="text-ezgray">Loading...</p>
+                ) : stats.recentActivity.length > 0 ? (
+                  <ul className="space-y-2">
+                    {stats.recentActivity.map((activity, index) => (
+                      <li key={index} className="text-sm">
+                        <span className="text-ezwhite">{activity.name}</span>
+                        <span className="text-ezgray ml-2">{activity.timestamp}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-ezgray">No recent activity</p>
+                )}
               </div>
             </div>
 
