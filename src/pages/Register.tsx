@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import Logo from "@/components/Logo";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -17,6 +18,31 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  const sendWelcomeEmail = async (email: string, name: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: email,
+          subject: "Welcome to EzEdit!",
+          text: `Hi ${name}, welcome to EzEdit! We're excited to have you on board.`,
+          html: `
+            <h1>Welcome to EzEdit!</h1>
+            <p>Hi ${name},</p>
+            <p>Thank you for registering with EzEdit. We're excited to have you on board!</p>
+            <p>Start editing your websites with AI today.</p>
+            <p>Best regards,<br>The EzEdit Team</p>
+          `
+        }
+      });
+
+      if (error) throw error;
+      console.log('Welcome email sent:', data);
+    } catch (error) {
+      console.error('Error sending welcome email:', error);
+      // We don't show this error to the user since registration was successful
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,12 +54,17 @@ const Register = () => {
     
     setIsLoading(true);
     
-    // Simulating registration process
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Here you would add your registration logic
+      // For now, we'll just simulate success and send the welcome email
+      await sendWelcomeEmail(email, name);
       toast.success("Account created successfully!");
       // In a real application, we would redirect to the dashboard
-    }, 1500);
+    } catch (error) {
+      toast.error("Failed to create account. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
