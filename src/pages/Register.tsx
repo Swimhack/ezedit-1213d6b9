@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -58,8 +59,18 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      // Here you would add your registration logic
-      // For now, we'll just simulate success and send the welcome email
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+          },
+        },
+      });
+
+      if (error) throw error;
+
       await sendWelcomeEmail(email, name);
       setIsRegistered(true);
       toast.success("Account created successfully! Please check your email to verify your account.");
@@ -68,8 +79,8 @@ const Register = () => {
       setTimeout(() => {
         navigate("/login");
       }, 5000);
-    } catch (error) {
-      toast.error("Failed to create account. Please try again.");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create account. Please try again.");
     } finally {
       setIsLoading(false);
     }
