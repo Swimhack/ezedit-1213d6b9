@@ -2,9 +2,11 @@
 import { Link, useLocation } from "react-router-dom";
 import { FolderOpen, Upload, Settings, Layers, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const DashboardSidebar = () => {
   const location = useLocation();
+  const isMobile = useIsMobile();
   
   const menuItems = [
     { icon: Home, label: "Overview", path: "/dashboard" },
@@ -14,9 +16,12 @@ const DashboardSidebar = () => {
   ];
   
   return (
-    <div className="w-64 bg-eznavy-light border-r border-ezgray-dark min-h-[calc(100vh-4rem-3rem)]">
+    <div className={cn(
+      "bg-eznavy-light border-ezgray-dark",
+      isMobile ? "w-full min-h-0" : "w-64 border-r min-h-[calc(100vh-4rem-3rem)]"
+    )}>
       <div className="p-4">
-        <h2 className="text-xl font-semibold text-ezwhite mb-4">Dashboard</h2>
+        {!isMobile && <h2 className="text-xl font-semibold text-ezwhite mb-4">Dashboard</h2>}
         <nav>
           <ul className="space-y-2">
             {menuItems.map((item) => (
