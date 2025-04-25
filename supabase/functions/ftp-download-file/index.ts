@@ -48,33 +48,34 @@ serve(async (req) => {
         throw new Error("File exceeds maximum size limit of 1MB");
       }
 
-      // Use a different approach: download to a string
-      const chunks: Uint8Array[] = [];
+      // Create a temporary file to store the download
+      const tempFilePath = await Deno.makeTempFile();
       
-      await client.downloadTo(
-        new Deno.WritableStreamBuffer(chunks), 
-        path
-      );
-      
-      const allBytes = new Uint8Array(size);
-      let offset = 0;
-      
-      for (const chunk of chunks) {
-        allBytes.set(chunk, offset);
-        offset += chunk.length;
+      try {
+        // Download the file to the temporary location
+        await client.downloadTo(tempFilePath, path);
+        
+        // Read the file content
+        const fileContent = await Deno.readTextFile(tempFilePath);
+        
+        // Encode the content to base64
+        content = btoa(fileContent);
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            content 
+          }),
+          { headers: corsHeaders }
+        );
+      } finally {
+        // Clean up the temporary file
+        try {
+          await Deno.remove(tempFilePath);
+        } catch (cleanupError) {
+          console.error('Error removing temp file:', cleanupError);
+        }
       }
-      
-      const decoder = new TextDecoder("utf-8");
-      const fileContent = decoder.decode(allBytes);
-      content = btoa(fileContent);
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          content 
-        }),
-        { headers: corsHeaders }
-      );
     } catch (error) {
       console.error('FTP download error:', error);
       return new Response(
@@ -98,18 +99,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Custom WritableStream implementation for Deno
-class Deno {
-  static WritableStreamBuffer(chunks: Uint8Array[]) {
-    return {
-      write(chunk: Uint8Array) {
-        chunks.push(chunk);
-        return Promise.resolve();
-      },
-      close() {
-        return Promise.resolve();
-      }
-    };
-  }
-}
