@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { FolderOpen, Upload, Settings, Layers, Home, Globe } from "lucide-react";
+import { Home, Globe, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -10,8 +10,6 @@ const DashboardSidebar = () => {
   
   const menuItems = [
     { icon: Home, label: "Overview", path: "/dashboard" },
-    { icon: FolderOpen, label: "Files", path: "/dashboard/files" },
-    { icon: Upload, label: "Upload", path: "/dashboard/upload" },
     { icon: Globe, label: "My Sites", path: "/dashboard/sites" },
     { icon: Settings, label: "Settings", path: "/dashboard/settings" },
   ];
