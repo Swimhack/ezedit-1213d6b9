@@ -47,15 +47,11 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
 
   const formatDate = (dateString: string) => {
     try {
-      // First attempt to parse the date string to ensure it's valid
       const date = parseISO(dateString);
-      
-      // Check if the resulting date is valid before formatting
       if (isValid(date)) {
         return format(date, "MMM d, yyyy HH:mm");
       }
       
-      // For Unix timestamps or numeric dates
       const timestamp = Number(dateString);
       if (!isNaN(timestamp)) {
         const dateFromTimestamp = new Date(timestamp);
@@ -64,7 +60,6 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
         }
       }
       
-      // Fallback for invalid dates
       return "Invalid date";
     } catch (error) {
       console.error("Error formatting date:", error, "Date string:", dateString);
