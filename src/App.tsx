@@ -21,6 +21,7 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Roadmap from "./pages/Roadmap";
 import Support from "./pages/Support";
+import MySites from "@/pages/MySites";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/dashboard/upload" element={<Upload />} />
           <Route path="/dashboard/ftp" element={<FTPConnection />} />
           <Route path="/dashboard/settings" element={<Settings />} />
+          <Route path="/dashboard/sites" element={<MySites />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
