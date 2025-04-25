@@ -88,7 +88,12 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
 
     setIsTestingConnection(true);
     try {
-      const response = await fetch(`${window.location.origin}/api/ftp-test-connection`, {
+      // Ensure we're using the correct URL format
+      const apiUrl = `${window.location.origin}/api/ftp-test-connection`;
+      
+      console.log("Testing FTP connection:", apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -105,14 +110,22 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
       // Check if response is OK before trying to parse JSON
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} ${errorText}`);
+        console.error("Error response:", errorText);
+        throw new Error(`Server error: ${response.status} ${errorText.substring(0, 100)}...`);
       }
 
-      const result = await response.json();
-      if (result.success) {
-        toast.success("Connection successful!");
-      } else {
-        toast.error(`Connection failed: ${result.message}`);
+      try {
+        const result = await response.json();
+        if (result.success) {
+          toast.success("Connection successful!");
+        } else {
+          toast.error(`Connection failed: ${result.message}`);
+        }
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        const responseText = await response.text();
+        console.error("Response text:", responseText.substring(0, 200));
+        throw new Error("Invalid response format from server");
       }
     } catch (error: any) {
       toast.error(`Error testing connection: ${error.message}`);

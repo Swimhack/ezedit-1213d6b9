@@ -54,7 +54,9 @@ const MySites = () => {
 
   const handleTestConnection = async (connection: FtpConnection) => {
     try {
-      const response = await fetch(`${window.location.origin}/api/ftp-test-connection`, {
+      const apiUrl = `${window.location.origin}/api/ftp-test-connection`;
+      
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -68,6 +70,12 @@ const MySites = () => {
         }),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`Server error: ${response.status}`);
+      }
+
       const result = await response.json();
       if (result.success) {
         toast.success("Connection successful!");
@@ -79,6 +87,7 @@ const MySites = () => {
     } catch (error: any) {
       toast.error(`Error testing connection: ${error.message}`);
       setTestResults(prev => ({ ...prev, [connection.id]: false }));
+      console.error("Test connection error:", error);
     }
   };
 
