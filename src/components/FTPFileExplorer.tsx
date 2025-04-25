@@ -1,31 +1,44 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { 
-  DrawerContent, 
-  DrawerHeader, 
-  DrawerTitle, 
-  DrawerFooter,
-  DrawerClose
-} from "@/components/ui/drawer";
+import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { FTPFileList } from "./FTPFileList";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 import { FileItem } from "@/types/ftp";
+import { supabase } from "@/integrations/supabase/client";
+import { DiffModal } from "./DiffModal";
+import Editor from "@monaco-editor/react";
 
 interface FTPFileExplorerProps {
-  connection: any;
+  connection: {
+    id: string;
+    server_name: string;
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    root_directory: string | null;
+    web_url: string | null;
+    created_at: string;
+  };
   onClose: () => void;
 }
 
 const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
-  const [currentPath, setCurrentPath] = useState(connection.root_directory || '/');
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [fileList, setFileList] = useState<FileItem[]>([]);
+  const [currentPath, setCurrentPath] = useState<string>("/");
+  const [isLoading, setIsLoading] = useState(false);
+  const [editorValue, setEditorValue] = useState("");
+  const [currentFilePath, setCurrentFilePath] = useState("");
+  const [isEditorLoading, setIsEditorLoading] = useState(false);
+  const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
+  const [remoteCode, setRemoteCode] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
 
-  const fetchFiles = async (path: string) => {
+  const listDirectory = async (path: string = "/") => {
     setIsLoading(true);
     try {
       const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-list-directory`, {
@@ -44,63 +57,204 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(`Server error: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
-      if (result.success) {
-        setFiles(result.files);
+      const data = await response.json();
+      if (data.success) {
+        setFileList(data.files);
         setCurrentPath(path);
       } else {
-        throw new Error(result.message || 'Failed to fetch files');
+        toast.error(`Failed to list directory: ${data.message}`);
       }
     } catch (error: any) {
-      toast.error(`Error fetching files: ${error.message}`);
-      console.error("FTP file fetch error:", error);
-      setFiles([]);
+      toast.error(`Error listing directory: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchFiles(currentPath);
-  }, []);
+  const handleFileClick = async (file: FileItem) => {
+    if (file.isDirectory) {
+      await listDirectory(currentPath === "/" ? `/${file.name}` : `${currentPath}/${file.name}`);
+    } else {
+      setIsEditorLoading(true);
+      setCurrentFilePath(currentPath === "/" ? `/${file.name}` : `${currentPath}/${file.name}`);
+      try {
+        const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-download-file`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          },
+          body: JSON.stringify({
+            host: connection.host,
+            port: connection.port,
+            username: connection.username,
+            password: connection.password,
+            path: currentPath === "/" ? `/${file.name}` : `${currentPath}/${file.name}`
+          }),
+        });
 
-  const handleNavigate = (newPath: string) => {
-    fetchFiles(newPath);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          setEditorValue(atob(data.content));
+        } else {
+          toast.error(`Failed to download file: ${data.message}`);
+        }
+      } catch (error: any) {
+        toast.error(`Error downloading file: ${error.message}`);
+      } finally {
+        setIsEditorLoading(false);
+      }
+    }
   };
 
+  const handleSave = async () => {
+    try {
+      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-download-file`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: JSON.stringify({
+          host: connection.host,
+          port: connection.port,
+          username: connection.username,
+          password: connection.password,
+          path: currentFilePath
+        }),
+      });
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message);
+      }
+
+      setRemoteCode(atob(data.content));
+      setIsDiffModalOpen(true);
+    } catch (error: any) {
+      toast.error(`Failed to fetch remote file: ${error.message}`);
+    }
+  };
+
+  const handlePublish = async () => {
+    setIsPublishing(true);
+    try {
+      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-upload-file`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: JSON.stringify({
+          host: connection.host,
+          port: connection.port,
+          username: connection.username,
+          password: connection.password,
+          path: currentFilePath,
+          content: btoa(editorValue)
+        }),
+      });
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message);
+      }
+      setIsDiffModalOpen(false);
+      toast.success("File published successfully!");
+    } catch (error: any) {
+      toast.error(`Failed to publish file: ${error.message}`);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (connection) {
+      listDirectory();
+    }
+  }, [connection]);
+
   return (
-    <DrawerContent className="h-[85vh] max-h-[85vh]">
-      <DrawerHeader>
-        <DrawerTitle className="flex items-center justify-between">
-          <div className="flex-1 truncate">
-            Files: {connection.server_name}
+    <>
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-between p-4 border-b border-ezgray-dark">
+          <h2 className="text-lg font-semibold text-ezwhite">
+            {connection.server_name} Files
+          </h2>
+          <Button variant="outline" size="icon" onClick={onClose}>
+            <XCircle className="h-5 w-5" />
+            <span className="sr-only">Close</span>
+          </Button>
+        </div>
+
+        <div className="flex flex-col md:flex-row h-full">
+          <div className="w-full md:w-1/2 p-4 border-r border-ezgray-dark">
+            <h3 className="text-md font-semibold text-ezwhite mb-2">Files at: {currentPath}</h3>
+            <ScrollArea className="rounded-md border border-ezgray-dark h-[calc(100vh-200px)]">
+              {isLoading ? (
+                <div className="p-4 text-center text-ezgray">Loading files...</div>
+              ) : (
+                <div className="p-2">
+                  {fileList.map((file) => (
+                    <div
+                      key={file.name}
+                      className="flex items-center justify-between p-2 rounded hover:bg-eznavy cursor-pointer"
+                      onClick={() => handleFileClick(file)}
+                    >
+                      <span className="text-ezwhite">{file.name}</span>
+                      <span className="text-ezgray text-sm">{file.isDirectory ? "Directory" : `${file.size} bytes`}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
           </div>
-          <Badge className="bg-ezblue text-xs">Beta</Badge>
-        </DrawerTitle>
-      </DrawerHeader>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
-        <FTPFileList
-          currentPath={currentPath}
-          files={files}
-          onNavigate={handleNavigate}
-          isLoading={isLoading}
-        />
+          <div className="w-full md:w-1/2 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-md font-semibold text-ezwhite">File Content</h3>
+              <Button 
+                onClick={handleSave}
+                disabled={!currentFilePath} 
+                className="bg-ezblue hover:bg-ezblue/90"
+              >
+                Save
+              </Button>
+            </div>
+            {isEditorLoading ? (
+              <div className="text-ezgray">Loading editor...</div>
+            ) : (
+              <Editor
+                height="calc(100vh - 200px)"
+                theme="vs-dark"
+                value={editorValue}
+                onChange={setEditorValue}
+                options={{
+                  wordWrap: "on",
+                  minimap: { enabled: false },
+                  automaticLayout: true,
+                }}
+              />
+            )}
+          </div>
+        </div>
       </div>
-
-      <Separator className="my-2" />
-      
-      <DrawerFooter>
-        <DrawerClose asChild>
-          <Button variant="ghost" onClick={onClose}>Close</Button>
-        </DrawerClose>
-      </DrawerFooter>
-    </DrawerContent>
+      <DiffModal
+        isOpen={isDiffModalOpen}
+        onClose={() => setIsDiffModalOpen(false)}
+        onConfirm={handlePublish}
+        remoteCode={remoteCode}
+        localCode={editorValue}
+        isLoading={isPublishing}
+      />
+    </>
   );
 };
 
