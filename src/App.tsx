@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,12 @@ import Settings from "./pages/Settings";
 import Features from "./pages/Features";
 import Pricing from "./pages/Pricing";
 import Docs from "./pages/Docs";
+import Blog from "./pages/Blog";
+import About from "./pages/About";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Roadmap from "./pages/Roadmap";
+import Support from "./pages/Support";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +37,12 @@ const App = () => (
           <Route path="/features" element={<Features />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/docs" element={<Docs />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/roadmap" element={<Roadmap />} />
+          <Route path="/support" element={<Support />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/files" element={<Files />} />
           <Route path="/dashboard/upload" element={<Upload />} />

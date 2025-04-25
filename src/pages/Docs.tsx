@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -296,7 +295,7 @@ GET /v1/files?limit=25&offset=50`}
     {
       "type": "ftp.upload",
       "target": "production",
-      "files": ["${event.files}"]
+      "files": ["$\{event.data.files}"]
     },
     {
       "type": "notification.send",
