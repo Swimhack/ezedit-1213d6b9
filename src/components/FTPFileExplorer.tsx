@@ -7,6 +7,7 @@ import { useFileContent } from "@/hooks/use-file-content";
 import { FTPFileList } from "./FTPFileList";
 import { CodeEditor } from "./editor/CodeEditor";
 import { FileItem } from "@/types/ftp";
+import { toast } from "sonner";
 
 interface FTPFileExplorerProps {
   connection: {
@@ -26,7 +27,7 @@ interface FTPFileExplorerProps {
 const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const [currentPath, setCurrentPath] = useState<string>("/");
   const [currentFilePath, setCurrentFilePath] = useState("");
-  const { treeData, isLoading } = useFileTree({ connection });
+  const { treeData, isLoading, refreshDirectory } = useFileTree({ connection });
   const { 
     content, 
     isLoading: isFileLoading, 
@@ -39,8 +40,13 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     filePath: currentFilePath 
   });
 
-  const handleNavigate = (path: string) => {
+  const handleNavigate = async (path: string) => {
     setCurrentPath(path);
+    try {
+      await refreshDirectory(path);
+    } catch (error) {
+      toast.error(`Failed to navigate to ${path}: ${error.message}`);
+    }
   };
 
   const handleSelectFile = (filePath: string) => {
@@ -50,8 +56,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   // Convert flat treeData to FileItem[] for the current path
   const currentFiles: FileItem[] = treeData
     .filter(node => {
-      // Get parent path
-      const nodePath = node.path.substring(0, node.path.lastIndexOf('/') + 1);
+      const nodePath = node.path.split('/').slice(0, -1).join('/') + '/';
       return nodePath === currentPath;
     })
     .map(node => ({

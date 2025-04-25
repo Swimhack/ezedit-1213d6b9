@@ -69,20 +69,21 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         <button 
           onClick={() => onNavigate("/")}
-          className="text-sm hover:underline"
+          className="text-ezblue hover:underline"
         >
           Root
         </button>
         
         {pathParts.map((part, index) => (
           <div key={index} className="flex items-center">
-            <span className="mx-1">/</span>
+            <span className="mx-1 text-ezgray">/</span>
             <button
               onClick={() => handlePathClick(index)}
-              className="text-sm hover:underline"
+              className="text-ezblue hover:underline truncate max-w-[100px]"
+              title={part}
             >
               {part}
             </button>
@@ -90,10 +91,10 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
         ))}
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border border-ezgray-dark">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
               <TableHead>Name</TableHead>
               <TableHead>Size</TableHead>
               <TableHead>Modified</TableHead>
@@ -103,13 +104,15 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center">
-                  Loading...
+                <TableCell colSpan={4} className="text-center py-8">
+                  <div className="flex justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ezblue"></div>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : files.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center">
+                <TableCell colSpan={4} className="text-center py-8">
                   No files in this directory
                 </TableCell>
               </TableRow>
@@ -117,7 +120,7 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
               files.map((file) => (
                 <TableRow
                   key={file.name}
-                  className={file.isDirectory ? "cursor-pointer hover:bg-muted/50" : ""}
+                  className={file.isDirectory ? "cursor-pointer hover:bg-eznavy-light" : ""}
                   onClick={() => handleFileClick(file)}
                 >
                   <TableCell className="font-medium flex items-center">
@@ -126,7 +129,9 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
                     ) : (
                       <FileIcon className="h-4 w-4 mr-2 text-gray-500" />
                     )}
-                    {file.name}
+                    <span className="truncate max-w-[200px]" title={file.name}>
+                      {file.name}
+                    </span>
                   </TableCell>
                   <TableCell>
                     {file.isDirectory ? "--" : formatFileSize(file.size)}

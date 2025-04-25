@@ -33,6 +33,7 @@ export function useFileTree({ connection }: UseFileTreeProps) {
     
     setIsLoading(true);
     try {
+      console.log(`Fetching directory content for path: ${path}`);
       const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-list-directory`, {
         method: "POST",
         headers: {
@@ -44,30 +45,27 @@ export function useFileTree({ connection }: UseFileTreeProps) {
           port: connection.port,
           username: connection.username,
           password: connection.password,
-          path: path
+          path: path === "/" ? "/" : path
         }),
       });
 
       const data = await response.json();
+      console.log("Directory listing response:", data);
       
       if (data.success) {
-        if (path === "/") {
-          // Root directory
-          const rootTree = data.files.map((file: FileItem) => ({
-            name: file.name,
-            path: `/${file.name}${file.isDirectory ? '/' : ''}`,
-            isDirectory: file.isDirectory,
-            children: [],
-            isOpen: false,
-            isLoaded: false,
-            size: file.size,
-            modified: file.modified
-          }));
-          setTreeData(rootTree);
-        } else {
-          // Subdirectory - update the tree branch
-          updateTreeBranch(path, data.files);
-        }
+        // Create tree nodes from files
+        const nodes = data.files.map((file: FileItem) => ({
+          name: file.name,
+          path: `${path === "/" ? "" : path}/${file.name}${file.isDirectory ? "/" : ""}`.replace(/\/+/g, "/"),
+          isDirectory: file.isDirectory,
+          children: [],
+          isOpen: false,
+          isLoaded: false,
+          size: file.size,
+          modified: file.modified
+        }));
+        
+        setTreeData(nodes);
       } else {
         toast.error(`Failed to list directory: ${data.message}`);
       }
@@ -79,53 +77,9 @@ export function useFileTree({ connection }: UseFileTreeProps) {
     }
   };
 
-  const updateTreeBranch = (path: string, files: FileItem[]) => {
-    setTreeData(prevTree => {
-      const updateNode = (nodes: TreeNode[], currentPath: string): TreeNode[] => {
-        return nodes.map(node => {
-          if (node.path === currentPath) {
-            return {
-              ...node,
-              isLoaded: true,
-              children: files.map(file => ({
-                name: file.name,
-                path: `${currentPath}${file.name}${file.isDirectory ? '/' : ''}`,
-                isDirectory: file.isDirectory,
-                children: [],
-                isOpen: false,
-                isLoaded: false,
-                size: file.size,
-                modified: file.modified
-              }))
-            };
-          } else if (currentPath.startsWith(node.path) && node.children.length > 0) {
-            return {
-              ...node,
-              children: updateNode(node.children, currentPath)
-            };
-          }
-          return node;
-        });
-      };
-      
-      return updateNode(prevTree, path);
-    });
-  };
-
   const toggleDirectory = async (node: TreeNode) => {
     if (!node.isDirectory) return;
 
-    // If this is the first time opening this directory and it's not loaded yet
-    if (!node.isLoaded && !node.isOpen) {
-      try {
-        await fetchDirectoryContent(node.path);
-      } catch (error) {
-        console.error("Error toggling directory:", error);
-        return;
-      }
-    }
-    
-    // Toggle the isOpen state of the node
     setTreeData(prevTree => {
       const toggleNode = (nodes: TreeNode[]): TreeNode[] => {
         return nodes.map(n => {
@@ -143,6 +97,16 @@ export function useFileTree({ connection }: UseFileTreeProps) {
       
       return toggleNode(prevTree);
     });
+
+    // If not loaded yet, fetch the directory contents
+    if (!node.isLoaded) {
+      try {
+        // The node path already ends with a / for directories
+        await fetchDirectoryContent(node.path);
+      } catch (error) {
+        console.error("Error fetching directory contents:", error);
+      }
+    }
   };
 
   // Initial load of root directory

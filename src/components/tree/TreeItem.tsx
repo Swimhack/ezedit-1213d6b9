@@ -28,7 +28,7 @@ export function TreeItem({ node, activeFilePath, onToggle, onSelectFile }: TreeI
       } else {
         onSelectFile(node.path);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error(`Failed to open ${node.isDirectory ? 'directory' : 'file'}: ${error.message}`);
     }
   };
@@ -56,9 +56,9 @@ export function TreeItem({ node, activeFilePath, onToggle, onSelectFile }: TreeI
         )}
         <span className="text-sm truncate">{node.name}</span>
       </div>
-      {node.isDirectory && node.isOpen && (
+      {node.isDirectory && node.isOpen && node.children && (
         <ul className="pl-4 space-y-1">
-          {node.children && node.children.length > 0 ? (
+          {node.children.length > 0 ? (
             node.children.map((childNode) => (
               <TreeItem
                 key={childNode.path}
