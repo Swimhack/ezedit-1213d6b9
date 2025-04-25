@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,7 +14,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 171 100% 70%;
+    --primary: 199 100% 60%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -30,7 +31,7 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 171 100% 70%;
+    --ring: 199 100% 60%;
 
     --radius: 0.5rem;
   }
@@ -45,7 +46,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 171 70% 55%;
+    --primary: 199 85% 55%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -62,7 +63,7 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 171 70% 55%;
+    --ring: 199 85% 55%;
 
     --radius: 0.5rem;
   }
@@ -74,14 +75,14 @@
   }
 
   body {
-    @apply bg-eznavy text-ezwhite;
+    @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(to right, #64FFDA, #41D7B2);
+    background: linear-gradient(to right, #50C8FF, #2B95FF);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
