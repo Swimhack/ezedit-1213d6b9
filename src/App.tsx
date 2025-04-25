@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +12,7 @@ import Files from "./pages/Files";
 import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
 import FTPConnection from "./pages/FTPConnection";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +30,7 @@ const App = () => (
           <Route path="/dashboard/files" element={<Files />} />
           <Route path="/dashboard/upload" element={<Upload />} />
           <Route path="/dashboard/ftp" element={<FTPConnection />} />
+          <Route path="/dashboard/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
