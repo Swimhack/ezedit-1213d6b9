@@ -24,7 +24,13 @@ export function TreeItem({ node, activeFilePath, onToggle, onSelectFile }: TreeI
   const handleClick = async () => {
     try {
       if (node.isDirectory) {
-        await onToggle(node);
+        // Ensure path is valid before toggling
+        const nodePath = node.path || "/";
+        const nodeWithSafePath = {
+          ...node,
+          path: nodePath
+        };
+        await onToggle(nodeWithSafePath);
       } else {
         onSelectFile(node.path);
       }

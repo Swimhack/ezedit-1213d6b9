@@ -27,7 +27,10 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Attempting to list FTP directory for ${username}@${host}:${port}${path}`);
+    // Ensure path is never empty; default to root path "/"
+    const safePath = path?.trim() === "" ? "/" : path;
+
+    console.log(`Attempting to list FTP directory for ${username}@${host}:${port}${safePath}`);
 
     const client = new Client();
     try {
@@ -39,7 +42,7 @@ serve(async (req) => {
         secure: false
       });
 
-      const list = await client.list(path);
+      const list = await client.list(safePath);
       const files = list.map(item => ({
         name: item.name,
         size: item.size,

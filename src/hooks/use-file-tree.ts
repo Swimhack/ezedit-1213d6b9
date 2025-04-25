@@ -31,9 +31,12 @@ export function useFileTree({ connection }: UseFileTreeProps) {
   const fetchDirectoryContent = async (path: string) => {
     if (!connection) return;
     
+    // Ensure path is never empty; default to root path "/"
+    const safePath = path?.trim() === "" ? "/" : path;
+    
     setIsLoading(true);
     try {
-      console.log(`Fetching directory content for path: ${path}`);
+      console.log(`Fetching directory content for path: ${safePath}`);
       const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-list-directory`, {
         method: "POST",
         headers: {
@@ -45,7 +48,7 @@ export function useFileTree({ connection }: UseFileTreeProps) {
           port: connection.port,
           username: connection.username,
           password: connection.password,
-          path: path === "/" ? "/" : path
+          path: safePath
         }),
       });
 
@@ -56,7 +59,7 @@ export function useFileTree({ connection }: UseFileTreeProps) {
         // Create tree nodes from files
         const nodes = data.files.map((file: FileItem) => ({
           name: file.name,
-          path: `${path === "/" ? "" : path}/${file.name}${file.isDirectory ? "/" : ""}`.replace(/\/+/g, "/"),
+          path: `${safePath === "/" ? "" : safePath}/${file.name}${file.isDirectory ? "/" : ""}`.replace(/\/+/g, "/"),
           isDirectory: file.isDirectory,
           children: [],
           isOpen: false,
@@ -101,8 +104,9 @@ export function useFileTree({ connection }: UseFileTreeProps) {
     // If not loaded yet, fetch the directory contents
     if (!node.isLoaded) {
       try {
-        // The node path already ends with a / for directories
-        await fetchDirectoryContent(node.path);
+        // Ensure we're using a valid path
+        const safePath = node.path || "/";
+        await fetchDirectoryContent(safePath);
       } catch (error) {
         console.error("Error fetching directory contents:", error);
       }

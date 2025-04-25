@@ -25,6 +25,7 @@ interface FTPFileExplorerProps {
 }
 
 const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
+  // Ensure currentPath is initialized to "/" rather than empty string
   const [currentPath, setCurrentPath] = useState<string>("/");
   const [currentFilePath, setCurrentFilePath] = useState("");
   const { treeData, isLoading, refreshDirectory } = useFileTree({ connection });
@@ -41,16 +42,21 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   });
 
   const handleNavigate = async (path: string) => {
-    setCurrentPath(path);
+    // Ensure path is never empty
+    const safePath = path?.trim() === "" ? "/" : path;
+    setCurrentPath(safePath);
     try {
-      await refreshDirectory(path);
+      await refreshDirectory(safePath);
     } catch (error) {
-      toast.error(`Failed to navigate to ${path}: ${error.message}`);
+      toast.error(`Failed to navigate to ${safePath}: ${error.message}`);
     }
   };
 
   const handleSelectFile = (filePath: string) => {
-    setCurrentFilePath(filePath);
+    // Ensure filePath is valid before setting
+    if (filePath && filePath.trim() !== "") {
+      setCurrentFilePath(filePath);
+    }
   };
 
   // Convert flat treeData to FileItem[] for the current path
