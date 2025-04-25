@@ -7,6 +7,7 @@ interface TreeNode {
   isDirectory: boolean;
   children: TreeNode[];
   isOpen?: boolean;
+  isLoaded?: boolean;
   size?: number;
   modified?: string;
 }
@@ -50,17 +51,21 @@ export function TreeItem({ node, activeFilePath, onToggle, onSelectFile }: TreeI
         )}
         <span className="text-sm truncate">{node.name}</span>
       </div>
-      {node.isDirectory && node.isOpen && node.children.length > 0 && (
-        <ul className="pl-2 space-y-1">
-          {node.children.map((childNode) => (
-            <TreeItem
-              key={childNode.path}
-              node={childNode}
-              activeFilePath={activeFilePath}
-              onToggle={onToggle}
-              onSelectFile={onSelectFile}
-            />
-          ))}
+      {node.isDirectory && node.isOpen && (
+        <ul className="pl-4 space-y-1">
+          {node.children && node.children.length > 0 ? (
+            node.children.map((childNode) => (
+              <TreeItem
+                key={childNode.path}
+                node={childNode}
+                activeFilePath={activeFilePath}
+                onToggle={onToggle}
+                onSelectFile={onSelectFile}
+              />
+            ))
+          ) : (
+            <li className="text-xs text-gray-400 py-1 px-2">No files</li>
+          )}
         </ul>
       )}
     </li>

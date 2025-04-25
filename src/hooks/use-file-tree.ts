@@ -52,9 +52,10 @@ export function useFileTree({ connection }: UseFileTreeProps) {
       
       if (data.success) {
         if (path === "/") {
+          // Root directory
           const rootTree = data.files.map((file: FileItem) => ({
             name: file.name,
-            path: `/${file.name}`,
+            path: `/${file.name}${file.isDirectory ? '/' : ''}`,
             isDirectory: file.isDirectory,
             children: [],
             isOpen: false,
@@ -64,6 +65,7 @@ export function useFileTree({ connection }: UseFileTreeProps) {
           }));
           setTreeData(rootTree);
         } else {
+          // Subdirectory
           updateTreeBranch(path, data.files);
         }
       } else {
@@ -71,6 +73,7 @@ export function useFileTree({ connection }: UseFileTreeProps) {
       }
     } catch (error: any) {
       toast.error(`Error listing directory: ${error.message}`);
+      console.error("Directory listing error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -78,70 +81,69 @@ export function useFileTree({ connection }: UseFileTreeProps) {
 
   const updateTreeBranch = (path: string, files: FileItem[]) => {
     setTreeData(prevTree => {
-      const updateNode = (nodes: TreeNode[], pathParts: string[]): TreeNode[] => {
-        if (pathParts.length === 0 || (pathParts.length === 1 && pathParts[0] === "")) {
-          return nodes;
-        }
-        
-        const currentPart = pathParts[0];
-        const remainingParts = pathParts.slice(1);
-        
+      const updateNode = (nodes: TreeNode[], currentPath: string): TreeNode[] => {
         return nodes.map(node => {
-          if (node.name === currentPart) {
-            if (remainingParts.length === 0 || (remainingParts.length === 1 && remainingParts[0] === "")) {
-              return {
-                ...node,
-                isLoaded: true,
-                children: files.map(file => ({
-                  name: file.name,
-                  path: `${path}${path.endsWith('/') ? '' : '/'}${file.name}`,
-                  isDirectory: file.isDirectory,
-                  children: [],
-                  isOpen: false,
-                  isLoaded: false,
-                  size: file.size,
-                  modified: file.modified
-                }))
-              };
-            }
-            
+          if (node.path === currentPath) {
+            // This is the node we want to update
             return {
               ...node,
-              children: updateNode(node.children, remainingParts)
+              isLoaded: true,
+              children: files.map(file => ({
+                name: file.name,
+                path: `${currentPath}${file.name}${file.isDirectory ? '/' : ''}`,
+                isDirectory: file.isDirectory,
+                children: [],
+                isOpen: false,
+                isLoaded: false,
+                size: file.size,
+                modified: file.modified
+              }))
+            };
+          } else if (currentPath.startsWith(node.path) && node.children.length > 0) {
+            // The path we're looking for is deeper in this node's children
+            return {
+              ...node,
+              children: updateNode(node.children, currentPath)
             };
           }
+          // This node is not affected
           return node;
         });
       };
       
-      const pathParts = path.split('/').filter(Boolean);
-      return updateNode(prevTree, pathParts);
+      return updateNode(prevTree, path);
     });
   };
 
   const toggleDirectory = (node: TreeNode) => {
-    if (node.isDirectory) {
-      if (!node.isLoaded) {
-        fetchDirectoryContent(node.path);
-      }
-      
-      setTreeData(prevTree => {
-        const toggleNode = (nodes: TreeNode[]): TreeNode[] => {
-          return nodes.map(n => {
-            if (n.path === node.path) {
-              return { ...n, isOpen: !n.isOpen };
-            } else if (n.children.length > 0) {
-              return { ...n, children: toggleNode(n.children) };
-            }
-            return n;
-          });
-        };
-        
-        return toggleNode(prevTree);
-      });
+    if (!node.isDirectory) return;
+
+    // If this is the first time opening this directory, fetch its contents
+    if (!node.isLoaded && !node.isOpen) {
+      fetchDirectoryContent(node.path);
     }
+    
+    // Toggle the isOpen state of the node
+    setTreeData(prevTree => {
+      const toggleNode = (nodes: TreeNode[]): TreeNode[] => {
+        return nodes.map(n => {
+          if (n.path === node.path) {
+            return { ...n, isOpen: !n.isOpen };
+          }
+          
+          if (n.children && n.children.length > 0) {
+            return { ...n, children: toggleNode(n.children) };
+          }
+          
+          return n;
+        });
+      };
+      
+      return toggleNode(prevTree);
+    });
   };
 
+  // Initial load of root directory
   useEffect(() => {
     if (connection) {
       fetchDirectoryContent("/");
@@ -151,6 +153,7 @@ export function useFileTree({ connection }: UseFileTreeProps) {
   return {
     treeData,
     isLoading,
-    toggleDirectory
+    toggleDirectory,
+    refreshDirectory: fetchDirectoryContent
   };
 }

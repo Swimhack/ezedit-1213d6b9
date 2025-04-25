@@ -22,9 +22,13 @@ export default function FileTree({ connection, onSelectFile, activeFilePath }: F
   return (
     <div className="h-full">
       <ScrollArea className="h-[calc(100vh-180px)]">
-        {isLoading && treeData.length === 0 ? (
+        {isLoading ? (
           <div className="flex justify-center items-center h-20">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ezblue"></div>
+          </div>
+        ) : treeData.length === 0 ? (
+          <div className="text-center py-6 text-ezgray">
+            No files found
           </div>
         ) : (
           <ul className="pl-2 space-y-1">

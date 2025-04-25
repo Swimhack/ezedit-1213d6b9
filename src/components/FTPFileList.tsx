@@ -69,24 +69,26 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
 
   return (
     <div className="space-y-4">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink onClick={() => onNavigate("/")}>
-              Root
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          
-          {pathParts.map((part, index) => (
-            <BreadcrumbItem key={index}>
-              <BreadcrumbSeparator />
-              <BreadcrumbLink onClick={() => handlePathClick(index)}>
-                {part}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-          ))}
-        </BreadcrumbList>
-      </Breadcrumb>
+      <div className="flex items-center gap-2">
+        <button 
+          onClick={() => onNavigate("/")}
+          className="text-sm hover:underline"
+        >
+          Root
+        </button>
+        
+        {pathParts.map((part, index) => (
+          <div key={index} className="flex items-center">
+            <span className="mx-1">/</span>
+            <button
+              onClick={() => handlePathClick(index)}
+              className="text-sm hover:underline"
+            >
+              {part}
+            </button>
+          </div>
+        ))}
+      </div>
 
       <div className="rounded-md border">
         <Table>

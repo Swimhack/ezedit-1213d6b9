@@ -43,14 +43,24 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     setCurrentPath(path);
   };
 
-  // Convert treeData to FileItem[] for the current path
-  const currentFiles: FileItem[] = treeData.map((node) => ({
-    name: node.name,
-    size: 0, // Default size for directories
-    modified: new Date().toISOString(), // Default modification time
-    type: node.isDirectory ? "directory" : "file",
-    isDirectory: node.isDirectory,
-  }));
+  const handleSelectFile = (filePath: string) => {
+    setCurrentFilePath(filePath);
+  };
+
+  // Convert flat treeData to FileItem[] for the current path
+  const currentFiles: FileItem[] = treeData
+    .filter(node => {
+      // Get parent path
+      const nodePath = node.path.substring(0, node.path.lastIndexOf('/') + 1);
+      return nodePath === currentPath;
+    })
+    .map(node => ({
+      name: node.name,
+      size: node.size || 0,
+      modified: node.modified || new Date().toISOString(),
+      type: node.isDirectory ? "directory" : "file",
+      isDirectory: node.isDirectory,
+    }));
 
   return (
     <div className="flex flex-col h-full">
@@ -76,17 +86,25 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
 
         <div className="w-full md:w-1/2 p-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-md font-semibold text-ezwhite">File Content</h3>
+            <h3 className="text-md font-semibold text-ezwhite">
+              {currentFilePath ? currentFilePath.split('/').pop() || 'File Content' : 'File Content'}
+            </h3>
             <Button 
               onClick={saveContent}
-              disabled={!currentFilePath || isSaving} 
+              disabled={!currentFilePath || isSaving || !hasUnsavedChanges} 
               className="bg-ezblue hover:bg-ezblue/90"
             >
               {isSaving ? 'Saving...' : 'Save'}
             </Button>
           </div>
-          {isFileLoading ? (
-            <div className="text-ezgray">Loading editor...</div>
+          {!currentFilePath ? (
+            <div className="flex items-center justify-center h-64 text-ezgray border border-dashed border-ezgray-dark rounded-md">
+              Select a file to view its contents
+            </div>
+          ) : isFileLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ezblue"></div>
+            </div>
           ) : (
             <CodeEditor
               content={content}
