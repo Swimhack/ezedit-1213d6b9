@@ -13,14 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { FTPFileList } from "./FTPFileList";
-
-interface FileItem {
-  name: string;
-  type: string;
-  size: number;
-  modified: string;
-  isDirectory: boolean;
-}
+import { FileItem } from "@/types/ftp";
 
 interface FTPFileExplorerProps {
   connection: any;

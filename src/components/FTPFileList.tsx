@@ -19,14 +19,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-
-interface FileItem {
-  name: string;
-  size: number;
-  modified: string;
-  type: "directory" | "file";
-  isDirectory: boolean;
-}
+import { FileItem } from "@/types/ftp";
 
 interface FTPFileListProps {
   currentPath: string;
