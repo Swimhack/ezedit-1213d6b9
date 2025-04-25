@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,10 +45,13 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const loadDirectory = async (path: string) => {
     setIsLoading(true);
     try {
+      console.log(`Loading directory: ${path}`);
       const files = await listDirectory(connection, path);
+      console.log(`Loaded ${files.length} files from ${path}`);
       setFiles(files);
       setCurrentPath(path);
     } catch (error: any) {
+      console.error("Directory loading error:", error);
       toast.error(error.message);
     } finally {
       setIsLoading(false);

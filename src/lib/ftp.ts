@@ -23,6 +23,12 @@ export async function listDirectory(connection: {
 
     if (error) throw error;
 
+    // Check if data.files exists (as expected from the edge function)
+    if (!data || !data.files) {
+      console.error("Unexpected response format:", data);
+      return [];
+    }
+
     // Map FTP response to react-file-browser schema
     return (data.files as FileItem[]).map(file => ({
       key: `${cleanPath === '/' ? '' : cleanPath}${file.name}${file.isDirectory ? '/' : ''}`,
