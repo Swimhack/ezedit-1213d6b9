@@ -88,8 +88,8 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
 
     setIsTestingConnection(true);
     try {
-      // Ensure we're using the correct URL format
-      const apiUrl = `${window.location.origin}/api/ftp-test-connection`;
+      // Update to use the correct Supabase edge function URL
+      const apiUrl = `https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-test-connection`;
       
       console.log("Testing FTP connection:", apiUrl);
       

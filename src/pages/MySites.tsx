@@ -54,7 +54,8 @@ const MySites = () => {
 
   const handleTestConnection = async (connection: FtpConnection) => {
     try {
-      const apiUrl = `${window.location.origin}/api/ftp-test-connection`;
+      // Update the API endpoint to use the Supabase edge function URL
+      const apiUrl = `https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-test-connection`;
       
       const response = await fetch(apiUrl, {
         method: "POST",
