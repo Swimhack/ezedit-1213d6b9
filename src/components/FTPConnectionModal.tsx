@@ -31,30 +31,35 @@ type FormValues = {
   port: number;
   username: string;
   password: string;
-  root_directory: string;
-  web_url: string;
+  root_directory?: string;
+  web_url?: string;
 };
 
 const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConnectionModalProps) => {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Initialize form with connection data, handling the password specially
   const { register, handleSubmit, formState: { errors }, getValues, reset } = useForm<FormValues>({
-    defaultValues: {
-      server_name: editConnection?.server_name || "",
-      host: editConnection?.host || "",
-      port: editConnection?.port || 21,
-      username: editConnection?.username || "",
-      password: editConnection ? "••••••••" : "",
-      root_directory: editConnection?.root_directory || "",
-      web_url: editConnection?.web_url || "",
+    defaultValues: editConnection ? {
+      ...editConnection,
+      password: '', // Clear password field initially
+      root_directory: editConnection.root_directory || '',
+      web_url: editConnection.web_url || '',
+    } : {
+      server_name: '',
+      host: '',
+      port: 21,
+      username: '',
+      password: '',
+      root_directory: '',
+      web_url: '',
     }
   });
 
   const onSubmit = async (data: FormValues) => {
     setIsSaving(true);
     try {
-      // Get the current user's ID
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session?.user) {
         throw new Error("User not authenticated");
@@ -62,17 +67,18 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
       
       const user_id = sessionData.session.user.id;
       
-      // If we're editing and the password is masked, don't update it
-      if (editConnection && data.password === "••••••••") {
-        delete data.password;
-      }
+      // If editing and password is empty, use the existing password
+      const finalData = {
+        ...data,
+        password: data.password || (editConnection?.password || ''),
+      };
 
       const { error } = await supabase
         .from("ftp_connections")
         .upsert({
           id: editConnection?.id,
           user_id,
-          ...data,
+          ...finalData,
           updated_at: new Date().toISOString(),
         });
 
@@ -90,19 +96,14 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
 
   const handleTestConnection = async () => {
     const values = getValues();
-    if (!values.host || !values.username || !values.password) {
-      toast.error("Please fill in host, username, and password fields");
+    if (!values.host || !values.username) {
+      toast.error("Please fill in host and username fields");
       return;
     }
 
     setIsTestingConnection(true);
     try {
-      // Update to use the correct Supabase edge function URL
-      const apiUrl = `https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-test-connection`;
-      
-      console.log("Testing FTP connection:", apiUrl);
-      
-      const response = await fetch(apiUrl, {
+      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-test-connection`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -112,29 +113,21 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
           host: values.host,
           port: values.port || 21,
           username: values.username,
-          password: values.password === "••••••••" ? editConnection?.password : values.password
+          // If editing and password field is empty, use existing password
+          password: values.password || (editConnection?.password || '')
         }),
       });
       
-      // Check if response is OK before trying to parse JSON
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(`Server error: ${response.status} ${errorText.substring(0, 100)}...`);
+        throw new Error(`Server error: ${response.status} ${errorText}`);
       }
 
-      try {
-        const result = await response.json();
-        if (result.success) {
-          toast.success("Connection successful!");
-        } else {
-          toast.error(`Connection failed: ${result.message}`);
-        }
-      } catch (parseError) {
-        console.error("JSON parse error:", parseError);
-        const responseText = await response.text();
-        console.error("Response text:", responseText.substring(0, 200));
-        throw new Error("Invalid response format from server");
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Connection successful!");
+      } else {
+        toast.error(`Connection failed: ${result.message}`);
       }
     } catch (error: any) {
       toast.error(`Error testing connection: ${error.message}`);
@@ -197,12 +190,12 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
           </div>
           
           <div className="space-y-1">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Password {editConnection && "(leave empty to keep current password)"}</Label>
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
-              {...register("password", { required: !editConnection && "Password is required" })}
+              placeholder={editConnection ? "••••••••" : "Enter password"}
+              {...register("password", { required: !editConnection })}
             />
             {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
           </div>
