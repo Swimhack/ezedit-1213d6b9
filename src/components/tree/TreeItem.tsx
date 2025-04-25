@@ -7,6 +7,8 @@ interface TreeNode {
   isDirectory: boolean;
   children: TreeNode[];
   isOpen?: boolean;
+  size?: number;
+  modified?: string;
 }
 
 interface TreeItemProps {

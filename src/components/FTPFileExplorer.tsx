@@ -6,6 +6,7 @@ import { useFileTree } from "@/hooks/use-file-tree";
 import { useFileContent } from "@/hooks/use-file-content";
 import { FTPFileList } from "./FTPFileList";
 import { CodeEditor } from "./editor/CodeEditor";
+import { FileItem } from "@/types/ftp";
 
 interface FTPFileExplorerProps {
   connection: {
@@ -25,7 +26,7 @@ interface FTPFileExplorerProps {
 const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const [currentPath, setCurrentPath] = useState<string>("/");
   const [currentFilePath, setCurrentFilePath] = useState("");
-  const { treeData: files, isLoading } = useFileTree({ connection });
+  const { treeData, isLoading } = useFileTree({ connection });
   const { 
     content, 
     isLoading: isFileLoading, 
@@ -41,6 +42,15 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const handleNavigate = (path: string) => {
     setCurrentPath(path);
   };
+
+  // Convert treeData to FileItem[] for the current path
+  const currentFiles: FileItem[] = treeData.map((node) => ({
+    name: node.name,
+    size: 0, // Default size for directories
+    modified: new Date().toISOString(), // Default modification time
+    type: node.isDirectory ? "directory" : "file",
+    isDirectory: node.isDirectory,
+  }));
 
   return (
     <div className="flex flex-col h-full">
@@ -58,7 +68,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
         <div className="w-full md:w-1/2 p-4 border-r border-ezgray-dark">
           <FTPFileList
             currentPath={currentPath}
-            files={files}
+            files={currentFiles}
             onNavigate={handleNavigate}
             isLoading={isLoading}
           />

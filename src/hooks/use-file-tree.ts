@@ -11,6 +11,8 @@ interface TreeNode {
   children: TreeNode[];
   isOpen?: boolean;
   isLoaded?: boolean;
+  size?: number;
+  modified?: string;
 }
 
 interface UseFileTreeProps {
@@ -56,7 +58,9 @@ export function useFileTree({ connection }: UseFileTreeProps) {
             isDirectory: file.isDirectory,
             children: [],
             isOpen: false,
-            isLoaded: false
+            isLoaded: false,
+            size: file.size,
+            modified: file.modified
           }));
           setTreeData(rootTree);
         } else {
@@ -94,7 +98,9 @@ export function useFileTree({ connection }: UseFileTreeProps) {
                   isDirectory: file.isDirectory,
                   children: [],
                   isOpen: false,
-                  isLoaded: false
+                  isLoaded: false,
+                  size: file.size,
+                  modified: file.modified
                 }))
               };
             }
