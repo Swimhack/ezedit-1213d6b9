@@ -2,11 +2,11 @@
 import { useState } from "react";
 import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useFileTree } from "@/hooks/use-file-tree";
-import { useFileContent } from "@/hooks/use-file-content";
-import { FTPFileList } from "./FTPFileList";
+import FileBrowser from "react-keyed-file-browser";
+import "react-keyed-file-browser/dist/react-keyed-file-browser.css";
 import { CodeEditor } from "./editor/CodeEditor";
-import { FileItem } from "@/types/ftp";
+import { listDirectory } from "@/lib/ftp";
+import { useFileContent } from "@/hooks/use-file-content";
 import { toast } from "sonner";
 
 interface FTPFileExplorerProps {
@@ -25,10 +25,11 @@ interface FTPFileExplorerProps {
 }
 
 const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
-  // Ensure currentPath is initialized to "/" rather than empty string
   const [currentPath, setCurrentPath] = useState<string>("/");
   const [currentFilePath, setCurrentFilePath] = useState("");
-  const { treeData, isLoading, refreshDirectory } = useFileTree({ connection });
+  const [files, setFiles] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
   const { 
     content, 
     isLoading: isFileLoading, 
@@ -41,37 +42,29 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     filePath: currentFilePath 
   });
 
-  const handleNavigate = async (path: string) => {
-    // Ensure path is never empty
-    const safePath = path?.trim() === "" ? "/" : path;
-    setCurrentPath(safePath);
+  const loadDirectory = async (path: string) => {
+    setIsLoading(true);
     try {
-      await refreshDirectory(safePath);
-    } catch (error) {
-      toast.error(`Failed to navigate to ${safePath}: ${error.message}`);
+      const files = await listDirectory(connection, path);
+      setFiles(files);
+      setCurrentPath(path);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSelectFile = (filePath: string) => {
-    // Ensure filePath is valid before setting
-    if (filePath && filePath.trim() !== "") {
-      setCurrentFilePath(filePath);
+  // Initial load
+  useState(() => {
+    loadDirectory("/");
+  }, [connection]);
+
+  const handleSelectFile = (file: { key: string; isDir: boolean }) => {
+    if (!file.isDir) {
+      setCurrentFilePath(file.key);
     }
   };
-
-  // Convert flat treeData to FileItem[] for the current path
-  const currentFiles: FileItem[] = treeData
-    .filter(node => {
-      const nodePath = node.path.split('/').slice(0, -1).join('/') + '/';
-      return nodePath === currentPath;
-    })
-    .map(node => ({
-      name: node.name,
-      size: node.size || 0,
-      modified: node.modified || new Date().toISOString(),
-      type: node.isDirectory ? "directory" : "file",
-      isDirectory: node.isDirectory,
-    }));
 
   return (
     <div className="flex flex-col h-full">
@@ -87,12 +80,19 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
 
       <div className="flex flex-col md:flex-row h-full">
         <div className="w-full md:w-1/2 p-4 border-r border-ezgray-dark">
-          <FTPFileList
-            currentPath={currentPath}
-            files={currentFiles}
-            onNavigate={handleNavigate}
-            isLoading={isLoading}
-          />
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ezblue"></div>
+            </div>
+          ) : (
+            <FileBrowser
+              files={files}
+              onNavigate={(path) => loadDirectory(path)}
+              onSelectFile={handleSelectFile}
+              headerRenderer={() => null}
+              className="text-ezwhite"
+            />
+          )}
         </div>
 
         <div className="w-full md:w-1/2 p-4">

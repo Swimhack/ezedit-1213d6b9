@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -88,4 +87,25 @@
     -webkit-text-fill-color: transparent;
     text-fill-color: transparent;
   }
+}
+
+/* File Browser Dark Theme Overrides */
+.ReactFileButton {
+  color: hsl(var(--foreground)) !important;
+}
+
+.ReactFileButton:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+.ReactFileBrowser__breadcrumbs {
+  color: hsl(var(--foreground)) !important;
+}
+
+.ReactFileBrowser__files {
+  background-color: transparent !important;
+}
+
+.ReactFileBrowser__file-icon {
+  color: hsl(var(--foreground)) !important;
 }
