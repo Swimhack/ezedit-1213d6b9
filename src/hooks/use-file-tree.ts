@@ -65,7 +65,7 @@ export function useFileTree({ connection }: UseFileTreeProps) {
           }));
           setTreeData(rootTree);
         } else {
-          // Subdirectory
+          // Subdirectory - update the tree branch
           updateTreeBranch(path, data.files);
         }
       } else {
@@ -84,7 +84,6 @@ export function useFileTree({ connection }: UseFileTreeProps) {
       const updateNode = (nodes: TreeNode[], currentPath: string): TreeNode[] => {
         return nodes.map(node => {
           if (node.path === currentPath) {
-            // This is the node we want to update
             return {
               ...node,
               isLoaded: true,
@@ -100,13 +99,11 @@ export function useFileTree({ connection }: UseFileTreeProps) {
               }))
             };
           } else if (currentPath.startsWith(node.path) && node.children.length > 0) {
-            // The path we're looking for is deeper in this node's children
             return {
               ...node,
               children: updateNode(node.children, currentPath)
             };
           }
-          // This node is not affected
           return node;
         });
       };
@@ -115,12 +112,17 @@ export function useFileTree({ connection }: UseFileTreeProps) {
     });
   };
 
-  const toggleDirectory = (node: TreeNode) => {
+  const toggleDirectory = async (node: TreeNode) => {
     if (!node.isDirectory) return;
 
-    // If this is the first time opening this directory, fetch its contents
+    // If this is the first time opening this directory and it's not loaded yet
     if (!node.isLoaded && !node.isOpen) {
-      fetchDirectoryContent(node.path);
+      try {
+        await fetchDirectoryContent(node.path);
+      } catch (error) {
+        console.error("Error toggling directory:", error);
+        return;
+      }
     }
     
     // Toggle the isOpen state of the node

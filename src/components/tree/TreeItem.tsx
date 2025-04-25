@@ -1,5 +1,6 @@
 
 import { ChevronRight, ChevronDown, FolderIcon, FileIcon } from "lucide-react";
+import { toast } from "sonner";
 
 interface TreeNode {
   name: string;
@@ -20,11 +21,15 @@ interface TreeItemProps {
 }
 
 export function TreeItem({ node, activeFilePath, onToggle, onSelectFile }: TreeItemProps) {
-  const handleClick = () => {
-    if (node.isDirectory) {
-      onToggle(node);
-    } else {
-      onSelectFile(node.path);
+  const handleClick = async () => {
+    try {
+      if (node.isDirectory) {
+        await onToggle(node);
+      } else {
+        onSelectFile(node.path);
+      }
+    } catch (error) {
+      toast.error(`Failed to open ${node.isDirectory ? 'directory' : 'file'}: ${error.message}`);
     }
   };
 
