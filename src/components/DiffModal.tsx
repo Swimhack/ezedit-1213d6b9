@@ -42,10 +42,10 @@ export function DiffModal({
             modified={localCode}
             options={{
               readOnly: true,
-              renderSideBySide: true,
               minimap: { enabled: false }
             }}
             onMount={handleEditorDidMount}
+            defaultLanguage="javascript"
           />
         </div>
 
