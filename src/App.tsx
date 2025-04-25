@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Files from "./pages/Files";
 import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
+import FTPConnection from "./pages/FTPConnection";
 
 const queryClient = new QueryClient();
 
@@ -27,7 +27,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/files" element={<Files />} />
           <Route path="/dashboard/upload" element={<Upload />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/dashboard/ftp" element={<FTPConnection />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
