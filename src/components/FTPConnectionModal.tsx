@@ -45,6 +45,14 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
   const onSubmit = async (data: FormValues) => {
     setIsSaving(true);
     try {
+      // Get the current user's ID
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.user) {
+        throw new Error("User not authenticated");
+      }
+      
+      const user_id = sessionData.session.user.id;
+      
       // If we're editing and the password is masked, don't update it
       if (editConnection && data.password === "••••••••") {
         delete data.password;
@@ -54,6 +62,7 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
         .from("ftp_connections")
         .upsert({
           id: editConnection?.id,
+          user_id,
           ...data,
           updated_at: new Date().toISOString(),
         });
@@ -92,6 +101,12 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
           password: values.password === "••••••••" ? editConnection?.password : values.password
         }),
       });
+      
+      // Check if response is OK before trying to parse JSON
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} ${errorText}`);
+      }
 
       const result = await response.json();
       if (result.success) {
@@ -101,6 +116,7 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
       }
     } catch (error: any) {
       toast.error(`Error testing connection: ${error.message}`);
+      console.error("FTP test connection error:", error);
     } finally {
       setIsTestingConnection(false);
     }

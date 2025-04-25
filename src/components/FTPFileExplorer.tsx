@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { 
   Folder, 
   File, 

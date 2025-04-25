@@ -14,42 +14,79 @@ serve(async (req) => {
   }
 
   try {
-    const { host, port, username, password } = await req.json()
+    // Parse JSON body with error handling
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (error) {
+      console.error("Error parsing request JSON:", error);
+      return new Response(
+        JSON.stringify({ success: false, message: "Invalid JSON in request body" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
     
-    const client = new Client()
-    client.ftp.verbose = true
+    const { host, port, username, password } = requestBody;
+    
+    // Validate required fields
+    if (!host || !username || !password) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "Missing required fields: host, username, or password" 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    console.log(`Attempting FTP connection to: ${host}:${port || 21}`);
+    
+    const client = new Client();
+    client.ftp.verbose = true;
     
     try {
       await client.access({
         host,
-        port,
+        port: port || 21,
         user: username,
         password,
         secure: false
-      })
+      });
+      
+      console.log("FTP connection successful");
       
       return new Response(
         JSON.stringify({ success: true, message: 'Connection successful' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      );
     } catch (error) {
+      console.error("FTP connection error:", error.message);
+      
       return new Response(
         JSON.stringify({ success: false, message: error.message }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      )
+      );
     } finally {
-      client.close()
+      client.close();
     }
   } catch (error) {
+    console.error("Unhandled error:", error);
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ success: false, error: error.message }),
       { 
-        status: 400,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    )
+    );
   }
 })
