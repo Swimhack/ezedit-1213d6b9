@@ -13,7 +13,16 @@ interface FTPConnectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
-  editConnection?: any;
+  editConnection?: {
+    id: string;
+    server_name: string;
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    root_directory: string | null;
+    web_url: string | null;
+  };
 }
 
 type FormValues = {
@@ -232,7 +241,7 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
               </Button>
               <Button type="submit" disabled={isSaving} className="bg-ezblue hover:bg-ezblue/90">
                 {isSaving && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-                Save Connection
+                {editConnection ? 'Update Connection' : 'Save Connection'}
               </Button>
             </div>
           </DialogFooter>

@@ -1,5 +1,5 @@
 
-import { ExternalLink, Check, X } from "lucide-react";
+import { ExternalLink, Check, X, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,13 +10,15 @@ interface FTPConnectionCardProps {
   testResult: boolean | undefined;
   onTest: () => void;
   onViewFiles: () => void;
+  onEdit: () => void;
 }
 
 export function FTPConnectionCard({ 
   connection, 
   testResult, 
   onTest, 
-  onViewFiles 
+  onViewFiles,
+  onEdit
 }: FTPConnectionCardProps) {
   return (
     <Card className="border-ezgray-dark bg-eznavy">
@@ -64,6 +66,15 @@ export function FTPConnectionCard({
             size="sm"
           >
             View Files
+          </Button>
+          <Button
+            onClick={onEdit}
+            variant="outline"
+            size="sm"
+            className="border-ezgray-dark hover:bg-eznavy-light"
+          >
+            <Settings size={14} className="mr-1" />
+            Edit Settings
           </Button>
         </div>
       </CardContent>

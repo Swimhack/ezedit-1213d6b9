@@ -9,10 +9,11 @@ import FTPFileExplorer from "@/components/FTPFileExplorer";
 import { FTPConnectionCard } from "@/components/FTPConnectionCard";
 import { FTPPageHeader } from "@/components/FTPPageHeader";
 import { useFTPConnections } from "@/hooks/use-ftp-connections";
-import type { FtpConnection } from "@/hooks/use-ftp-connections"; // Add this import
+import type { FtpConnection } from "@/hooks/use-ftp-connections";
 
 const MySites = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingConnection, setEditingConnection] = useState<FtpConnection | null>(null);
   const [activeConnection, setActiveConnection] = useState<FtpConnection | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { connections, isLoading, testResults, fetchConnections, handleTestConnection } = useFTPConnections();
@@ -20,6 +21,7 @@ const MySites = () => {
   const handleSaveConnection = () => {
     fetchConnections();
     setIsModalOpen(false);
+    setEditingConnection(null);
   };
 
   const handleOpenFileExplorer = (connection: FtpConnection) => {
@@ -27,15 +29,27 @@ const MySites = () => {
     setIsDrawerOpen(true);
   };
 
+  const handleEdit = (connection: FtpConnection) => {
+    setEditingConnection(connection);
+    setIsModalOpen(true);
+  };
+
   return (
     <DashboardLayout>
       <div className="container py-6 space-y-6">
-        <FTPPageHeader onConnect={() => setIsModalOpen(true)} />
+        <FTPPageHeader onConnect={() => {
+          setEditingConnection(null);
+          setIsModalOpen(true);
+        }} />
 
         <FTPConnectionModal 
           isOpen={isModalOpen} 
-          onClose={() => setIsModalOpen(false)} 
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingConnection(null);
+          }} 
           onSave={handleSaveConnection}
+          editConnection={editingConnection}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -61,6 +75,7 @@ const MySites = () => {
                 testResult={testResults[connection.id]}
                 onTest={() => handleTestConnection(connection)}
                 onViewFiles={() => handleOpenFileExplorer(connection)}
+                onEdit={() => handleEdit(connection)}
               />
             ))
           )}
