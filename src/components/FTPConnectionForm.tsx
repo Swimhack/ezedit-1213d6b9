@@ -1,118 +1,111 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
 
-interface FTPCredentials {
+export interface FTPConnectionFormData {
+  server_name: string;
   host: string;
+  port: number;
   username: string;
   password: string;
-  port: number;
+  root_directory?: string;
+  web_url?: string;
 }
 
-const FTPConnectionForm = () => {
-  const [credentials, setCredentials] = useState<FTPCredentials>({
-    host: "",
-    username: "",
-    password: "",
-    port: 21,
-  });
-  const [isConnecting, setIsConnecting] = useState(false);
+interface FTPConnectionFormProps {
+  defaultValues: Partial<FTPConnectionFormData>;
+  isEditing: boolean;
+  children: React.ReactNode;
+  onSubmit: (data: FTPConnectionFormData) => void;
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsConnecting(true);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast.error("Please login to use FTP connections");
-        return;
-      }
-
-      const response = await supabase.functions.invoke('ftp-connect', {
-        body: credentials
-      });
-
-      if (response.data.success) {
-        toast.success("Connected to FTP server successfully");
-        // Save credentials if connection was successful
-        await supabase.from('ftp_credentials').insert({
-          host: credentials.host,
-          username: credentials.username,
-          password: credentials.password,
-          port: credentials.port,
-          user_id: session.user.id // Add the user_id field
-        });
-      } else {
-        toast.error(`Connection failed: ${response.data.error}`);
-      }
-    } catch (error: any) {
-      toast.error(`Error: ${error.message}`);
-    } finally {
-      setIsConnecting(false);
+export function FTPConnectionFormFields({ 
+  defaultValues,
+  isEditing,
+  children,
+  onSubmit 
+}: FTPConnectionFormProps) {
+  const { register, handleSubmit, formState: { errors } } = useForm<FTPConnectionFormData>({
+    defaultValues: {
+      port: 21,
+      ...defaultValues,
+      password: '', // Clear password field initially when editing
     }
-  };
+  });
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto p-6 bg-eznavy-light rounded-lg border border-ezgray-dark">
-      <h2 className="text-xl font-semibold text-ezwhite mb-4">FTP Connection</h2>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-1">
+        <Label htmlFor="server_name">Site Name</Label>
+        <Input
+          id="server_name"
+          placeholder="My Website"
+          {...register("server_name", { required: "Site name is required" })}
+        />
+        {errors.server_name && <p className="text-xs text-red-500">{errors.server_name.message}</p>}
+      </div>
       
-      <div>
+      <div className="space-y-1">
+        <Label htmlFor="host">FTP Host</Label>
         <Input
-          type="text"
-          placeholder="FTP Host"
-          value={credentials.host}
-          onChange={(e) => setCredentials(prev => ({ ...prev, host: e.target.value }))}
-          className="bg-eznavy border-ezgray-dark text-ezwhite"
-          required
+          id="host"
+          placeholder="ftp.example.com"
+          {...register("host", { required: "FTP host is required" })}
         />
+        {errors.host && <p className="text-xs text-red-500">{errors.host.message}</p>}
       </div>
-
-      <div>
+      
+      <div className="space-y-1">
+        <Label htmlFor="port">Port</Label>
         <Input
-          type="text"
-          placeholder="Username"
-          value={credentials.username}
-          onChange={(e) => setCredentials(prev => ({ ...prev, username: e.target.value }))}
-          className="bg-eznavy border-ezgray-dark text-ezwhite"
-          required
-        />
-      </div>
-
-      <div>
-        <Input
-          type="password"
-          placeholder="Password"
-          value={credentials.password}
-          onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
-          className="bg-eznavy border-ezgray-dark text-ezwhite"
-          required
-        />
-      </div>
-
-      <div>
-        <Input
+          id="port"
           type="number"
-          placeholder="Port (default: 21)"
-          value={credentials.port}
-          onChange={(e) => setCredentials(prev => ({ ...prev, port: parseInt(e.target.value) }))}
-          className="bg-eznavy border-ezgray-dark text-ezwhite"
+          placeholder="21"
+          {...register("port", { valueAsNumber: true })}
+        />
+      </div>
+      
+      <div className="space-y-1">
+        <Label htmlFor="username">Username</Label>
+        <Input
+          id="username"
+          placeholder="ftpuser"
+          {...register("username", { required: "Username is required" })}
+        />
+        {errors.username && <p className="text-xs text-red-500">{errors.username.message}</p>}
+      </div>
+      
+      <div className="space-y-1">
+        <Label htmlFor="password">Password {isEditing && "(leave empty to keep current password)"}</Label>
+        <Input
+          id="password"
+          type="password"
+          placeholder={isEditing ? "••••••••" : "Enter password"}
+          {...register("password", { required: !isEditing })}
+        />
+        {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+      </div>
+      
+      <div className="space-y-1">
+        <Label htmlFor="root_directory">Root Directory (Optional)</Label>
+        <Input
+          id="root_directory"
+          placeholder="public_html/"
+          {...register("root_directory")}
+        />
+      </div>
+      
+      <div className="space-y-1">
+        <Label htmlFor="web_url">Web URL (Optional)</Label>
+        <Input
+          id="web_url"
+          placeholder="https://example.com"
+          {...register("web_url")}
         />
       </div>
 
-      <Button 
-        type="submit" 
-        disabled={isConnecting}
-        className="w-full bg-ezblue text-eznavy hover:bg-ezblue-light"
-      >
-        {isConnecting ? "Connecting..." : "Connect to FTP"}
-      </Button>
+      {children}
     </form>
   );
-};
-
-export default FTPConnectionForm;
+}
