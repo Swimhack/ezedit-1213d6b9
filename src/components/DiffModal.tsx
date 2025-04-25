@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import Editor from "@monaco-editor/react";
+import { DiffEditor } from "@monaco-editor/react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -35,7 +35,7 @@ export function DiffModal({
         </DialogHeader>
         
         <div className="flex-1 min-h-0">
-          <Editor
+          <DiffEditor
             height="100%"
             theme="vs-dark"
             original={remoteCode}
@@ -45,7 +45,7 @@ export function DiffModal({
               minimap: { enabled: false }
             }}
             onMount={handleEditorDidMount}
-            defaultLanguage="javascript"
+            language="javascript"
           />
         </div>
 

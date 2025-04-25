@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,8 +8,6 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-import Files from "./pages/Files";
-import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
 import FTPConnection from "./pages/FTPConnection";
 import Settings from "./pages/Settings";
@@ -22,6 +21,7 @@ import Terms from "./pages/Terms";
 import Roadmap from "./pages/Roadmap";
 import Support from "./pages/Support";
 import MySites from "@/pages/MySites";
+import CodeEditor from "@/pages/CodeEditor";
 
 const queryClient = new QueryClient();
 
@@ -45,11 +45,10 @@ const App = () => (
           <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/support" element={<Support />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/files" element={<Files />} />
-          <Route path="/dashboard/upload" element={<Upload />} />
           <Route path="/dashboard/ftp" element={<FTPConnection />} />
           <Route path="/dashboard/settings" element={<Settings />} />
           <Route path="/dashboard/sites" element={<MySites />} />
+          <Route path="/dashboard/editor" element={<CodeEditor />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
