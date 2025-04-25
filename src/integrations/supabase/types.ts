@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ftp_connections: {
+        Row: {
+          created_at: string
+          host: string
+          id: string
+          password: string
+          port: number
+          root_directory: string | null
+          server_name: string
+          updated_at: string
+          user_id: string
+          username: string
+          web_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          host: string
+          id?: string
+          password: string
+          port?: number
+          root_directory?: string | null
+          server_name: string
+          updated_at?: string
+          user_id: string
+          username: string
+          web_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          host?: string
+          id?: string
+          password?: string
+          port?: number
+          root_directory?: string | null
+          server_name?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+          web_url?: string | null
+        }
+        Relationships: []
+      }
       ftp_credentials: {
         Row: {
           created_at: string

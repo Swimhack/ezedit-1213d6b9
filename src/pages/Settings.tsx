@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import FTPSettingsModal from "@/components/FTPSettingsModal";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -88,6 +88,19 @@ const Settings = () => {
             </div>
             
             <div className="space-y-4 mt-6">
+              <h3 className="font-medium">FTP Connections</h3>
+              <Separator />
+              
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium">Manage FTP Connections</p>
+                  <p className="text-sm text-ezgray">Add and configure FTP server connections</p>
+                </div>
+                <FTPSettingsModal />
+              </div>
+            </div>
+            
+            <div className="space-y-4">
               <h3 className="font-medium">Preferences</h3>
               <Separator />
               
