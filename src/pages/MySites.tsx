@@ -9,6 +9,7 @@ import FTPFileExplorer from "@/components/FTPFileExplorer";
 import { FTPConnectionCard } from "@/components/FTPConnectionCard";
 import { FTPPageHeader } from "@/components/FTPPageHeader";
 import { useFTPConnections } from "@/hooks/use-ftp-connections";
+import type { FtpConnection } from "@/hooks/use-ftp-connections"; // Add this import
 
 const MySites = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
