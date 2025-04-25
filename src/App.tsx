@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +21,7 @@ import Roadmap from "./pages/Roadmap";
 import Support from "./pages/Support";
 import MySites from "@/pages/MySites";
 import CodeEditor from "@/pages/CodeEditor";
+import Demo from "./pages/Demo";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +49,7 @@ const App = () => (
           <Route path="/dashboard/settings" element={<Settings />} />
           <Route path="/dashboard/sites" element={<MySites />} />
           <Route path="/dashboard/editor" element={<CodeEditor />} />
+          <Route path="/demo" element={<Demo />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
