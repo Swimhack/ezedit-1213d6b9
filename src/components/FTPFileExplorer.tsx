@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileBrowser from "react-keyed-file-browser";
@@ -55,8 +54,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     }
   };
 
-  // Initial load
-  useState(() => {
+  useEffect(() => {
     loadDirectory("/");
   }, [connection]);
 
