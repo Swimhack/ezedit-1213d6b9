@@ -1,5 +1,5 @@
 
-import { Client } from 'basic-ftp';
+import { Client } from 'https://esm.sh/basic-ftp@5.0.4';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 

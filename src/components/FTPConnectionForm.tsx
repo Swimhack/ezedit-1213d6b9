@@ -44,7 +44,8 @@ const FTPConnectionForm = () => {
           host: credentials.host,
           username: credentials.username,
           password: credentials.password,
-          port: credentials.port
+          port: credentials.port,
+          user_id: session.user.id // Add the user_id field
         });
       } else {
         toast.error(`Connection failed: ${response.data.error}`);
