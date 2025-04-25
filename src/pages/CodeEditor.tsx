@@ -1,26 +1,25 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Save, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardLayout from "@/components/DashboardLayout";
 import FileTree from "@/components/FileTree";
 import CodeEditorPane from "@/components/CodeEditorPane";
 import ChatPane from "@/components/ChatPane";
-import { Button } from "@/components/ui/button";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
 const CodeEditor = () => {
   const [activeConnection, setActiveConnection] = useState<any>(null);
   const [activeFilePath, setActiveFilePath] = useState<string>("");
   const [activeFileContent, setActiveFileContent] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+  const isMobile = useIsMobile();
   
   // Store panel sizes in localStorage
   const [panelSizes, setPanelSizes] = useLocalStorage("editor-panel-sizes", {
     fileTree: 20,
-    codeEditor: 55,
+    codeEditor: isMobile ? 80 : 55,
     chat: 25,
   });
 
@@ -57,7 +56,7 @@ const CodeEditor = () => {
     setPanelSizes({
       fileTree: sizes[0],
       codeEditor: sizes[1],
-      chat: sizes[2]
+      chat: isMobile ? 0 : sizes[2]
     });
   };
 
@@ -96,15 +95,18 @@ const CodeEditor = () => {
             />
           </ResizablePanel>
           
-          <ResizableHandle withHandle />
-          
-          {/* Chat Panel */}
-          <ResizablePanel defaultSize={panelSizes.chat} minSize={20}>
-            <ChatPane 
-              activeFilePath={activeFilePath}
-              activeFileContent={activeFileContent}
-            />
-          </ResizablePanel>
+          {/* Chat Panel - Hidden on mobile */}
+          {!isMobile && (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={panelSizes.chat} minSize={20}>
+                <ChatPane 
+                  activeFilePath={activeFilePath}
+                  activeFileContent={activeFileContent}
+                />
+              </ResizablePanel>
+            </>
+          )}
         </ResizablePanelGroup>
       </div>
     </DashboardLayout>

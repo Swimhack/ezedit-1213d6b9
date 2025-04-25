@@ -1,16 +1,14 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Save, Check, FileCode2 } from "lucide-react";
+import { Save, Loader2, FileCode2 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { DiffModal } from "@/components/DiffModal";
 
 interface CodeEditorPaneProps {
   connection: {
     id: string;
-    server_name: string;
     host: string;
     port: number;
     username: string;
@@ -23,11 +21,9 @@ interface CodeEditorPaneProps {
 export default function CodeEditorPane({ connection, filePath, onContentChange }: CodeEditorPaneProps) {
   const [editorContent, setEditorContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [language, setLanguage] = useState<string>("javascript");
   const [isSaving, setIsSaving] = useState(false);
-  const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
-  const [remoteCode, setRemoteCode] = useState<string>("");
-  const [isPublishing, setIsPublishing] = useState(false);
+  const [language, setLanguage] = useState<string>("javascript");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     if (filePath && connection) {
@@ -35,20 +31,29 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     }
   }, [filePath, connection]);
 
+  // Warn on unload if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Auto-detect language by file extension
   useEffect(() => {
     if (filePath) {
-      // Auto-detect language by file extension
       const extension = filePath.split('.').pop()?.toLowerCase();
       switch (extension) {
         case 'js':
-          setLanguage('javascript');
-          break;
         case 'jsx':
           setLanguage('javascript');
           break;
         case 'ts':
-          setLanguage('typescript');
-          break;
         case 'tsx':
           setLanguage('typescript');
           break;
@@ -63,12 +68,6 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
           break;
         case 'md':
           setLanguage('markdown');
-          break;
-        case 'php':
-          setLanguage('php');
-          break;
-        case 'py':
-          setLanguage('python');
           break;
         default:
           setLanguage('plaintext');
@@ -102,6 +101,7 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
         const content = atob(data.content);
         setEditorContent(content);
         onContentChange(content);
+        setHasUnsavedChanges(false);
       } else {
         toast.error(`Failed to download file: ${data.message}`);
       }
@@ -116,50 +116,17 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     if (value !== undefined) {
       setEditorContent(value);
       onContentChange(value);
+      setHasUnsavedChanges(true);
     }
   };
 
-  const handleSaveClick = async () => {
+  const handleSave = async () => {
     if (!connection || !filePath) {
       toast.error("No file selected");
       return;
     }
 
     setIsSaving(true);
-    try {
-      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-download-file`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          host: connection.host,
-          port: connection.port,
-          username: connection.username,
-          password: connection.password,
-          path: filePath
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setRemoteCode(atob(data.content));
-        setIsDiffModalOpen(true);
-      } else {
-        throw new Error(data.message);
-      }
-    } catch (error: any) {
-      toast.error(`Failed to fetch remote file: ${error.message}`);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handlePublishChanges = async () => {
-    if (!connection || !filePath) return;
-    
-    setIsPublishing(true);
     try {
       const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-upload-file`, {
         method: "POST",
@@ -180,34 +147,14 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
       const data = await response.json();
       if (data.success) {
         toast.success("File saved successfully!");
-        setIsDiffModalOpen(false);
+        setHasUnsavedChanges(false);
       } else {
         throw new Error(data.message);
       }
     } catch (error: any) {
       toast.error(`Failed to save file: ${error.message}`);
     } finally {
-      setIsPublishing(false);
-    }
-  };
-
-  const beautifyCode = () => {
-    // Simple beautify function, can be enhanced with proper formatters
-    try {
-      let formattedCode;
-      
-      // Basic JSON formatting
-      if (language === 'json') {
-        const jsonObj = JSON.parse(editorContent);
-        formattedCode = JSON.stringify(jsonObj, null, 2);
-        setEditorContent(formattedCode);
-        onContentChange(formattedCode);
-        toast.success("Code beautified");
-      } else {
-        toast.info("Beautify currently supports JSON only");
-      }
-    } catch (error: any) {
-      toast.error(`Beautify failed: ${error.message}`);
+      setIsSaving(false);
     }
   };
 
@@ -225,29 +172,19 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
           <Button 
             variant="outline" 
             size="sm"
-            onClick={beautifyCode}
-            disabled={!filePath || isLoading}
-            title="Beautify Code"
+            onClick={handleSave}
+            disabled={!filePath || isLoading || isSaving || !hasUnsavedChanges}
           >
-            <Sparkles size={16} />
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleSaveClick}
-            disabled={!filePath || isLoading || isSaving}
-            title="Save File"
-          >
-            <Save size={16} />
+            {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
           </Button>
         </div>
       </div>
 
       {/* Editor Area */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 relative overflow-hidden">
         {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-ezblue"></div>
+          <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+            <Loader2 className="animate-spin" size={24} />
           </div>
         ) : !filePath ? (
           <div className="flex flex-col items-center justify-center h-full text-ezgray">
@@ -269,16 +206,6 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
           />
         )}
       </div>
-
-      {/* Diff Modal */}
-      <DiffModal
-        isOpen={isDiffModalOpen}
-        onClose={() => setIsDiffModalOpen(false)}
-        onConfirm={handlePublishChanges}
-        remoteCode={remoteCode}
-        localCode={editorContent}
-        isLoading={isPublishing}
-      />
     </div>
   );
 }
