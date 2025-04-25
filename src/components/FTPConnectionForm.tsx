@@ -1,7 +1,11 @@
-
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import FTPConnectionModal from "./FTPConnectionModal";
 
 export interface FTPConnectionFormData {
   server_name: string;
@@ -109,3 +113,43 @@ export function FTPConnectionFormFields({
     </form>
   );
 }
+
+const FTPConnectionForm = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+  
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+  
+  const handleSaveConnection = () => {
+    setIsModalOpen(false);
+    // If we had a way to refresh connections, we would call it here
+  };
+  
+  return (
+    <div>
+      <Card className="mb-4 bg-eznavy-light border-ezgray-dark">
+        <CardContent className="pt-6">
+          <Button 
+            onClick={handleOpenModal} 
+            className="bg-ezblue hover:bg-ezblue/90 w-full flex items-center justify-center"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add FTP Connection
+          </Button>
+        </CardContent>
+      </Card>
+      
+      <FTPConnectionModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        onSave={handleSaveConnection}
+      />
+    </div>
+  );
+};
+
+export default FTPConnectionForm;
