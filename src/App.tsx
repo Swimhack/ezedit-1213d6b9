@@ -13,6 +13,9 @@ import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
 import FTPConnection from "./pages/FTPConnection";
 import Settings from "./pages/Settings";
+import Features from "./pages/Features";
+import Pricing from "./pages/Pricing";
+import Docs from "./pages/Docs";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +29,9 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/docs" element={<Docs />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/files" element={<Files />} />
           <Route path="/dashboard/upload" element={<Upload />} />
