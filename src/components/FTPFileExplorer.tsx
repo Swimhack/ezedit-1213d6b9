@@ -9,7 +9,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { FileItem } from "@/types/ftp";
 import { supabase } from "@/integrations/supabase/client";
-import { DiffModal } from "./DiffModal";
 import Editor from "@monaco-editor/react";
 
 interface FTPFileExplorerProps {
@@ -34,8 +33,6 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const [editorValue, setEditorValue] = useState("");
   const [currentFilePath, setCurrentFilePath] = useState("");
   const [isEditorLoading, setIsEditorLoading] = useState(false);
-  const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
-  const [remoteCode, setRemoteCode] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
 
   const listDirectory = async (path: string = "/") => {
@@ -115,35 +112,6 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   };
 
   const handleSave = async () => {
-    try {
-      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-download-file`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          host: connection.host,
-          port: connection.port,
-          username: connection.username,
-          password: connection.password,
-          path: currentFilePath
-        }),
-      });
-
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.message);
-      }
-
-      setRemoteCode(atob(data.content));
-      setIsDiffModalOpen(true);
-    } catch (error: any) {
-      toast.error(`Failed to fetch remote file: ${error.message}`);
-    }
-  };
-
-  const handlePublish = async () => {
     setIsPublishing(true);
     try {
       const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-upload-file`, {
@@ -166,10 +134,9 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
       if (!data.success) {
         throw new Error(data.message);
       }
-      setIsDiffModalOpen(false);
-      toast.success("File published successfully!");
+      toast.success("File saved successfully!");
     } catch (error: any) {
-      toast.error(`Failed to publish file: ${error.message}`);
+      toast.error(`Failed to save file: ${error.message}`);
     } finally {
       setIsPublishing(false);
     }
@@ -182,79 +149,69 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   }, [connection]);
 
   return (
-    <>
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between p-4 border-b border-ezgray-dark">
-          <h2 className="text-lg font-semibold text-ezwhite">
-            {connection.server_name} Files
-          </h2>
-          <Button variant="outline" size="icon" onClick={onClose}>
-            <XCircle className="h-5 w-5" />
-            <span className="sr-only">Close</span>
-          </Button>
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between p-4 border-b border-ezgray-dark">
+        <h2 className="text-lg font-semibold text-ezwhite">
+          {connection.server_name} Files
+        </h2>
+        <Button variant="outline" size="icon" onClick={onClose}>
+          <XCircle className="h-5 w-5" />
+          <span className="sr-only">Close</span>
+        </Button>
+      </div>
+
+      <div className="flex flex-col md:flex-row h-full">
+        <div className="w-full md:w-1/2 p-4 border-r border-ezgray-dark">
+          <h3 className="text-md font-semibold text-ezwhite mb-2">Files at: {currentPath}</h3>
+          <ScrollArea className="rounded-md border border-ezgray-dark h-[calc(100vh-200px)]">
+            {isLoading ? (
+              <div className="p-4 text-center text-ezgray">Loading files...</div>
+            ) : (
+              <div className="p-2">
+                {fileList.map((file) => (
+                  <div
+                    key={file.name}
+                    className="flex items-center justify-between p-2 rounded hover:bg-eznavy cursor-pointer"
+                    onClick={() => handleFileClick(file)}
+                  >
+                    <span className="text-ezwhite">{file.name}</span>
+                    <span className="text-ezgray text-sm">{file.isDirectory ? "Directory" : `${file.size} bytes`}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
         </div>
 
-        <div className="flex flex-col md:flex-row h-full">
-          <div className="w-full md:w-1/2 p-4 border-r border-ezgray-dark">
-            <h3 className="text-md font-semibold text-ezwhite mb-2">Files at: {currentPath}</h3>
-            <ScrollArea className="rounded-md border border-ezgray-dark h-[calc(100vh-200px)]">
-              {isLoading ? (
-                <div className="p-4 text-center text-ezgray">Loading files...</div>
-              ) : (
-                <div className="p-2">
-                  {fileList.map((file) => (
-                    <div
-                      key={file.name}
-                      className="flex items-center justify-between p-2 rounded hover:bg-eznavy cursor-pointer"
-                      onClick={() => handleFileClick(file)}
-                    >
-                      <span className="text-ezwhite">{file.name}</span>
-                      <span className="text-ezgray text-sm">{file.isDirectory ? "Directory" : `${file.size} bytes`}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
+        <div className="w-full md:w-1/2 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-md font-semibold text-ezwhite">File Content</h3>
+            <Button 
+              onClick={handleSave}
+              disabled={!currentFilePath || isPublishing} 
+              className="bg-ezblue hover:bg-ezblue/90"
+            >
+              {isPublishing ? 'Saving...' : 'Save'}
+            </Button>
           </div>
-
-          <div className="w-full md:w-1/2 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-md font-semibold text-ezwhite">File Content</h3>
-              <Button 
-                onClick={handleSave}
-                disabled={!currentFilePath} 
-                className="bg-ezblue hover:bg-ezblue/90"
-              >
-                Save
-              </Button>
-            </div>
-            {isEditorLoading ? (
-              <div className="text-ezgray">Loading editor...</div>
-            ) : (
-              <Editor
-                height="calc(100vh - 200px)"
-                theme="vs-dark"
-                value={editorValue}
-                onChange={setEditorValue}
-                options={{
-                  wordWrap: "on",
-                  minimap: { enabled: false },
-                  automaticLayout: true,
-                }}
-              />
-            )}
-          </div>
+          {isEditorLoading ? (
+            <div className="text-ezgray">Loading editor...</div>
+          ) : (
+            <Editor
+              height="calc(100vh - 200px)"
+              theme="vs-dark"
+              value={editorValue}
+              onChange={setEditorValue}
+              options={{
+                wordWrap: "on",
+                minimap: { enabled: false },
+                automaticLayout: true,
+              }}
+            />
+          )}
         </div>
       </div>
-      <DiffModal
-        isOpen={isDiffModalOpen}
-        onClose={() => setIsDiffModalOpen(false)}
-        onConfirm={handlePublish}
-        remoteCode={remoteCode}
-        localCode={editorValue}
-        isLoading={isPublishing}
-      />
-    </>
+    </div>
   );
 };
 
