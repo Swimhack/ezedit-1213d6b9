@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { format } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 import { ChevronRight, FolderIcon, FileIcon } from "lucide-react";
 import { toast } from "sonner";
 import { formatFileSize } from "@/lib/utils";
@@ -42,6 +42,33 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
         ? `${currentPath}${file.name}/`
         : `${currentPath}/${file.name}/`;
       onNavigate(newPath);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      // First attempt to parse the date string to ensure it's valid
+      const date = parseISO(dateString);
+      
+      // Check if the resulting date is valid before formatting
+      if (isValid(date)) {
+        return format(date, "MMM d, yyyy HH:mm");
+      }
+      
+      // For Unix timestamps or numeric dates
+      const timestamp = Number(dateString);
+      if (!isNaN(timestamp)) {
+        const dateFromTimestamp = new Date(timestamp);
+        if (isValid(dateFromTimestamp)) {
+          return format(dateFromTimestamp, "MMM d, yyyy HH:mm");
+        }
+      }
+      
+      // Fallback for invalid dates
+      return "Invalid date";
+    } catch (error) {
+      console.error("Error formatting date:", error, "Date string:", dateString);
+      return "Unknown date";
     }
   };
 
@@ -108,7 +135,7 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
                     {file.isDirectory ? "--" : formatFileSize(file.size)}
                   </TableCell>
                   <TableCell>
-                    {format(new Date(file.modified), "MMM d, yyyy HH:mm")}
+                    {formatDate(file.modified)}
                   </TableCell>
                   <TableCell>
                     {file.isDirectory ? "Directory" : "File"}

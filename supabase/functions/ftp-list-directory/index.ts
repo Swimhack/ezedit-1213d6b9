@@ -43,7 +43,8 @@ serve(async (req) => {
       const files = list.map(item => ({
         name: item.name,
         size: item.size,
-        modified: item.date,
+        // Ensure we format the date as an ISO string for consistent parsing
+        modified: item.date instanceof Date ? item.date.toISOString() : new Date().toISOString(),
         type: item.isDirectory ? "directory" : "file",
         isDirectory: item.isDirectory
       }));
