@@ -31,7 +31,6 @@ serve(async (req) => {
     console.log(`Attempting to download file from FTP: ${username}@${host}:${port}${path}`);
 
     const client = new Client();
-    const buffer = new Uint8Array(MAX_FILE_SIZE);
     let content = '';
 
     try {
@@ -43,14 +42,30 @@ serve(async (req) => {
         secure: false
       });
 
+      // Check file size first
       const size = await client.size(path);
       if (size > MAX_FILE_SIZE) {
         throw new Error("File exceeds maximum size limit of 1MB");
       }
 
-      await client.downloadTo(buffer, path);
-      const textDecoder = new TextDecoder();
-      const fileContent = textDecoder.decode(buffer.slice(0, size));
+      // Use a different approach: download to a string
+      const chunks: Uint8Array[] = [];
+      
+      await client.downloadTo(
+        new Deno.WritableStreamBuffer(chunks), 
+        path
+      );
+      
+      const allBytes = new Uint8Array(size);
+      let offset = 0;
+      
+      for (const chunk of chunks) {
+        allBytes.set(chunk, offset);
+        offset += chunk.length;
+      }
+      
+      const decoder = new TextDecoder("utf-8");
+      const fileContent = decoder.decode(allBytes);
       content = btoa(fileContent);
 
       return new Response(
@@ -83,3 +98,18 @@ serve(async (req) => {
     );
   }
 });
+
+// Custom WritableStream implementation for Deno
+class Deno {
+  static WritableStreamBuffer(chunks: Uint8Array[]) {
+    return {
+      write(chunk: Uint8Array) {
+        chunks.push(chunk);
+        return Promise.resolve();
+      },
+      close() {
+        return Promise.resolve();
+      }
+    };
+  }
+}
