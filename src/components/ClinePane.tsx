@@ -7,13 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-interface KleinPaneProps {
+interface ClinetPaneProps {
   filePath: string;
   fileContent: string;
   onApplyResponse?: (text: string) => void;
 }
 
-export default function KleinPane({ filePath, fileContent, onApplyResponse }: KleinPaneProps) {
+export default function ClinePane({ filePath, fileContent, onApplyResponse }: ClinetPaneProps) {
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -47,9 +47,9 @@ export default function KleinPane({ filePath, fileContent, onApplyResponse }: Kl
         throw new Error('Authentication required');
       }
 
-      console.log("Sending message to Klein:", { message: userMessage, filePath, fileContent });
+      console.log("Sending message to Cline:", { message: userMessage, filePath, fileContent });
       
-      const response = await fetch('https://natjhcqynqziccssnwim.supabase.co/functions/v1/klein-chat', {
+      const response = await fetch('https://natjhcqynqziccssnwim.supabase.co/functions/v1/cline-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,17 +65,17 @@ export default function KleinPane({ filePath, fileContent, onApplyResponse }: Kl
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.error || `Klein API error (${response.status}): ${response.statusText}`
+          errorData.error || `Cline API error (${response.status}): ${response.statusText}`
         );
       }
       
       const data = await response.json();
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
     } catch (error: any) {
-      const errorMessage = `Failed to get response from Klein: ${error.message}`;
+      const errorMessage = `Failed to get response from Cline: ${error.message}`;
       setError(errorMessage);
       toast.error(errorMessage);
-      console.error('Klein chat error:', error);
+      console.error('Cline chat error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -95,14 +95,14 @@ export default function KleinPane({ filePath, fileContent, onApplyResponse }: Kl
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="absolute -left-6 top-1/2 -translate-y-1/2 z-10 bg-eznavy-dark p-1 rounded-l-md border-l border-t border-b border-ezgray-dark"
-        aria-label={isCollapsed ? "Expand Klein pane" : "Collapse Klein pane"}
+        aria-label={isCollapsed ? "Expand Cline pane" : "Collapse Cline pane"}
       >
         {isCollapsed ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
       </button>
 
       <div className={`flex flex-col w-full transition-all duration-300 ${isCollapsed ? 'mr-[-100%]' : ''}`}>
         <div className="px-4 py-2 border-b border-ezgray-dark">
-          <h3 className="text-lg font-semibold text-ezwhite">Klein AI Chat</h3>
+          <h3 className="text-lg font-semibold text-ezwhite">Cline AI Chat</h3>
           {filePath && (
             <p className="text-xs text-ezgray truncate">File: {filePath}</p>
           )}
@@ -112,7 +112,7 @@ export default function KleinPane({ filePath, fileContent, onApplyResponse }: Kl
           <div className="space-y-4">
             {messages.length === 0 && !error && (
               <div className="p-3 text-center text-ezgray">
-                <p>Ask Klein about this file's code.</p>
+                <p>Ask Cline about this file's code.</p>
               </div>
             )}
             

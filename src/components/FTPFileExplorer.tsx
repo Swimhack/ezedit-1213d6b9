@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { XCircle, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import { FTPFileList } from "./FTPFileList";
 import { useFileContent } from "@/hooks/use-file-content";
 import { getLanguageFromFileName } from "@/utils/language-detector";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import KleinPane from "./KleinPane";
+import ClinePane from "./ClinePane";
 
 interface FTPFileExplorerProps {
   connection: {
@@ -33,7 +32,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const [currentFilePath, setCurrentFilePath] = useState("");
   const [files, setFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showKlein, setShowKlein] = useState(true);
+  const [showCline, setShowCline] = useState(true);
   
   const { 
     content: fileContent, 
@@ -44,10 +43,10 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     hasUnsavedChanges,
   } = useFileContent({ connection, filePath: currentFilePath });
 
-  // Check if screen is wide enough to show Klein pane
+  // Check if screen is wide enough to show Cline pane
   useEffect(() => {
     const checkScreenSize = () => {
-      setShowKlein(window.innerWidth >= 1024);
+      setShowCline(window.innerWidth >= 1024);
     };
     
     checkScreenSize();
@@ -172,11 +171,11 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
                     />
                   </div>
                 </ResizablePanel>
-                {showKlein && (
+                {showCline && (
                   <>
                     <ResizableHandle withHandle />
                     <ResizablePanel defaultSize={30} minSize={20}>
-                      <KleinPane 
+                      <ClinePane 
                         filePath={currentFilePath}
                         fileContent={fileContent}
                         onApplyResponse={handleApplyResponse}

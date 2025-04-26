@@ -1,8 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const KLEIN_API_KEY = Deno.env.get('KLEIN_API_KEY');
-const KLEIN_API_URL = 'https://api.klein.ai/v1/chat';
+const CLINE_API_KEY = Deno.env.get('KLEIN_API_KEY'); // Keep using existing env variable
+const CLINE_API_URL = 'https://api.klein.ai/v1/chat'; // Keep using Klein API but refer to it as Cline
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,10 +17,10 @@ serve(async (req) => {
   try {
     const { message, filePath, fileContent } = await req.json();
 
-    const response = await fetch(KLEIN_API_URL, {
+    const response = await fetch(CLINE_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${KLEIN_API_KEY}`,
+        'Authorization': `Bearer ${CLINE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -44,7 +44,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Klein chat error:', error);
+    console.error('Cline chat error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -5,7 +5,7 @@ import { useFileContent } from "@/hooks/use-file-content";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
 import { LoadingOverlay } from "@/components/editor/LoadingOverlay";
 import { CodeEditor } from "@/components/editor/CodeEditor";
-import KleinPane from "@/components/KleinPane";
+import ClinePane from "@/components/ClinePane";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 interface CodeEditorPaneProps {
@@ -32,12 +32,12 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     saveContent
   } = useFileContent({ connection, filePath });
 
-  const [showKlein, setShowKlein] = useState(true);
+  const [showCline, setShowCline] = useState(true);
   
-  // Check if screen is wide enough to show Klein pane
+  // Check if screen is wide enough to show Cline pane
   useEffect(() => {
     const checkScreenSize = () => {
-      setShowKlein(window.innerWidth >= 1024);
+      setShowCline(window.innerWidth >= 1024);
     };
     
     checkScreenSize();
@@ -94,7 +94,7 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     }
   };
 
-  const handleKleinResponse = (text: string) => {
+  const handleClineResponse = (text: string) => {
     if (content) {
       const newContent = content + '\n' + text;
       updateContent(newContent);
@@ -129,14 +129,14 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
                 editorRef={editorRef}
               />
             </ResizablePanel>
-            {filePath && showKlein && (
+            {filePath && showCline && (
               <>
                 <ResizableHandle withHandle />
                 <ResizablePanel defaultSize={30} minSize={20}>
-                  <KleinPane 
+                  <ClinePane 
                     filePath={filePath} 
                     fileContent={content}
-                    onApplyResponse={handleKleinResponse}
+                    onApplyResponse={handleClineResponse}
                   />
                 </ResizablePanel>
               </>
