@@ -1,10 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { FileCode2 } from "lucide-react";
 import { useFileContent } from "@/hooks/use-file-content";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
 import { LoadingOverlay } from "@/components/editor/LoadingOverlay";
 import { CodeEditor } from "@/components/editor/CodeEditor";
+import KleinPane from "@/components/KleinPane";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 interface CodeEditorPaneProps {
   connection: {
@@ -29,7 +30,6 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     saveContent
   } = useFileContent({ connection, filePath });
 
-  // Warn on unload if there are unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
@@ -42,7 +42,6 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  // Auto-detect language by file extension
   useEffect(() => {
     if (filePath) {
       const extension = filePath.split('.').pop()?.toLowerCase();
@@ -98,11 +97,19 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
             <p>Select a file from the file tree to edit</p>
           </div>
         ) : (
-          <CodeEditor
-            content={content}
-            language={language}
-            onChange={handleEditorChange}
-          />
+          <ResizablePanelGroup direction="horizontal">
+            <ResizablePanel defaultSize={70}>
+              <CodeEditor
+                content={content}
+                language={language}
+                onChange={handleEditorChange}
+              />
+            </ResizablePanel>
+            <ResizableHandle />
+            <ResizablePanel defaultSize={30}>
+              <KleinPane filePath={filePath} fileContent={content} />
+            </ResizablePanel>
+          </ResizablePanelGroup>
         )}
       </div>
     </div>
