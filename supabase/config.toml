@@ -17,5 +17,8 @@ verify_jwt = true
 [functions.ftp-get-file]
 verify_jwt = true
 
+[functions.ftp-list]
+verify_jwt = true
+
 [functions.send-email]
 verify_jwt = true

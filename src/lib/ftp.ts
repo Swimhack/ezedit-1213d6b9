@@ -3,7 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { FileItem } from "@/types/ftp";
 import { normalizePath, joinPath } from "@/utils/path";
 
+export interface FtpEntry {
+  name: string;
+  type: "file" | "directory";
+  size?: number;
+  modified?: string;
+  isDirectory: boolean;
+}
+
+/**
+ * List the contents of an FTP directory
+ */
 export async function listDirectory(connection: {
+  id: string;
   host: string;
   port: number;
   username: string;
@@ -12,15 +24,12 @@ export async function listDirectory(connection: {
   // Normalize the path to ensure it's consistent
   const cleanPath = normalizePath(path);
   
-  console.log(`[FTP] Listing directory "${cleanPath}" on ${connection.host}`);
+  console.log(`[FTP] Listing directory "${cleanPath}" on ${connection.host} using ID: ${connection.id}`);
   
   try {
-    const { data, error } = await supabase.functions.invoke('ftp-list-directory', {
+    const { data, error } = await supabase.functions.invoke('ftp-list', {
       body: { 
-        host: connection.host,
-        port: connection.port,
-        username: connection.username,
-        password: connection.password,
+        siteId: connection.id,
         path: cleanPath
       }
     });
@@ -59,3 +68,44 @@ export async function listDirectory(connection: {
     throw new Error(`Failed to list directory: ${error.message}`);
   }
 }
+
+/**
+ * Get the content of a file from FTP server
+ */
+export async function getFile(connection: {
+  id: string;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+}, filePath: string): Promise<string> {
+  try {
+    console.log(`[FTP] Getting file "${filePath}" using connection ID: ${connection.id}`);
+    
+    const { data, error } = await supabase.functions.invoke('ftp-get-file', {
+      body: {
+        siteId: connection.id,
+        path: filePath
+      }
+    });
+    
+    if (error) {
+      console.error("[FTP] Get file error:", error);
+      throw error;
+    }
+    
+    if (!data || !data.success) {
+      throw new Error(data?.message || "Unknown error getting file");
+    }
+    
+    // Decode the base64 content
+    const decodedContent = atob(data.content);
+    return decodedContent;
+  } catch (error: any) {
+    console.error("[FTP] Get file failed:", error);
+    throw new Error(`Failed to get file: ${error.message}`);
+  }
+}
+
+// Re-export the path utilities so UI uses the same logic
+export { joinPath, normalizePath };

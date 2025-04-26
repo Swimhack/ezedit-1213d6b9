@@ -1,7 +1,8 @@
 
+// Deno runtime — use a Deno-native client
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { FTPClient } from "https://deno.land/x/ftpdeno@v0.6.0/mod.ts";
-import { supabase } from "./supabaseClient.ts";
+import { supabase } from "../ftp-get-file/supabaseClient.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,21 +35,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
+  
   try {
-    const body = await req.json();
-    const { siteId, path = "/" } = body;
+    const { siteId, path = "/" } = await req.json();
+    console.log(`[FTP-LIST] Listing directory for siteId: ${siteId}, path: ${path}`);
     
-    console.log("[GET-FILE] siteId:", siteId, "path:", path);
-
-    if (!siteId) {
-      return new Response(
-        JSON.stringify({ success: false, message: "Missing siteId" }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // Lookup FTP credentials
     const creds = await getFtpCreds(siteId);
     if (!creds) {
       return new Response(
@@ -67,37 +58,38 @@ serve(async (req) => {
         secure: false
       });
       
-      console.log(`[GET-FILE] Downloading file: ${path}`);
+      console.log(`[FTP-LIST] Connected to FTP server. Listing path: "${path}"`);
       
-      const data = await client.download(path);
-      const content = new TextDecoder().decode(data);
+      const entries = await client.list(path);
+      console.log(`[FTP-LIST] Successfully listed directory "${path}". Found ${entries.length} entries`);
       
-      // Convert to base64 for safe transport (maintaining compatibility with previous API)
-      const base64Content = btoa(content);
-      
-      console.log(`[GET-FILE] Successfully downloaded file (${content.length} bytes)`);
+      // Format entries to match our expected FtpEntry type
+      const formattedEntries = entries.map(entry => ({
+        name: entry.name,
+        type: entry.type === "dir" ? "directory" : "file",
+        size: entry.size || 0,
+        modified: entry.time ? entry.time.toISOString() : new Date().toISOString(),
+        isDirectory: entry.type === "dir"
+      }));
       
       return new Response(
         JSON.stringify({ 
           success: true, 
-          content: base64Content 
+          files: formattedEntries 
         }),
         { headers: corsHeaders }
       );
-    } catch (error) {
-      console.error("[GET-FILE ERROR]", error);
+    } catch (e) {
+      console.error("[FTP-LIST] Error:", e);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: error.message || "Failed to download file" 
-        }),
+        JSON.stringify({ success: false, message: e.message || "FTP listing failed" }),
         { status: 500, headers: corsHeaders }
       );
     } finally {
       client.close();
     }
   } catch (error) {
-    console.error("[GET-FILE] Request processing error:", error);
+    console.error("[FTP-LIST] Request processing error:", error);
     return new Response(
       JSON.stringify({ success: false, message: "Invalid request" }),
       { status: 400, headers: corsHeaders }
