@@ -6,15 +6,20 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
-interface ClinetPaneProps {
+interface ClintPaneProps {
   filePath: string;
   fileContent: string;
   onApplyResponse?: (text: string) => void;
 }
 
-export default function ClinePane({ filePath, fileContent, onApplyResponse }: ClinetPaneProps) {
-  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([]);
+export default function ClinePane({ filePath, fileContent, onApplyResponse }: ClintPaneProps) {
+  const chatStorageKey = `cline-chat-history-${filePath}`;
+  const [messages, setMessages] = useLocalStorage<Array<{ role: 'user' | 'assistant', content: string }>>(
+    chatStorageKey,
+    []
+  );
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -30,6 +35,13 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
       }
     }
   }, [messages]);
+
+  // Reset messages when file path changes
+  useEffect(() => {
+    if (filePath && messages.length === 0) {
+      setMessages([]);
+    }
+  }, [filePath, setMessages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +70,9 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
         body: JSON.stringify({
           message: userMessage,
           filePath,
-          fileContent
+          fileContent,
+          // Send previous messages for context
+          previousMessages: messages
         }),
       });
 
@@ -168,6 +182,7 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about the code..."
               className="min-h-[60px]"
+              disabled={isLoading}
             />
             <Button 
               type="submit" 
