@@ -8,7 +8,8 @@ import { CodeEditor } from "./editor/CodeEditor";
 import { listDirectory } from "@/lib/ftp";
 import { useFileContent } from "@/hooks/use-file-content";
 import { toast } from "sonner";
-import { normalizePath } from "@/utils/path";
+import { normalizePath, joinPath } from "@/utils/path";
+import { FTPFileList } from "./FTPFileList";
 
 interface FTPFileExplorerProps {
   connection: {
@@ -48,37 +49,39 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     try {
       // Normalize the path to ensure it has consistent formatting
       const normalizedPath = normalizePath(path);
-      console.log(`Loading directory: ${normalizedPath}`);
+      console.log(`[FTPFileExplorer] Loading directory: "${normalizedPath}"`);
       
       const files = await listDirectory(connection, normalizedPath);
-      console.log(`Loaded ${files.length} files from ${normalizedPath}:`, files);
+      console.log(`[FTPFileExplorer] Loaded ${files.length} files from "${normalizedPath}":`, files);
       
       setFiles(files);
       setCurrentPath(normalizedPath);
     } catch (error: any) {
-      console.error("Directory loading error:", error);
-      toast.error(error.message);
+      console.error("[FTPFileExplorer] Directory loading error:", error);
+      toast.error(`Failed to load directory: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadDirectory("/");
+    // Start by loading the root directory, or the configured root_directory if available
+    const startPath = connection.root_directory ? normalizePath(connection.root_directory) : "/";
+    loadDirectory(startPath);
   }, [connection]);
 
   const handleSelectFile = (file: { key: string; isDir: boolean }) => {
-    console.log("Selected file:", file);
+    console.log("[FTPFileExplorer] Selected file:", file);
     if (!file.isDir) {
       setCurrentFilePath(file.key);
     } else {
-      console.log("Loading directory from select:", file.key);
+      console.log("[FTPFileExplorer] Loading directory from select:", file.key);
       loadDirectory(file.key);
     }
   };
 
   const handleNavigate = (path: string) => {
-    console.log("Navigating to:", path);
+    console.log("[FTPFileExplorer] Navigating to:", path);
     loadDirectory(path);
   };
 
@@ -95,30 +98,13 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
       </div>
 
       <div className="flex flex-col md:flex-row h-full">
-        <div className="w-full md:w-1/2 p-4 border-r border-ezgray-dark">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ezblue"></div>
-            </div>
-          ) : (
-            <>
-              <div className="mb-4 text-sm text-ezgray-light">
-                Current path: {currentPath}
-              </div>
-              <FileBrowser
-                files={files}
-                onNavigate={handleNavigate}
-                onSelectFile={handleSelectFile}
-                headerRenderer={() => null}
-                className="text-ezwhite"
-              />
-              {files.length === 0 && !isLoading && (
-                <div className="p-4 text-center text-ezgray">
-                  No files in this directory
-                </div>
-              )}
-            </>
-          )}
+        <div className="w-full md:w-1/2 p-4 border-r border-ezgray-dark overflow-auto">
+          <FTPFileList
+            currentPath={currentPath}
+            files={files}
+            onNavigate={handleNavigate}
+            isLoading={isLoading}
+          />
         </div>
 
         <div className="w-full md:w-1/2 p-4">

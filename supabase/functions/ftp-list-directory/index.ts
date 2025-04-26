@@ -30,7 +30,7 @@ serve(async (req) => {
     // Ensure path is never empty; default to root path "/"
     const safePath = path?.trim() === "" ? "/" : path;
 
-    console.log(`Attempting to list FTP directory for ${username}@${host}:${port}${safePath}`);
+    console.log(`[FTP-LIST-DIRECTORY] Attempting to list FTP directory for ${username}@${host}:${port} path:"${safePath}"`);
 
     const client = new Client();
     client.ftp.verbose = true; // Enable verbose logging for debugging
@@ -44,11 +44,14 @@ serve(async (req) => {
         secure: false
       });
 
-      console.log(`Connected to FTP server. Listing path: ${safePath}`);
+      console.log(`[FTP-LIST-DIRECTORY] Connected to FTP server. Listing path: "${safePath}"`);
       
       const list = await client.list(safePath);
       
-      console.log(`Successfully listed directory. Found ${list.length} entries`);
+      console.log(`[FTP-LIST-DIRECTORY] Successfully listed directory "${safePath}". Found ${list.length} entries:`);
+      for (const item of list.slice(0, 5)) {  // Log just the first 5 for clarity
+        console.log(`- ${item.isDirectory ? 'Dir' : 'File'}: ${item.name}`);
+      }
       
       const files = list.map(item => ({
         name: item.name,
@@ -68,7 +71,7 @@ serve(async (req) => {
         { headers: corsHeaders }
       );
     } catch (error) {
-      console.error('FTP listing error:', error);
+      console.error(`[FTP-LIST-DIRECTORY] FTP listing error for path "${safePath}":`, error);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -81,7 +84,7 @@ serve(async (req) => {
       client.close();
     }
   } catch (error) {
-    console.error('Request processing error:', error);
+    console.error('[FTP-LIST-DIRECTORY] Request processing error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
