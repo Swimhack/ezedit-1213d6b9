@@ -21,6 +21,7 @@ export function CodeEditor({ content, language, onChange }: CodeEditorProps) {
         minimap: { enabled: false },
         automaticLayout: true,
       }}
+      className="bg-eznavy-dark" // Add this line to match the directory list background
     />
   );
 }
