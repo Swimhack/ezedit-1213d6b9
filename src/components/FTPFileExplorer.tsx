@@ -10,6 +10,8 @@ import { normalizePath } from "@/utils/path";
 import { FTPFileList } from "./FTPFileList";
 import { useFileContent } from "@/hooks/use-file-content";
 import { getLanguageFromFileName } from "@/utils/language-detector";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import KleinPane from "./KleinPane";
 
 interface FTPFileExplorerProps {
   connection: {
@@ -31,6 +33,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const [currentFilePath, setCurrentFilePath] = useState("");
   const [files, setFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showKlein, setShowKlein] = useState(true);
   
   const { 
     content: fileContent, 
@@ -40,6 +43,17 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     isSaving,
     hasUnsavedChanges,
   } = useFileContent({ connection, filePath: currentFilePath });
+
+  // Check if screen is wide enough to show Klein pane
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setShowKlein(window.innerWidth >= 1024);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const loadDirectory = async (path: string) => {
     setIsLoading(true);
@@ -87,6 +101,13 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     return getLanguageFromFileName(currentFilePath) || "plaintext";
   };
 
+  const handleApplyResponse = (text: string) => {
+    if (fileContent) {
+      const newContent = fileContent + '\n' + text;
+      updateContent(newContent);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4 border-b border-ezgray-dark">
@@ -100,7 +121,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
       </div>
 
       <div className="flex flex-col md:flex-row h-full">
-        <div className="w-full md:w-1/2 p-4 border-r border-ezgray-dark overflow-auto">
+        <div className="w-full md:w-1/3 p-4 border-r border-ezgray-dark overflow-auto">
           <FTPFileList
             currentPath={currentPath}
             files={files}
@@ -110,26 +131,29 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
           />
         </div>
 
-        <div className="w-full md:w-1/2 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-md font-semibold text-ezwhite">
-              {currentFilePath ? currentFilePath.split('/').pop() || 'File Content' : 'File Content'}
-            </h3>
-            {currentFilePath && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={saveContent}
-                disabled={isSaving || !hasUnsavedChanges}
-                className="flex items-center gap-1"
-              >
-                <Save size={16} />
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
-            )}
+        <div className="w-full md:w-2/3 flex-1 flex flex-col">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-md font-semibold text-ezwhite">
+                {currentFilePath ? currentFilePath.split('/').pop() || 'File Content' : 'File Content'}
+              </h3>
+              {currentFilePath && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={saveContent}
+                  disabled={isSaving || !hasUnsavedChanges}
+                  className="flex items-center gap-1"
+                >
+                  <Save size={16} />
+                  {isSaving ? 'Saving...' : 'Save'}
+                </Button>
+              )}
+            </div>
           </div>
+          
           {!currentFilePath ? (
-            <div className="flex items-center justify-center h-64 text-ezgray border border-dashed border-ezgray-dark rounded-md">
+            <div className="flex items-center justify-center h-64 text-ezgray border border-dashed border-ezgray-dark rounded-md mx-4">
               Select a file to view its contents
             </div>
           ) : isFileLoading ? (
@@ -137,12 +161,30 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ezblue"></div>
             </div>
           ) : (
-            <div className="h-[calc(100vh-300px)] border border-ezgray-dark rounded">
-              <CodeEditor
-                content={fileContent}
-                language={getFileLanguage()}
-                onChange={updateContent}
-              />
+            <div className="flex-1 px-4 pb-4">
+              <ResizablePanelGroup direction="horizontal">
+                <ResizablePanel defaultSize={70} minSize={40}>
+                  <div className="h-[calc(100vh-280px)] border border-ezgray-dark rounded">
+                    <CodeEditor
+                      content={fileContent}
+                      language={getFileLanguage()}
+                      onChange={updateContent}
+                    />
+                  </div>
+                </ResizablePanel>
+                {showKlein && (
+                  <>
+                    <ResizableHandle withHandle />
+                    <ResizablePanel defaultSize={30} minSize={20}>
+                      <KleinPane 
+                        filePath={currentFilePath}
+                        fileContent={fileContent}
+                        onApplyResponse={handleApplyResponse}
+                      />
+                    </ResizablePanel>
+                  </>
+                )}
+              </ResizablePanelGroup>
             </div>
           )}
         </div>

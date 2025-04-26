@@ -47,6 +47,8 @@ export default function KleinPane({ filePath, fileContent, onApplyResponse }: Kl
         throw new Error('Authentication required');
       }
 
+      console.log("Sending message to Klein:", { message: userMessage, filePath, fileContent });
+      
       const response = await fetch('https://natjhcqynqziccssnwim.supabase.co/functions/v1/klein-chat', {
         method: 'POST',
         headers: {
