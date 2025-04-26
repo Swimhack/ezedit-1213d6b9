@@ -22,7 +22,7 @@ export default function FileTree({ connection, onSelectFile, activeFilePath }: F
 
   return (
     <div className="h-full flex flex-col">
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 overflow-y-auto">
         <div className="pr-2">
           {isLoading ? (
             <div className="flex justify-center items-center h-20">
@@ -33,7 +33,7 @@ export default function FileTree({ connection, onSelectFile, activeFilePath }: F
               No files found
             </div>
           ) : (
-            <ul className="pl-2 space-y-1">
+            <ul className="pl-2 space-y-1 max-h-full">
               {treeData.map((node) => (
                 <TreeItem
                   key={node.path}
