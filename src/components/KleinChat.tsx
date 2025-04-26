@@ -1,15 +1,33 @@
 
-import { useState, useRef, FormEvent } from 'react';
+import { useState, useRef, FormEvent, useEffect } from 'react';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 interface KleinChatProps {
   filePath: string;
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export default function KleinChat({ filePath }: KleinChatProps) {
-  const [messages, setMessages] = useState<
-    {role: 'user' | 'assistant'; content: string}[]
-  >([{role: 'assistant', content: `Ask Klein about ${filePath}…`}]);
+  const chatStorageKey = `klein-chat-history-${filePath}`;
+  
+  const [messages, setMessages] = useLocalStorage<ChatMessage[]>(
+    chatStorageKey,
+    [{role: 'assistant', content: `Ask Klein about ${filePath}…`}]
+  );
+  
   const formRef = useRef<HTMLFormElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Reset initial message when file path changes
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([{role: 'assistant', content: `Ask Klein about ${filePath}…`}]);
+    }
+  }, [filePath, setMessages, messages.length]);
 
   async function send(e: FormEvent) {
     e.preventDefault();
@@ -18,10 +36,12 @@ export default function KleinChat({ filePath }: KleinChatProps) {
     if (!prompt) return;
     setMessages(m => [...m, {role: 'user', content: prompt}]);
     input.value = '';
+    setIsLoading(true);
 
     try {
       // First try Klein API if key exists
       if (window.ENV?.KLEIN_API_KEY) {
+        const allMessages = [...messages, {role: 'user', content: prompt}];
         const res = await fetch('https://api.klein.ai/v1/chat', {
           method: 'POST',
           headers: {
@@ -34,10 +54,10 @@ export default function KleinChat({ filePath }: KleinChatProps) {
                 role: 'system',
                 content: `You are a helpful AI assistant analyzing code. The current file being discussed is: ${filePath}`
               },
-              {
-                role: 'user',
-                content: prompt
-              }
+              ...allMessages.map(m => ({
+                role: m.role,
+                content: m.content
+              }))
             ]
           })
         });
@@ -56,6 +76,8 @@ export default function KleinChat({ filePath }: KleinChatProps) {
         role: 'assistant',
         content: 'Sorry, there was an error processing your request.'
       }]);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -74,6 +96,13 @@ export default function KleinChat({ filePath }: KleinChatProps) {
             </span>
           </div>
         ))}
+        {isLoading && (
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 rounded-full bg-indigo-300 animate-pulse"></div>
+            <div className="w-2 h-2 rounded-full bg-indigo-300 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 rounded-full bg-indigo-300 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+        )}
       </div>
 
       <form ref={formRef} onSubmit={send} className="p-2 border-t border-slate-800">
@@ -81,6 +110,7 @@ export default function KleinChat({ filePath }: KleinChatProps) {
           name="prompt"
           placeholder="Type a question…"
           className="w-full rounded bg-slate-700 px-3 py-2 text-slate-200 focus:outline-none"
+          disabled={isLoading}
         />
       </form>
     </div>
