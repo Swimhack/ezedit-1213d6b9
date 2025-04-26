@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { FileItem } from "@/types/ftp";
 import { normalizePath, joinPath } from "@/utils/path";
+import { toast } from "sonner";
 
 export interface FtpEntry {
   name: string;
@@ -36,6 +37,7 @@ export async function listDirectory(connection: {
 
     if (error) {
       console.error("[FTP] List error:", error);
+      toast.error(`Failed to list directory: ${error.message}`);
       throw error;
     }
 
@@ -44,6 +46,7 @@ export async function listDirectory(connection: {
     // Check if data.files exists (as expected from the edge function)
     if (!data || !data.files) {
       console.error("[FTP] Unexpected response format:", data);
+      toast.error("Received unexpected response format from FTP server");
       return [];
     }
 
@@ -65,6 +68,7 @@ export async function listDirectory(connection: {
     return mappedFiles;
   } catch (error: any) {
     console.error("[FTP] Listing failed:", error);
+    toast.error(`Failed to list directory: ${error.message}`);
     throw new Error(`Failed to list directory: ${error.message}`);
   }
 }
@@ -91,11 +95,15 @@ export async function getFile(connection: {
     
     if (error) {
       console.error("[FTP] Get file error:", error);
+      toast.error(`Failed to get file: ${error.message}`);
       throw error;
     }
     
     if (!data || !data.success) {
-      throw new Error(data?.message || "Unknown error getting file");
+      const errorMsg = data?.message || "Unknown error getting file";
+      console.error("[FTP] File download failed:", errorMsg);
+      toast.error(`Failed to get file: ${errorMsg}`);
+      throw new Error(errorMsg);
     }
     
     // Decode the base64 content
@@ -103,6 +111,7 @@ export async function getFile(connection: {
     return decodedContent;
   } catch (error: any) {
     console.error("[FTP] Get file failed:", error);
+    toast.error(`Failed to get file: ${error.message}`);
     throw new Error(`Failed to get file: ${error.message}`);
   }
 }

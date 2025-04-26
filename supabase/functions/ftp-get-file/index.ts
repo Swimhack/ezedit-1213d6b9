@@ -51,12 +51,15 @@ serve(async (req) => {
       
       console.log(`[GET-FILE] Downloading file: ${path}`);
       
+      // Force ASCII mode for text files to avoid binary issues
+      await client.send("TYPE A");
+      
       // Create a PassThrough stream to collect file data
       const stream = new PassThrough();
-      const chunks: Uint8Array[] = [];
+      let content = "";
       
       stream.on('data', (chunk) => {
-        chunks.push(chunk);
+        content += new TextDecoder().decode(chunk);
       });
       
       // Create a promise that resolves when the stream ends
@@ -71,18 +74,15 @@ serve(async (req) => {
       // Wait for the stream to complete
       await streamEnd;
       
-      // Combine all chunks into a single buffer
-      const buffer = Buffer.concat(chunks);
+      // Convert to base64 for safe transport
+      const base64Content = btoa(content);
       
-      // Convert to text and then to base64 for safe transport
-      const content = btoa(new TextDecoder().decode(buffer));
-      
-      console.log(`[GET-FILE] Successfully downloaded file (${buffer.length} bytes)`);
+      console.log(`[GET-FILE] Successfully downloaded file (${content.length} bytes)`);
       
       return new Response(
         JSON.stringify({ 
           success: true, 
-          content: content 
+          content: base64Content 
         }),
         { headers: corsHeaders }
       );
