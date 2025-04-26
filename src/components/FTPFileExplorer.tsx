@@ -32,7 +32,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const [currentFilePath, setCurrentFilePath] = useState("");
   const [files, setFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showCline, setShowCline] = useState(true);
+  const [showKlein, setShowKlein] = useState(true);
   
   const { 
     content: fileContent, 
@@ -45,7 +45,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
 
   useEffect(() => {
     const checkScreenSize = () => {
-      setShowCline(window.innerWidth >= 1024);
+      setShowKlein(window.innerWidth >= 1024);
     };
     
     checkScreenSize();
@@ -118,6 +118,9 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
 
       <div className="flex flex-col md:flex-row flex-1 h-[calc(100vh-8rem)]">
         <div className="w-full md:w-1/3 border-r border-ezgray-dark flex flex-col">
+          <div className="p-3 border-b border-ezgray-dark">
+            <h3 className="text-sm font-medium text-ezwhite">File Browser</h3>
+          </div>
           <div className="flex-1 overflow-y-auto">
             <FTPFileList
               currentPath={currentPath}
@@ -132,8 +135,8 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
         <div className="w-full md:w-2/3 flex-1 flex flex-col">
           <div className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-md font-semibold text-ezwhite">
-                {currentFilePath ? currentFilePath.split('/').pop() || 'File Content' : 'File Content'}
+              <h3 className="text-sm font-medium text-ezwhite">
+                {currentFilePath ? currentFilePath.split('/').pop() || 'File Editor' : 'File Editor'}
               </h3>
               {currentFilePath && (
                 <Button 
@@ -170,15 +173,20 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
                     />
                   </div>
                 </ResizablePanel>
-                {showCline && (
+                {showKlein && (
                   <>
                     <ResizableHandle withHandle />
                     <ResizablePanel defaultSize={30} minSize={20}>
-                      <ClinePane 
-                        filePath={currentFilePath}
-                        fileContent={fileContent}
-                        onApplyResponse={handleApplyResponse}
-                      />
+                      <div className="h-full">
+                        <div className="p-3 border-b border-ezgray-dark">
+                          <h3 className="text-sm font-medium text-ezwhite">AI Assistant</h3>
+                        </div>
+                        <ClinePane 
+                          filePath={currentFilePath}
+                          fileContent={fileContent}
+                          onApplyResponse={handleApplyResponse}
+                        />
+                      </div>
                     </ResizablePanel>
                   </>
                 )}
