@@ -1,9 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import FileBrowser from "react-keyed-file-browser";
-import "react-keyed-file-browser/dist/react-keyed-file-browser.css";
 import { CodeEditor } from "./editor/CodeEditor";
 import { listDirectory } from "@/lib/ftp";
 import { useFileContent } from "@/hooks/use-file-content";
@@ -103,6 +100,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
             currentPath={currentPath}
             files={files}
             onNavigate={handleNavigate}
+            onSelectFile={handleSelectFile}
             isLoading={isLoading}
           />
         </div>

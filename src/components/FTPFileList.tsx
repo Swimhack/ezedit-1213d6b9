@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format, isValid, parseISO } from "date-fns";
 import { ChevronRight, FolderIcon, FileIcon } from "lucide-react";
@@ -12,23 +11,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { FileItem } from "@/types/ftp";
 
 interface FTPFileListProps {
   currentPath: string;
-  files: FileItem[];
+  files: any[];
   onNavigate: (newPath: string) => void;
+  onSelectFile?: (file: { key: string; isDir: boolean }) => void;
   isLoading: boolean;
 }
 
-export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFileListProps) {
+export function FTPFileList({ 
+  currentPath, 
+  files, 
+  onNavigate, 
+  onSelectFile,
+  isLoading 
+}: FTPFileListProps) {
   const pathParts = currentPath.split('/').filter(Boolean);
 
   const handlePathClick = (index: number) => {
@@ -36,12 +34,17 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
     onNavigate(newPath);
   };
 
-  const handleFileClick = (file: FileItem) => {
+  const handleFileClick = (file: any) => {
     if (file.isDirectory) {
       const newPath = currentPath.endsWith('/') 
         ? `${currentPath}${file.name}/`
         : `${currentPath}/${file.name}/`;
       onNavigate(newPath);
+    } else if (onSelectFile) {
+      const filePath = currentPath.endsWith('/')
+        ? `${currentPath}${file.name}`
+        : `${currentPath}/${file.name}`;
+      onSelectFile({ key: filePath, isDir: false });
     }
   };
 
@@ -120,7 +123,7 @@ export function FTPFileList({ currentPath, files, onNavigate, isLoading }: FTPFi
               files.map((file) => (
                 <TableRow
                   key={file.name}
-                  className={file.isDirectory ? "cursor-pointer hover:bg-eznavy-light" : ""}
+                  className={`cursor-pointer hover:bg-eznavy-light`}
                   onClick={() => handleFileClick(file)}
                 >
                   <TableCell className="font-medium flex items-center">
