@@ -43,33 +43,24 @@ serve(async (req) => {
       secure: false 
     });
 
-    // Use memory buffer instead of temp file
-    const chunks: Uint8Array[] = [];
+    // Create a buffer to store file content
+    let fileData = "";
     
-    // Set up a tracker to collect the file data
-    await client.downloadTo(new WritableStream({
-      write(chunk) {
-        chunks.push(chunk);
-        return Promise.resolve();
-      }
-    }), path);
+    // Download file to a string
+    await client.downloadTo((data) => {
+      const chunk = new TextDecoder().decode(data);
+      fileData += chunk;
+      return Promise.resolve();
+    }, path);
     
-    // Combine all chunks
-    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-    const fileContent = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      fileContent.set(chunk, offset);
-      offset += chunk.length;
-    }
-    
-    // Convert to base64
-    const base64Content = btoa(
-      new TextDecoder().decode(fileContent)
-    );
+    // Convert string to base64
+    const base64Content = btoa(fileData);
     
     return new Response(
-      JSON.stringify({ success: true, content: base64Content }),
+      JSON.stringify({ 
+        success: true, 
+        content: base64Content 
+      }),
       { headers: corsHeaders }
     );
   } catch (error) {

@@ -28,6 +28,7 @@ export function useFtpFile() {
 
       if (error) {
         console.error("Error from edge function:", error);
+        toast.error(`Error loading file: ${error.message}`);
         throw error;
       }
       
@@ -38,6 +39,7 @@ export function useFtpFile() {
         return decodedContent;
       } else {
         console.error("Error in response:", data);
+        toast.error(`Error loading file: ${data.message || 'Unknown error'}`);
         throw new Error(data.message || 'Failed to load file content');
       }
     } catch (error: any) {

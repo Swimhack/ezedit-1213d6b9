@@ -1,14 +1,15 @@
 
 import { useState, useEffect } from "react";
-import { XCircle } from "lucide-react";
+import { XCircle, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CodeEditor } from "./editor/CodeEditor";
 import { listDirectory } from "@/lib/ftp";
-import { useFileContent } from "@/hooks/use-file-content";
 import { useFtpFile } from "@/hooks/use-ftp-file";
 import { toast } from "sonner";
-import { normalizePath, joinPath } from "@/utils/path";
+import { normalizePath } from "@/utils/path";
 import { FTPFileList } from "./FTPFileList";
+import { useFileContent } from "@/hooks/use-file-content";
+import { getLanguageFromFileName } from "@/utils/language-detector";
 
 interface FTPFileExplorerProps {
   connection: {
@@ -33,9 +34,12 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   
   const { 
     content: fileContent, 
-    isLoading: isFileLoading, 
-    loadFileContent
-  } = useFtpFile();
+    isLoading: isFileLoading,
+    updateContent,
+    saveContent,
+    isSaving,
+    hasUnsavedChanges,
+  } = useFileContent({ connection, filePath: currentFilePath });
 
   const loadDirectory = async (path: string) => {
     setIsLoading(true);
@@ -67,11 +71,6 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     console.log("[FTPFileExplorer] Selected file:", file);
     if (!file.isDir) {
       setCurrentFilePath(file.key);
-      try {
-        await loadFileContent(connection, file.key);
-      } catch (error) {
-        console.error("Failed to load file content:", error);
-      }
     } else {
       console.log("[FTPFileExplorer] Loading directory from select:", file.key);
       loadDirectory(file.key);
@@ -81,6 +80,11 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const handleNavigate = (path: string) => {
     console.log("[FTPFileExplorer] Navigating to:", path);
     loadDirectory(path);
+  };
+
+  const getFileLanguage = () => {
+    if (!currentFilePath) return "plaintext";
+    return getLanguageFromFileName(currentFilePath) || "plaintext";
   };
 
   return (
@@ -111,6 +115,18 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
             <h3 className="text-md font-semibold text-ezwhite">
               {currentFilePath ? currentFilePath.split('/').pop() || 'File Content' : 'File Content'}
             </h3>
+            {currentFilePath && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={saveContent}
+                disabled={isSaving || !hasUnsavedChanges}
+                className="flex items-center gap-1"
+              >
+                <Save size={16} />
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            )}
           </div>
           {!currentFilePath ? (
             <div className="flex items-center justify-center h-64 text-ezgray border border-dashed border-ezgray-dark rounded-md">
@@ -121,11 +137,13 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ezblue"></div>
             </div>
           ) : (
-            <CodeEditor
-              content={fileContent}
-              language="plaintext"
-              onChange={() => {}}
-            />
+            <div className="h-[calc(100vh-300px)] border border-ezgray-dark rounded">
+              <CodeEditor
+                content={fileContent}
+                language={getFileLanguage()}
+                onChange={updateContent}
+              />
+            </div>
           )}
         </div>
       </div>
