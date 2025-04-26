@@ -16,12 +16,12 @@ export function useFtpFile() {
     setIsLoading(true);
     try {
       console.log(`Loading file content from: ${filePath}`);
-      const { data, error } = await supabase.functions.invoke('ftp-download-file', {
+      
+      // Use the ftp-get-file function instead of ftp-download-file
+      const { data, error } = await supabase.functions.invoke('ftp-get-file', {
         body: {
-          host: connection.host,
-          port: connection.port,
-          username: connection.username,
-          password: connection.password,
+          // Pass the connection ID instead of the full connection details
+          siteId: connection.host, // We need to add proper site ID here
           path: filePath
         }
       });

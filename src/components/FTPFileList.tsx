@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { format, isValid, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ChevronRight, FolderIcon, FileIcon } from "lucide-react";
 import { toast } from "sonner";
 import { formatFileSize } from "@/lib/utils";
@@ -48,24 +49,30 @@ export function FTPFileList({
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateValue: any) => {
     try {
-      const date = parseISO(dateString);
-      if (isValid(date)) {
-        return format(date, "MMM d, yyyy HH:mm");
+      // Check if the date is already a Date object
+      if (dateValue instanceof Date) {
+        return format(dateValue, "MMM d, yyyy HH:mm");
       }
       
-      const timestamp = Number(dateString);
-      if (!isNaN(timestamp)) {
-        const dateFromTimestamp = new Date(timestamp);
-        if (isValid(dateFromTimestamp)) {
-          return format(dateFromTimestamp, "MMM d, yyyy HH:mm");
+      // If it's a number (timestamp), convert to Date
+      if (typeof dateValue === 'number') {
+        return format(new Date(dateValue), "MMM d, yyyy HH:mm");
+      }
+      
+      // If it's a string that can be parsed as a date
+      if (typeof dateValue === 'string') {
+        // Try to create a date from string
+        const date = new Date(dateValue);
+        if (!isNaN(date.getTime())) {
+          return format(date, "MMM d, yyyy HH:mm");
         }
       }
       
-      return "Invalid date";
+      return "Unknown date";
     } catch (error) {
-      console.error("Error formatting date:", error, "Date string:", dateString);
+      console.error("Error formatting date:", error, "Date value:", dateValue);
       return "Unknown date";
     }
   };

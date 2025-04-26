@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface UseFileContentProps {
   connection: {
+    id: string;
     host: string;
     port: number;
     username: string;
@@ -30,32 +31,30 @@ export function useFileContent({ connection, filePath }: UseFileContentProps) {
     
     setIsLoading(true);
     try {
-      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-download-file`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          host: connection.host,
-          port: connection.port,
-          username: connection.username,
-          password: connection.password,
+      console.log(`Fetching file content from: ${filePath} using connection ID: ${connection.id}`);
+      
+      const { data, error } = await supabase.functions.invoke('ftp-get-file', {
+        body: {
+          siteId: connection.id,
           path: filePath
-        }),
+        }
       });
 
-      const data = await response.json();
+      if (error) {
+        toast.error(`Error loading file: ${error.message}`);
+        throw error;
+      }
       
-      if (data.success) {
+      if (data && data.success) {
         const decodedContent = atob(data.content);
         setContent(decodedContent);
         setHasUnsavedChanges(false);
       } else {
-        toast.error(`Failed to download file: ${data.message}`);
+        toast.error(`Failed to load file: ${data?.message || 'Unknown error'}`);
       }
     } catch (error: any) {
-      toast.error(`Error downloading file: ${error.message}`);
+      console.error("File loading error:", error);
+      toast.error(`Error loading file: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
