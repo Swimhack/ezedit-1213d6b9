@@ -1,18 +1,44 @@
 
-// This is a placeholder for the actual CodeEditor component
-// Since we don't have access to modify it directly, you'll need to 
-// check if it accepts an editorRef prop and modify it accordingly.
-// If not, we'll need to update the CodeEditorPane to not pass this prop.
+import React from 'react';
+import MonacoEditor from '@monaco-editor/react';
 
-// Here's how we might expect the interface to look:
-/*
 interface CodeEditorProps {
   content: string;
   language: string;
   onChange: (value: string | undefined) => void;
   editorRef?: React.MutableRefObject<any>;
 }
-*/
 
-// Since we can't modify this file directly, we need to check if the CodeEditor
-// component accepts the editorRef prop or adapt our usage in CodeEditorPane
+export const CodeEditor: React.FC<CodeEditorProps> = ({ 
+  content, 
+  language, 
+  onChange, 
+  editorRef 
+}) => {
+  const handleEditorDidMount = (editor: any) => {
+    if (editorRef) {
+      editorRef.current = editor;
+    }
+  };
+
+  return (
+    <div className="h-full w-full">
+      <MonacoEditor
+        height="100%"
+        language={language}
+        value={content}
+        onChange={onChange}
+        theme="vs-dark"
+        options={{
+          minimap: { enabled: false },
+          fontSize: 14,
+          wordWrap: 'on',
+          scrollBeyondLastLine: false,
+          automaticLayout: true,
+          tabSize: 2,
+        }}
+        onMount={handleEditorDidMount}
+      />
+    </div>
+  );
+};
