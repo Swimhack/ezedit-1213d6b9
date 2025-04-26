@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SendIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,6 +18,18 @@ export default function KleinPane({ filePath, fileContent, onApplyResponse }: Kl
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,13 +39,19 @@ export default function KleinPane({ filePath, fileContent, onApplyResponse }: Kl
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
+    setError(null);
 
     try {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) {
+        throw new Error('Authentication required');
+      }
+
       const response = await fetch('https://natjhcqynqziccssnwim.supabase.co/functions/v1/klein-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          'Authorization': `Bearer ${session.data.session.access_token}`,
         },
         body: JSON.stringify({
           message: userMessage,
@@ -42,12 +60,19 @@ export default function KleinPane({ filePath, fileContent, onApplyResponse }: Kl
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to get response from Klein');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `Klein API error (${response.status}): ${response.statusText}`
+        );
+      }
       
       const data = await response.json();
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
     } catch (error: any) {
-      toast.error('Failed to send message: ' + error.message);
+      const errorMessage = `Failed to get response from Klein: ${error.message}`;
+      setError(errorMessage);
+      toast.error(errorMessage);
       console.error('Klein chat error:', error);
     } finally {
       setIsLoading(false);
@@ -61,11 +86,14 @@ export default function KleinPane({ filePath, fileContent, onApplyResponse }: Kl
     }
   };
 
+  if (!filePath) return null;
+
   return (
     <div className="flex h-full bg-eznavy-dark relative">
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="absolute -left-6 top-1/2 -translate-y-1/2 z-10 bg-eznavy-dark p-1 rounded-l-md border-l border-t border-b border-ezgray-dark"
+        aria-label={isCollapsed ? "Expand Klein pane" : "Collapse Klein pane"}
       >
         {isCollapsed ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
       </button>
@@ -73,10 +101,19 @@ export default function KleinPane({ filePath, fileContent, onApplyResponse }: Kl
       <div className={`flex flex-col w-full transition-all duration-300 ${isCollapsed ? 'mr-[-100%]' : ''}`}>
         <div className="px-4 py-2 border-b border-ezgray-dark">
           <h3 className="text-lg font-semibold text-ezwhite">Klein AI Chat</h3>
+          {filePath && (
+            <p className="text-xs text-ezgray truncate">File: {filePath}</p>
+          )}
         </div>
 
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
           <div className="space-y-4">
+            {messages.length === 0 && !error && (
+              <div className="p-3 text-center text-ezgray">
+                <p>Ask Klein about this file's code.</p>
+              </div>
+            )}
+            
             {messages.map((message, i) => (
               <div
                 key={i}
@@ -99,6 +136,21 @@ export default function KleinPane({ filePath, fileContent, onApplyResponse }: Kl
                 )}
               </div>
             ))}
+            
+            {error && (
+              <div className="p-3 rounded-lg bg-red-900/50 border border-red-700 mx-2">
+                <p className="text-sm text-ezwhite">{error}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2 border-red-700 hover:bg-red-800"
+                  onClick={() => setError(null)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            )}
+            
             {isLoading && (
               <div className="flex items-center justify-center py-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-ezblue"></div>

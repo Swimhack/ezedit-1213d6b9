@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import { FileCode2 } from "lucide-react";
 import { useFileContent } from "@/hooks/use-file-content";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
@@ -21,6 +22,7 @@ interface CodeEditorPaneProps {
 
 export default function CodeEditorPane({ connection, filePath, onContentChange }: CodeEditorPaneProps) {
   const [language, setLanguage] = useState<string>("javascript");
+  const editorRef = useRef(null);
   const {
     content,
     isLoading,
@@ -29,6 +31,19 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     updateContent,
     saveContent
   } = useFileContent({ connection, filePath });
+
+  const [showKlein, setShowKlein] = useState(true);
+  
+  // Check if screen is wide enough to show Klein pane
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setShowKlein(window.innerWidth >= 1024);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -111,16 +126,21 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
                 content={content}
                 language={language}
                 onChange={handleEditorChange}
+                editorRef={editorRef}
               />
             </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={30} minSize={20} className="hidden lg:block">
-              <KleinPane 
-                filePath={filePath} 
-                fileContent={content}
-                onApplyResponse={handleKleinResponse}
-              />
-            </ResizablePanel>
+            {filePath && showKlein && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={30} minSize={20}>
+                  <KleinPane 
+                    filePath={filePath} 
+                    fileContent={content}
+                    onApplyResponse={handleKleinResponse}
+                  />
+                </ResizablePanel>
+              </>
+            )}
           </ResizablePanelGroup>
         )}
       </div>

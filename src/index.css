@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -89,8 +90,22 @@
   }
 
   .klein-pane-transition {
-    transition: margin-right 300ms ease-in-out;
+    transition: margin-right 300ms ease-in-out, width 300ms ease-in-out;
   }
+}
+
+/* Make sure Klein pane transitions smoothly */
+.klein-pane {
+  transition: all 0.3s ease;
+}
+
+/* Klein pane typography */
+.klein-pane code {
+  @apply bg-eznavy-light text-ezblue px-1 py-0.5 rounded text-sm font-mono;
+}
+
+.klein-pane pre {
+  @apply bg-eznavy-light p-3 rounded-md text-sm font-mono my-2 overflow-auto;
 }
 
 /* File Browser Dark Theme Overrides */
