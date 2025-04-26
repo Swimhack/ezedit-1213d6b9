@@ -1,7 +1,8 @@
 
-// Deno runtime — use a Deno-native client
+// Supabase Edge (Deno w/ Node polyfills)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { FTPClient } from "https://deno.land/x/ftpdeno@v0.6.0/mod.ts";
+import { Client } from "npm:basic-ftp@6.1.3";
+import { PassThrough, Writable } from "node:stream";   // Node stream polyfilled in Deno
 import { supabase } from "../ftp-get-file/supabaseClient.ts";
 
 const corsHeaders = {
@@ -48,28 +49,28 @@ serve(async (req) => {
       );
     }
 
-    const client = new FTPClient();
+    const client = new Client();
     try {
-      await client.connect({
+      await client.access({
         host: creds.host,
         user: creds.user,
-        pass: creds.password,
+        password: creds.password,
         port: creds.port,
         secure: false
       });
       
       console.log(`[FTP-LIST] Connected to FTP server. Listing path: "${path}"`);
       
-      const entries = await client.list(path);
-      console.log(`[FTP-LIST] Successfully listed directory "${path}". Found ${entries.length} entries`);
+      const list = await client.list(path);
+      console.log(`[FTP-LIST] Successfully listed directory "${path}". Found ${list.length} entries`);
       
       // Format entries to match our expected FtpEntry type
-      const formattedEntries = entries.map(entry => ({
+      const formattedEntries = list.map(entry => ({
         name: entry.name,
-        type: entry.type === "dir" ? "directory" : "file",
+        type: entry.isDirectory ? "directory" : "file",
         size: entry.size || 0,
-        modified: entry.time ? entry.time.toISOString() : new Date().toISOString(),
-        isDirectory: entry.type === "dir"
+        modified: entry.modifiedAt ? entry.modifiedAt.toISOString() : new Date().toISOString(),
+        isDirectory: entry.isDirectory
       }));
       
       return new Response(

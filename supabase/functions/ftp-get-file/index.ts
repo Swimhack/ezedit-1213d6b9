@@ -1,6 +1,8 @@
 
+// Supabase Edge (Deno w/ Node polyfills)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { FTPClient } from "https://deno.land/x/ftpdeno@v0.6.0/mod.ts";
+import { Client } from "npm:basic-ftp@6.1.3";
+import { PassThrough, Writable } from "node:stream";   // Node stream polyfilled in Deno
 import { supabase } from "./supabaseClient.ts";
 
 const corsHeaders = {
@@ -57,30 +59,50 @@ serve(async (req) => {
       );
     }
 
-    const client = new FTPClient();
+    const client = new Client();
     try {
-      await client.connect({
+      await client.access({
         host: creds.host,
         user: creds.user,
-        pass: creds.password,
+        password: creds.password,
         port: creds.port,
         secure: false
       });
       
       console.log(`[GET-FILE] Downloading file: ${path}`);
       
-      const data = await client.download(path);
-      const content = new TextDecoder().decode(data);
+      // Create a PassThrough stream to collect file data
+      const stream = new PassThrough();
+      const chunks: Uint8Array[] = [];
       
-      // Convert to base64 for safe transport (maintaining compatibility with previous API)
-      const base64Content = btoa(content);
+      stream.on('data', (chunk) => {
+        chunks.push(chunk);
+      });
       
-      console.log(`[GET-FILE] Successfully downloaded file (${content.length} bytes)`);
+      // Create a promise that resolves when the stream ends
+      const streamEnd = new Promise<void>((resolve, reject) => {
+        stream.on('end', () => resolve());
+        stream.on('error', (err) => reject(err));
+      });
+      
+      // Download the file to our stream
+      await client.downloadTo(stream, path);
+      
+      // Wait for the stream to complete
+      await streamEnd;
+      
+      // Combine all chunks into a single buffer
+      const buffer = Buffer.concat(chunks);
+      
+      // Convert to text and then to base64 for safe transport
+      const content = btoa(new TextDecoder().decode(buffer));
+      
+      console.log(`[GET-FILE] Successfully downloaded file (${buffer.length} bytes)`);
       
       return new Response(
         JSON.stringify({ 
           success: true, 
-          content: base64Content 
+          content: content 
         }),
         { headers: corsHeaders }
       );
