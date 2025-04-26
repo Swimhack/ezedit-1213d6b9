@@ -3,33 +3,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Client } from "npm:basic-ftp@5.0.3";
 import { PassThrough, Writable } from "node:stream";   // Node stream polyfilled in Deno
-import { supabase } from "./supabaseClient.ts";
+import { getFtpCreds } from "../_shared/creds.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization,x-client-info,apikey,content-type',
   'Content-Type': 'application/json'
 };
-
-async function getFtpCreds(siteId) {
-  const { data, error } = await supabase
-    .from("ftp_connections")
-    .select("host, username, password, port")
-    .eq("id", siteId)
-    .single();
-
-  if (error) {
-    console.error("Error fetching FTP credentials:", error);
-    return null;
-  }
-
-  return {
-    host: data.host,
-    user: data.username,
-    password: data.password,
-    port: data.port || 21
-  };
-}
 
 serve(async (req) => {
   // Handle CORS preflight requests
