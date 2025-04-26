@@ -15,18 +15,11 @@ serve(async (req) => {
   try {
     const { message, filePath, fileContent, previousMessages } = await req.json();
     const key = Deno.env.get('KLEIN_API_KEY');
-
-    // Demo mode if no API key is present
+    
     if (!key) {
-      return new Response(
-        JSON.stringify({ 
-          response: `🔧 Demo Mode: "${message}"\n\nNote: This is a demo response as no Klein API key is configured.` 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('Klein API key not configured');
     }
 
-    // Live mode with OpenRouter
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
