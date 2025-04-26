@@ -21,29 +21,31 @@ export default function FileTree({ connection, onSelectFile, activeFilePath }: F
   const { treeData, isLoading, toggleDirectory } = useFileTree({ connection });
 
   return (
-    <div className="h-full">
-      <ScrollArea className="h-[calc(100vh-180px)]">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-20">
-            <Loader className="h-6 w-6 animate-spin text-ezblue" />
-          </div>
-        ) : treeData.length === 0 ? (
-          <div className="text-center py-6 text-ezgray">
-            No files found
-          </div>
-        ) : (
-          <ul className="pl-2 space-y-1">
-            {treeData.map((node) => (
-              <TreeItem
-                key={node.path}
-                node={node}
-                activeFilePath={activeFilePath}
-                onToggle={toggleDirectory}
-                onSelectFile={onSelectFile}
-              />
-            ))}
-          </ul>
-        )}
+    <div className="h-full flex flex-col">
+      <ScrollArea className="flex-1">
+        <div className="pr-2">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-20">
+              <Loader className="h-6 w-6 animate-spin text-ezblue" />
+            </div>
+          ) : treeData.length === 0 ? (
+            <div className="text-center py-6 text-ezgray">
+              No files found
+            </div>
+          ) : (
+            <ul className="pl-2 space-y-1">
+              {treeData.map((node) => (
+                <TreeItem
+                  key={node.path}
+                  node={node}
+                  activeFilePath={activeFilePath}
+                  onToggle={toggleDirectory}
+                  onSelectFile={onSelectFile}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
       </ScrollArea>
     </div>
   );

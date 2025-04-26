@@ -43,7 +43,6 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     hasUnsavedChanges,
   } = useFileContent({ connection, filePath: currentFilePath });
 
-  // Check if screen is wide enough to show Cline pane
   useEffect(() => {
     const checkScreenSize = () => {
       setShowCline(window.innerWidth >= 1024);
@@ -57,7 +56,6 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const loadDirectory = async (path: string) => {
     setIsLoading(true);
     try {
-      // Normalize the path to ensure it has consistent formatting
       const normalizedPath = normalizePath(path);
       console.log(`[FTPFileExplorer] Loading directory: "${normalizedPath}"`);
       
@@ -75,7 +73,6 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   };
 
   useEffect(() => {
-    // Start by loading the root directory, or the configured root_directory if available
     const startPath = connection.root_directory ? normalizePath(connection.root_directory) : "/";
     loadDirectory(startPath);
   }, [connection]);
@@ -109,7 +106,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b border-ezgray-dark">
+      <div className="flex items-center justify-between p-4 border-b border-ezgray-dark flex-shrink-0">
         <h2 className="text-lg font-semibold text-ezwhite">
           {connection.server_name} Files
         </h2>
@@ -119,15 +116,17 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
         </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row h-full">
-        <div className="w-full md:w-1/3 p-4 border-r border-ezgray-dark overflow-auto">
-          <FTPFileList
-            currentPath={currentPath}
-            files={files}
-            onNavigate={handleNavigate}
-            onSelectFile={handleSelectFile}
-            isLoading={isLoading}
-          />
+      <div className="flex flex-col md:flex-row flex-1 h-[calc(100vh-8rem)]">
+        <div className="w-full md:w-1/3 border-r border-ezgray-dark flex flex-col">
+          <div className="flex-1 overflow-y-auto">
+            <FTPFileList
+              currentPath={currentPath}
+              files={files}
+              onNavigate={handleNavigate}
+              onSelectFile={handleSelectFile}
+              isLoading={isLoading}
+            />
+          </div>
         </div>
 
         <div className="w-full md:w-2/3 flex-1 flex flex-col">
