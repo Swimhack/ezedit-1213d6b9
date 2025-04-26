@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { SendIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,6 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when messages change
@@ -51,7 +49,6 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
-    setError(null);
 
     try {
       const session = await supabase.auth.getSession();
@@ -59,8 +56,6 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
         throw new Error('Authentication required');
       }
 
-      console.log("Sending message to Cline:", { message: userMessage, filePath, fileContent });
-      
       const response = await fetch('https://natjhcqynqziccssnwim.supabase.co/functions/v1/cline-chat', {
         method: 'POST',
         headers: {
@@ -71,24 +66,24 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
           message: userMessage,
           filePath,
           fileContent,
-          // Send previous messages for context
           previousMessages: messages
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Cline API error (${response.status}): ${response.statusText}`
-        );
-      }
-      
       const data = await response.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+      
+      // Always add the response to messages, even if it's an error message
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: data.response || '🤖 No response received' 
+      }]);
+      
     } catch (error: any) {
-      const errorMessage = `Failed to get response from Cline: ${error.message}`;
-      setError(errorMessage);
-      toast.error(errorMessage);
+      // Handle any errors by showing them in the chat
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: `⚠️ Error: ${error.message || 'Something went wrong. Please try again.'}` 
+      }]);
       console.error('Cline chat error:', error);
     } finally {
       setIsLoading(false);
@@ -124,7 +119,7 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
 
         <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
           <div className="space-y-4">
-            {messages.length === 0 && !error && (
+            {messages.length === 0 && (
               <div className="p-3 text-center text-ezgray">
                 <p>Ask Cline about this file's code.</p>
               </div>
@@ -139,12 +134,12 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
                     : 'bg-ezgray-dark mr-8'
                 }`}
               >
-                <p className="text-sm text-ezwhite">{message.content}</p>
-                {message.role === 'assistant' && onApplyResponse && (
+                <p className="text-sm text-ezwhite whitespace-pre-wrap">{message.content}</p>
+                {message.role === 'assistant' && onApplyResponse && !message.content.startsWith('⚠️') && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleApplyResponse(message.content)}
+                    onClick={() => onApplyResponse(message.content)}
                     className="mt-2"
                   >
                     ↩ Apply to editor
@@ -152,20 +147,6 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
                 )}
               </div>
             ))}
-            
-            {error && (
-              <div className="p-3 rounded-lg bg-red-900/50 border border-red-700 mx-2">
-                <p className="text-sm text-ezwhite">{error}</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-2 border-red-700 hover:bg-red-800"
-                  onClick={() => setError(null)}
-                >
-                  Dismiss
-                </Button>
-              </div>
-            )}
             
             {isLoading && (
               <div className="flex items-center justify-center py-2">
