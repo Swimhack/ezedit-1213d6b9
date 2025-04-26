@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { FileItem } from "@/types/ftp";
+import { normalizePath } from "@/utils/path";
 
 export async function listDirectory(connection: {
   host: string;
@@ -8,7 +9,10 @@ export async function listDirectory(connection: {
   username: string;
   password: string;
 }, path: string = '/') {
-  const cleanPath = path.trim() === '' ? '/' : path;
+  // Normalize the path to ensure it's consistent
+  const cleanPath = normalizePath(path);
+  
+  console.log(`FTP: Listing directory ${cleanPath}`);
   
   try {
     const { data, error } = await supabase.functions.invoke('ftp-list-directory', {
@@ -21,7 +25,10 @@ export async function listDirectory(connection: {
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("FTP list error:", error);
+      throw error;
+    }
 
     // Check if data.files exists (as expected from the edge function)
     if (!data || !data.files) {
@@ -29,14 +36,20 @@ export async function listDirectory(connection: {
       return [];
     }
 
+    console.log(`FTP: Received ${data.files.length} files from server`);
+
     // Map FTP response to react-file-browser schema
-    return (data.files as FileItem[]).map(file => ({
+    const mappedFiles = (data.files as FileItem[]).map(file => ({
       key: `${cleanPath === '/' ? '' : cleanPath}/${file.name}${file.isDirectory ? '/' : ''}`.replace(/\/+/g, '/'),
       modified: new Date(file.modified),
       size: file.size,
       isDir: file.isDirectory
     }));
+    
+    console.log("FTP: Mapped files for browser:", mappedFiles);
+    return mappedFiles;
   } catch (error: any) {
+    console.error("FTP listing failed:", error);
     throw new Error(`Failed to list directory: ${error.message}`);
   }
 }

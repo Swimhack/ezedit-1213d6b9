@@ -33,6 +33,8 @@ serve(async (req) => {
     console.log(`Attempting to list FTP directory for ${username}@${host}:${port}${safePath}`);
 
     const client = new Client();
+    client.ftp.verbose = true; // Enable verbose logging for debugging
+    
     try {
       await client.access({
         host,
@@ -42,7 +44,12 @@ serve(async (req) => {
         secure: false
       });
 
+      console.log(`Connected to FTP server. Listing path: ${safePath}`);
+      
       const list = await client.list(safePath);
+      
+      console.log(`Successfully listed directory. Found ${list.length} entries`);
+      
       const files = list.map(item => ({
         name: item.name,
         size: item.size,
@@ -53,7 +60,11 @@ serve(async (req) => {
       }));
 
       return new Response(
-        JSON.stringify({ success: true, files }),
+        JSON.stringify({ 
+          success: true, 
+          files,
+          path: safePath
+        }),
         { headers: corsHeaders }
       );
     } catch (error) {
@@ -61,7 +72,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: error.message || "Failed to list directory contents" 
+          message: error.message || "Failed to list directory contents",
+          path: safePath
         }),
         { status: 400, headers: corsHeaders }
       );

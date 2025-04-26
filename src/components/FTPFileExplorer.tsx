@@ -8,6 +8,7 @@ import { CodeEditor } from "./editor/CodeEditor";
 import { listDirectory } from "@/lib/ftp";
 import { useFileContent } from "@/hooks/use-file-content";
 import { toast } from "sonner";
+import { normalizePath } from "@/utils/path";
 
 interface FTPFileExplorerProps {
   connection: {
@@ -45,11 +46,15 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const loadDirectory = async (path: string) => {
     setIsLoading(true);
     try {
-      console.log(`Loading directory: ${path}`);
-      const files = await listDirectory(connection, path);
-      console.log(`Loaded ${files.length} files from ${path}`);
+      // Normalize the path to ensure it has consistent formatting
+      const normalizedPath = normalizePath(path);
+      console.log(`Loading directory: ${normalizedPath}`);
+      
+      const files = await listDirectory(connection, normalizedPath);
+      console.log(`Loaded ${files.length} files from ${normalizedPath}:`, files);
+      
       setFiles(files);
-      setCurrentPath(path);
+      setCurrentPath(normalizedPath);
     } catch (error: any) {
       console.error("Directory loading error:", error);
       toast.error(error.message);
@@ -63,15 +68,17 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   }, [connection]);
 
   const handleSelectFile = (file: { key: string; isDir: boolean }) => {
+    console.log("Selected file:", file);
     if (!file.isDir) {
       setCurrentFilePath(file.key);
     } else {
-      // When a directory is selected, navigate into it
+      console.log("Loading directory from select:", file.key);
       loadDirectory(file.key);
     }
   };
 
   const handleNavigate = (path: string) => {
+    console.log("Navigating to:", path);
     loadDirectory(path);
   };
 
@@ -94,13 +101,23 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ezblue"></div>
             </div>
           ) : (
-            <FileBrowser
-              files={files}
-              onNavigate={handleNavigate}
-              onSelectFile={handleSelectFile}
-              headerRenderer={() => null}
-              className="text-ezwhite"
-            />
+            <>
+              <div className="mb-4 text-sm text-ezgray-light">
+                Current path: {currentPath}
+              </div>
+              <FileBrowser
+                files={files}
+                onNavigate={handleNavigate}
+                onSelectFile={handleSelectFile}
+                headerRenderer={() => null}
+                className="text-ezwhite"
+              />
+              {files.length === 0 && !isLoading && (
+                <div className="p-4 text-center text-ezgray">
+                  No files in this directory
+                </div>
+              )}
+            </>
           )}
         </div>
 
