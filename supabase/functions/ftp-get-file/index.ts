@@ -1,7 +1,7 @@
 
 // Supabase Edge (Deno w/ Node polyfills)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Client } from "npm:basic-ftp@6.1.3";
+import { Client } from "npm:basic-ftp@5.0.3";
 import { PassThrough, Writable } from "node:stream";   // Node stream polyfilled in Deno
 import { supabase } from "./supabaseClient.ts";
 
