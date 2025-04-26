@@ -43,31 +43,35 @@ serve(async (req) => {
       secure: false 
     });
 
-    // Create a temporary file for download
-    const tempFilePath = await Deno.makeTempFile();
+    // Use memory buffer instead of temp file
+    const chunks: Uint8Array[] = [];
     
-    try {
-      // Download file to temp location
-      await client.downloadTo(tempFilePath, path);
-      
-      // Read file content
-      const bytes = await Deno.readFile(tempFilePath);
-      
-      // Encode content to base64
-      const content = btoa(String.fromCharCode(...bytes));
-      
-      return new Response(
-        JSON.stringify({ success: true, content }),
-        { headers: corsHeaders }
-      );
-    } finally {
-      // Clean up temp file
-      try {
-        await Deno.remove(tempFilePath);
-      } catch (cleanupError) {
-        console.error('Error removing temp file:', cleanupError);
+    // Set up a tracker to collect the file data
+    await client.downloadTo(new WritableStream({
+      write(chunk) {
+        chunks.push(chunk);
+        return Promise.resolve();
       }
+    }), path);
+    
+    // Combine all chunks
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const fileContent = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      fileContent.set(chunk, offset);
+      offset += chunk.length;
     }
+    
+    // Convert to base64
+    const base64Content = btoa(
+      new TextDecoder().decode(fileContent)
+    );
+    
+    return new Response(
+      JSON.stringify({ success: true, content: base64Content }),
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error('FTP download error:', error);
     return new Response(

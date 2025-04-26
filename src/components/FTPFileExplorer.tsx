@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CodeEditor } from "./editor/CodeEditor";
 import { listDirectory } from "@/lib/ftp";
 import { useFileContent } from "@/hooks/use-file-content";
+import { useFtpFile } from "@/hooks/use-ftp-file";
 import { toast } from "sonner";
 import { normalizePath, joinPath } from "@/utils/path";
 import { FTPFileList } from "./FTPFileList";
@@ -30,16 +32,10 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const [isLoading, setIsLoading] = useState(false);
   
   const { 
-    content, 
+    content: fileContent, 
     isLoading: isFileLoading, 
-    isSaving,
-    hasUnsavedChanges,
-    updateContent,
-    saveContent
-  } = useFileContent({ 
-    connection, 
-    filePath: currentFilePath 
-  });
+    loadFileContent
+  } = useFtpFile();
 
   const loadDirectory = async (path: string) => {
     setIsLoading(true);
@@ -67,10 +63,15 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     loadDirectory(startPath);
   }, [connection]);
 
-  const handleSelectFile = (file: { key: string; isDir: boolean }) => {
+  const handleSelectFile = async (file: { key: string; isDir: boolean }) => {
     console.log("[FTPFileExplorer] Selected file:", file);
     if (!file.isDir) {
       setCurrentFilePath(file.key);
+      try {
+        await loadFileContent(connection, file.key);
+      } catch (error) {
+        console.error("Failed to load file content:", error);
+      }
     } else {
       console.log("[FTPFileExplorer] Loading directory from select:", file.key);
       loadDirectory(file.key);
@@ -110,13 +111,6 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
             <h3 className="text-md font-semibold text-ezwhite">
               {currentFilePath ? currentFilePath.split('/').pop() || 'File Content' : 'File Content'}
             </h3>
-            <Button 
-              onClick={saveContent}
-              disabled={!currentFilePath || isSaving || !hasUnsavedChanges} 
-              className="bg-ezblue hover:bg-ezblue/90"
-            >
-              {isSaving ? 'Saving...' : 'Save'}
-            </Button>
           </div>
           {!currentFilePath ? (
             <div className="flex items-center justify-center h-64 text-ezgray border border-dashed border-ezgray-dark rounded-md">
@@ -128,9 +122,9 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
             </div>
           ) : (
             <CodeEditor
-              content={content}
+              content={fileContent}
               language="plaintext"
-              onChange={(newContent) => updateContent(newContent || "")}
+              onChange={() => {}}
             />
           )}
         </div>

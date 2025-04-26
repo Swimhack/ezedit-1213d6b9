@@ -15,6 +15,7 @@ export function useFtpFile() {
   }, filePath: string) => {
     setIsLoading(true);
     try {
+      console.log(`Loading file content from: ${filePath}`);
       const { data, error } = await supabase.functions.invoke('ftp-download-file', {
         body: {
           host: connection.host,
@@ -25,16 +26,22 @@ export function useFtpFile() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error from edge function:", error);
+        throw error;
+      }
       
       if (data.success) {
+        console.log(`File content received, decoding...`);
         const decodedContent = atob(data.content);
         setContent(decodedContent);
         return decodedContent;
       } else {
+        console.error("Error in response:", data);
         throw new Error(data.message || 'Failed to load file content');
       }
     } catch (error: any) {
+      console.error("File loading error:", error);
       toast.error(`Error loading file: ${error.message}`);
       throw error;
     } finally {
