@@ -69,10 +69,8 @@ serve(async (req) => {
         secure: false
       });
 
-      // Download to a string buffer
-      let fileContent = "";
-      
-      // Create a transform stream to collect chunks
+      // Download to a string buffer using a TransformStream
+      // This approach works with Deno
       const chunks = [];
       const stream = new TransformStream({
         transform(chunk, controller) {
@@ -85,6 +83,7 @@ serve(async (req) => {
       
       // Convert chunks to string
       const decoder = new TextDecoder();
+      let fileContent = "";
       for (const chunk of chunks) {
         fileContent += decoder.decode(chunk, { stream: true });
       }
