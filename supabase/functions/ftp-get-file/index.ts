@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Client } from "npm:basic-ftp@5.0.3";
 import { supabase } from "./supabaseClient.ts";
+import { PassThrough } from "npm:stream@0.0.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,25 +70,30 @@ serve(async (req) => {
         secure: false
       });
 
-      // Download to a string buffer using a TransformStream
-      // This approach works with Deno
+      // Create a PassThrough stream to collect data chunks
       const chunks = [];
-      const stream = new TransformStream({
-        transform(chunk, controller) {
-          chunks.push(chunk);
-          controller.enqueue(chunk);
-        }
+      const stream = new PassThrough();
+      
+      // Add event listeners to collect chunks
+      stream.on("data", (chunk) => {
+        chunks.push(chunk);
       });
       
-      await client.downloadTo(stream.writable, absPath);
+      // Wait for the download to complete using a promise
+      const downloadPromise = new Promise((resolve, reject) => {
+        stream.on("end", resolve);
+        stream.on("error", reject);
+      });
       
-      // Convert chunks to string
-      const decoder = new TextDecoder();
-      let fileContent = "";
-      for (const chunk of chunks) {
-        fileContent += decoder.decode(chunk, { stream: true });
-      }
-      fileContent += decoder.decode(); // Flush any remaining data
+      // Start the download - stream satisfies the .once() requirement
+      await client.downloadTo(stream, absPath);
+      
+      // Wait for the download to complete
+      await downloadPromise;
+      
+      // Convert chunks to a single buffer and then to a string
+      const buffer = chunks.length > 0 ? Buffer.concat(chunks) : Buffer.alloc(0);
+      const fileContent = buffer.toString('utf-8');
       
       // Convert to base64 for safe transport
       const base64Content = btoa(fileContent);
