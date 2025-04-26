@@ -65,7 +65,14 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const handleSelectFile = (file: { key: string; isDir: boolean }) => {
     if (!file.isDir) {
       setCurrentFilePath(file.key);
+    } else {
+      // When a directory is selected, navigate into it
+      loadDirectory(file.key);
     }
+  };
+
+  const handleNavigate = (path: string) => {
+    loadDirectory(path);
   };
 
   return (
@@ -89,7 +96,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
           ) : (
             <FileBrowser
               files={files}
-              onNavigate={(path) => loadDirectory(path)}
+              onNavigate={handleNavigate}
               onSelectFile={handleSelectFile}
               headerRenderer={() => null}
               className="text-ezwhite"

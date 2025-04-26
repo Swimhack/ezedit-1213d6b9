@@ -31,7 +31,7 @@ export async function listDirectory(connection: {
 
     // Map FTP response to react-file-browser schema
     return (data.files as FileItem[]).map(file => ({
-      key: `${cleanPath === '/' ? '' : cleanPath}${file.name}${file.isDirectory ? '/' : ''}`,
+      key: `${cleanPath === '/' ? '' : cleanPath}/${file.name}${file.isDirectory ? '/' : ''}`.replace(/\/+/g, '/'),
       modified: new Date(file.modified),
       size: file.size,
       isDir: file.isDirectory
