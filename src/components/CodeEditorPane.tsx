@@ -79,6 +79,14 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     }
   };
 
+  const handleKleinResponse = (text: string) => {
+    if (content) {
+      const newContent = content + '\n' + text;
+      updateContent(newContent);
+      onContentChange(newContent);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <EditorToolbar
@@ -98,16 +106,20 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
           </div>
         ) : (
           <ResizablePanelGroup direction="horizontal">
-            <ResizablePanel defaultSize={70}>
+            <ResizablePanel defaultSize={70} minSize={40}>
               <CodeEditor
                 content={content}
                 language={language}
                 onChange={handleEditorChange}
               />
             </ResizablePanel>
-            <ResizableHandle />
-            <ResizablePanel defaultSize={30}>
-              <KleinPane filePath={filePath} fileContent={content} />
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={30} minSize={20} className="hidden lg:block">
+              <KleinPane 
+                filePath={filePath} 
+                fileContent={content}
+                onApplyResponse={handleKleinResponse}
+              />
             </ResizablePanel>
           </ResizablePanelGroup>
         )}
