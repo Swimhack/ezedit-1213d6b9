@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -63,11 +62,23 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// EzEdit custom colors
+				brand: {
+					DEFAULT: '#2DA8FF',
+					50: '#e6f4ff',
+					100: '#cce9ff',
+					200: '#99d4ff',
+					300: '#66beff',
+					400: '#33a9ff',
+					500: '#2DA8FF',
+					600: '#0086ff',
+					700: '#0066cc',
+					800: '#004499',
+					900: '#002266',
+				},
 				ezblue: {
-					DEFAULT: '#64FFDA',
-					light: '#9EFFEB',
-					dark: '#41D7B2'
+					DEFAULT: '#2DA8FF',
+					light: '#66beff',
+					dark: '#0066cc'
 				},
 				eznavy: {
 					DEFAULT: '#0A192F',
