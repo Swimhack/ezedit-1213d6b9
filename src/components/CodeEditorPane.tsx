@@ -1,11 +1,10 @@
-
 import { useState, useEffect, useRef } from "react";
 import { FileCode2 } from "lucide-react";
 import { useFileContent } from "@/hooks/use-file-content";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
 import { LoadingOverlay } from "@/components/editor/LoadingOverlay";
 import { CodeEditor } from "@/components/editor/CodeEditor";
-import ClinePane from "@/components/ClinePane";
+import KleinChat from "@/components/KleinChat";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 interface CodeEditorPaneProps {
@@ -32,12 +31,12 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     saveContent
   } = useFileContent({ connection, filePath });
 
-  const [showCline, setShowCline] = useState(true);
+  const [showKlein, setShowKlein] = useState(true);
   
-  // Check if screen is wide enough to show Cline pane
+  // Check if screen is wide enough to show Klein pane
   useEffect(() => {
     const checkScreenSize = () => {
-      setShowCline(window.innerWidth >= 1024);
+      setShowKlein(window.innerWidth >= 1024);
     };
     
     checkScreenSize();
@@ -125,19 +124,15 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
               <CodeEditor
                 content={content}
                 language={language}
-                onChange={handleEditorChange}
+                onChange={updateContent}
                 editorRef={editorRef}
               />
             </ResizablePanel>
-            {filePath && showCline && (
+            {filePath && showKlein && (
               <>
                 <ResizableHandle withHandle />
                 <ResizablePanel defaultSize={30} minSize={20}>
-                  <ClinePane 
-                    filePath={filePath} 
-                    fileContent={content}
-                    onApplyResponse={handleClineResponse}
-                  />
+                  <KleinChat filePath={filePath} />
                 </ResizablePanel>
               </>
             )}
