@@ -43,18 +43,29 @@ serve(async (req) => {
       secure: false 
     });
 
-    // Create a buffer to store file content
-    let fileData = "";
+    // Download to a string buffer
+    let fileContent = "";
     
-    // Download file to a string
-    await client.downloadTo((data) => {
-      const chunk = new TextDecoder().decode(data);
-      fileData += chunk;
-      return Promise.resolve();
-    }, path);
+    // Use a different approach that works with Deno
+    const chunks = [];
+    const stream = new TransformStream({
+      transform(chunk, controller) {
+        chunks.push(chunk);
+        controller.enqueue(chunk);
+      }
+    });
     
-    // Convert string to base64
-    const base64Content = btoa(fileData);
+    await client.downloadTo(stream.writable, path);
+    
+    // Convert chunks to string
+    const decoder = new TextDecoder();
+    for (const chunk of chunks) {
+      fileContent += decoder.decode(chunk, { stream: true });
+    }
+    fileContent += decoder.decode(); // Flush any remaining data
+    
+    // Convert to base64 for safe transport
+    const base64Content = btoa(fileContent);
     
     return new Response(
       JSON.stringify({ 

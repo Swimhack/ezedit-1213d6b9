@@ -69,18 +69,29 @@ serve(async (req) => {
         secure: false
       });
 
-      // Create a string to store file content
-      let fileData = "";
+      // Download to a string buffer
+      let fileContent = "";
       
-      // Download file to a string
-      await client.downloadTo((data) => {
-        const chunk = new TextDecoder().decode(data);
-        fileData += chunk;
-        return Promise.resolve();
-      }, absPath);
+      // Create a transform stream to collect chunks
+      const chunks = [];
+      const stream = new TransformStream({
+        transform(chunk, controller) {
+          chunks.push(chunk);
+          controller.enqueue(chunk);
+        }
+      });
       
-      // Convert content to base64 for safe JSON transport
-      const base64Content = btoa(fileData);
+      await client.downloadTo(stream.writable, absPath);
+      
+      // Convert chunks to string
+      const decoder = new TextDecoder();
+      for (const chunk of chunks) {
+        fileContent += decoder.decode(chunk, { stream: true });
+      }
+      fileContent += decoder.decode(); // Flush any remaining data
+      
+      // Convert to base64 for safe transport
+      const base64Content = btoa(fileContent);
       
       return new Response(
         JSON.stringify({ 
