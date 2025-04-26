@@ -26,14 +26,16 @@ serve(async (req) => {
       );
     }
 
-    // Live mode with API key
-    const response = await fetch('https://api.klein.ai/v1/chat', {
+    // Live mode with OpenRouter
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${key}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://ezedit.co',
       },
       body: JSON.stringify({
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -50,7 +52,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.text();
-      throw new Error(`Klein API error (${response.status}): ${errorData}`);
+      throw new Error(`OpenRouter API error (${response.status}): ${errorData}`);
     }
 
     const data = await response.json();
