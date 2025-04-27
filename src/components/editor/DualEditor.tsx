@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import TipTapWrapper from './TipTapWrapper';
@@ -51,6 +50,23 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
     };
 
     const handleContentChange = (newContent: string) => {
+        // Auto-insert viewport meta once per document for HTML/PHP files
+        if (fileName && /\.html?$|\.php$/i.test(fileName)) {
+            let html = newContent;
+            if (!/<meta\s+name=["']viewport/i.test(html)) {
+                html = html.replace(
+                    /<head[^>]*>/i,
+                    match => `${match}\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">`
+                );
+            }
+            setTabContents(prev => ({
+                ...prev,
+                [activeTab]: html
+            }));
+            onChange(html);
+            return;
+        }
+
         setTabContents(prev => ({
             ...prev,
             [activeTab]: newContent
