@@ -1,5 +1,5 @@
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { CodeEditor } from "../editor/CodeEditor";
 import { FileEditorToolbar } from "./FileEditorToolbar";
 import { getLanguageFromFileName } from "@/utils/language-detector";
@@ -39,6 +39,11 @@ export function FileEditorModal({
           isSaving={isSaving}
           hasUnsavedChanges={hasUnsavedChanges}
         />
+        <div className="p-3 border-b border-ezgray-dark">
+          <DialogTitle className="text-sm font-medium text-ezwhite">
+            Editing: {fileName || 'Untitled File'}
+          </DialogTitle>
+        </div>
         <div className="flex-1 p-4">
           <div className="h-[calc(80vh-8rem)] border border-ezgray-dark rounded">
             <CodeEditor

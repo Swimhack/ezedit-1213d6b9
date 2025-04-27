@@ -21,7 +21,9 @@ export function AIAssistantModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0">
         <div className="p-3 border-b border-ezgray-dark">
-          <DialogTitle className="text-sm font-medium text-ezwhite">AI Assistant</DialogTitle>
+          <DialogTitle className="text-sm font-medium text-ezwhite">
+            AI Assistant: {filePath ? `Helping with ${filePath}` : 'Code Assistant'}
+          </DialogTitle>
         </div>
         <div className="flex-1">
           <ClinePane

@@ -30,7 +30,9 @@ export function FileBrowserModal({
         <FileExplorerHeader serverName={serverName} onClose={onClose} />
         <div className="flex-1 overflow-hidden">
           <div className="p-3 border-b border-ezgray-dark">
-            <DialogTitle className="text-sm font-medium text-ezwhite">File Browser</DialogTitle>
+            <DialogTitle className="text-sm font-medium text-ezwhite">
+              {serverName} - File Explorer
+            </DialogTitle>
           </div>
           <div className="flex-1 overflow-y-auto h-[calc(80vh-8rem)]">
             <FTPFileList
