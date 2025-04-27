@@ -1,5 +1,5 @@
 
-import { FTPConnectionModal } from "@/components/FTPConnectionModal";
+import FTPConnectionModal from "@/components/FTPConnectionModal";
 import { FileBrowserModal } from "@/components/ftp-explorer/FileBrowserModal";
 import { FileEditorModal } from "@/components/ftp-explorer/FileEditorModal";
 import { AIAssistantModal } from "@/components/ftp-explorer/AIAssistantModal";
