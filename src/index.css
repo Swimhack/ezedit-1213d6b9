@@ -112,9 +112,19 @@
   }
 }
 
-/* Make sure Klein pane transitions smoothly */
-.klein-pane {
-  transition: all 0.3s ease;
+/* Modal Responsiveness */
+.radix-dialog-content {
+  width: 95vw;
+  max-width: 860px;
+  height: 90vh;
+}
+
+@media (max-width: 640px) {
+  .radix-dialog-content {
+    width: 99vw;
+    height: 96vh;
+    border-radius: 0;
+  }
 }
 
 /* Klein pane typography */
