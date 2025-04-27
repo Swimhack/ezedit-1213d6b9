@@ -24,13 +24,14 @@ const TipTapEditor = React.lazy(async () => {
         onUpdate: ({ editor }) => onChange(editor.getHTML()),
         editorProps: {
           attributes: {
-            class: 'prose prose-invert max-w-none focus:outline-none h-full p-4 overflow-y-auto',
+            class: 'prose prose-invert max-w-none focus:outline-none h-full p-6 overflow-y-auto',
           },
         },
       });
 
       useImperativeHandle(editorRef, () => editor, [editor]);
 
+      // Update content when html prop changes
       useEffect(() => {
         if (editor && html !== editor.getHTML()) {
           editor.commands.setContent(html);
@@ -63,7 +64,7 @@ export default function TipTapWrapper(props: {
   editorRef?: React.MutableRefObject<any>;
 }) {
   return (
-    <Suspense fallback={<div className="p-4 text-center">Loading editor...</div>}>
+    <Suspense fallback={<div className="p-6 text-center">Loading editor...</div>}>
       <TipTapEditor {...props} />
     </Suspense>
   );

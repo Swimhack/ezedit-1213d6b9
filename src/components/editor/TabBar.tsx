@@ -12,13 +12,13 @@ export const TabBar = ({ activeTab, onTabChange }: TabBarProps) => {
       <TabsList className="w-full justify-start rounded-none border-b bg-background">
         <TabsTrigger 
           value="index.html"
-          className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+          className="rounded-t-md rounded-b-none border-b-2 border-transparent px-6 py-3 text-sm font-medium transition-all data-[state=active]:border-primary data-[state=active]:text-primary"
         >
           index.html
         </TabsTrigger>
         <TabsTrigger 
           value="style.css"
-          className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+          className="rounded-t-md rounded-b-none border-b-2 border-transparent px-6 py-3 text-sm font-medium transition-all data-[state=active]:border-primary data-[state=active]:text-primary"
         >
           style.css
         </TabsTrigger>

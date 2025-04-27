@@ -8,7 +8,7 @@ import { TabBar } from './TabBar';
 // Default content for tabs
 const DEFAULT_CONTENT = {
   'index.html': '<h1>Welcome to EzEdit</h1><p>Start editing your content here.</p>',
-  'style.css': 'h1 {\n  color: #333;\n  font-size: 24px;\n}\n\np {\n  color: #666;\n  line-height: 1.6;\n}'
+  'style.css': 'h1 {\n  color: #2DA8FF;\n  font-size: 28px;\n  margin-bottom: 16px;\n}\n\np {\n  color: #E6F1FF;\n  line-height: 1.6;\n  font-size: 16px;\n}'
 };
 
 export const DualEditor = ({ content, language, onChange, editorRef, fileName }: {
@@ -26,13 +26,25 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
     const [isOpen, setIsOpen] = useState(false);
     const tipTapEditorRef = useRef<any>(null);
     
+    // Initialize with content if provided
     useEffect(() => {
+        if (content && fileName) {
+            if (fileName.endsWith('.html')) {
+                setActiveTab('index.html');
+                setTabContents(prev => ({ ...prev, 'index.html': content }));
+            } else if (fileName.endsWith('.css')) {
+                setActiveTab('style.css');
+                setTabContents(prev => ({ ...prev, 'style.css': content }));
+            }
+        }
         setIsOpen(true);
+        
         return () => setIsOpen(false);
-    }, []);
+    }, [content, fileName]);
 
     const handleTabChange = (tab: string) => {
         setActiveTab(tab);
+        // Ensure editor content is updated when tab changes
         if (tipTapEditorRef.current && tipTapEditorRef.current.commands) {
             tipTapEditorRef.current.commands.setContent(tabContents[tab]);
         }
@@ -47,7 +59,7 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
     };
 
     return (
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col bg-background border border-border rounded-md overflow-hidden">
             <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
             
             <div className="flex-1">
