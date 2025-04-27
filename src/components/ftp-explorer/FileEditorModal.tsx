@@ -29,12 +29,13 @@ export function FileEditorModal({
   const editorRef = useRef<any>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
   
+  // Reset editor ready state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setIsEditorReady(false);
       const timer = setTimeout(() => {
         if (editorRef.current) {
-          editorRef.current.layout();
+          editorRef.current.layout?.();
           setIsEditorReady(true);
         }
       }, 200);
@@ -42,10 +43,11 @@ export function FileEditorModal({
     }
   }, [isOpen]);
 
+  // Ensure layout is called when content changes
   useEffect(() => {
     if (isOpen && editorRef.current && content) {
       const timer = setTimeout(() => {
-        editorRef.current.layout();
+        editorRef.current.layout?.();
       }, 100);
       return () => clearTimeout(timer);
     }

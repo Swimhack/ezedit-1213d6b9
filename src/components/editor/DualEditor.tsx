@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import MonacoEditor from '@monaco-editor/react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
+import TipTapWrapper from './TipTapWrapper';
 
 export const DualEditor = ({ content, language, onChange, editorRef, fileName }: {
     content: string;
@@ -16,31 +15,17 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
     const [mode, setMode] = useState<'code' | 'visual'>(
         isVisualCapable ? 'visual' : 'code'
     );
-
-    // Initialize TipTap editor with proper configuration
-    const tiptap = useEditor({
-        extensions: [StarterKit],
-        content: content,
-        editable: true,
-        onUpdate: ({ editor }) => {
-            onChange(editor.getHTML());
-        }
-    });
-
-    // Ensure content is synced when it changes or mode changes
+    
+    // Track modal open status for autoFocus behavior
+    const [isOpen, setIsOpen] = useState(false);
+    
+    // Ensure the component recognizes it's mounted
     useEffect(() => {
-        if (tiptap && mode === 'visual') {
-            tiptap.commands.setContent(content);
-        }
-    }, [content, tiptap, mode]);
+        setIsOpen(true);
+        return () => setIsOpen(false);
+    }, []);
 
-    // Focus the editor when switching to visual mode
-    useEffect(() => {
-        if (mode === 'visual') {
-            setTimeout(() => tiptap?.commands.focus(), 50);
-        }
-    }, [tiptap, mode]);
-
+    // Handle editor mounting
     const handleEditorDidMount = (editor: any) => {
         if (editorRef) {
             editorRef.current = editor;
@@ -83,7 +68,11 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
                     />
                 ) : (
                     <div className="h-full overflow-y-auto bg-background">
-                        <EditorContent editor={tiptap} className="prose prose-invert p-4 max-w-none" />
+                        <TipTapWrapper 
+                            html={content} 
+                            onChange={(value) => onChange(value)}
+                            autoFocus={isOpen} 
+                        />
                     </div>
                 )}
             </div>
