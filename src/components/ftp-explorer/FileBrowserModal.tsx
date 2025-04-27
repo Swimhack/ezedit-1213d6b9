@@ -12,7 +12,7 @@ interface FileBrowserModalProps {
   isLoading: boolean;
   serverName: string;
   onNavigate: (path: string) => void;
-  onSelectFile: (file: { key: string; isDir: boolean }) => void;
+  onSelectFile: (file: { key: string; isDir: boolean }) => Promise<void>;
 }
 
 export function FileBrowserModal({

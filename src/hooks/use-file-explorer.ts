@@ -1,4 +1,3 @@
-
 import { useFileExplorerStore } from "@/store/fileExplorerStore";
 import { listDirectory } from "@/lib/ftp";
 import { normalizePath } from "@/utils/path";
@@ -46,14 +45,14 @@ export function useFileExplorer() {
 
   const selectFile = async (file: { key: string; isDir: boolean }) => {
     if (file.isDir) {
-      await loadDirectory(file.key);
+      return await loadDirectory(file.key);
     } else {
       setCurrentFilePath(file.key);
       if (activeConnection) {
         await fetchFileContent();
-        setShowFileBrowser(false);
-        setShowFileEditor(true);
+        return Promise.resolve();
       }
+      return Promise.resolve();
     }
   };
 

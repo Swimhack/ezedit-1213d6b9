@@ -24,6 +24,11 @@ export function EditorView({
     return getLanguageFromFileName(fileName) || "plaintext";
   };
 
+  // Show loading state if content is not ready
+  if (!content) {
+    return <div className="flex items-center justify-center h-full text-slate-400">Loading editor content...</div>;
+  }
+
   return mode === 'code' ? (
     <CodeEditor
       content={content}
