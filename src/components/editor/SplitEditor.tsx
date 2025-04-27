@@ -1,9 +1,15 @@
+
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { CodeEditor } from "@/components/editor/CodeEditor";
 import { useEffect, useRef, useState } from "react";
 import { getLanguageFromFileName } from "@/utils/language-detector";
 import debounce from "debounce";
 import { useFileExplorerStore } from "@/store/fileExplorerStore";
+import { Toggle } from "@/components/ui/toggle";
+import { WysiwygEditor } from "@/components/editor/WysiwygEditor";
+import { Bot, Code, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface SplitEditorProps {
   fileName: string | null;
@@ -17,6 +23,9 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
   const [srcDoc, setSrcDoc] = useState("");
   const activeConnection = useFileExplorerStore(state => state.activeConnection);
   const baseUrl = activeConnection?.web_url ?? '';
+  const [editMode, setEditMode] = useState<'code' | 'wysiwyg'>('code');
+  const [wysiwygContent, setWysiwygContent] = useState("");
+  const wysiwygRef = useRef<HTMLDivElement>(null);
   
   const debouncedChange = debounce((value: string | undefined) => {
     if (value !== undefined) {
@@ -29,6 +38,40 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
     return getLanguageFromFileName(fileName) || "plaintext";
   };
 
+  // Initialize WYSIWYG content when switching modes or when content changes
+  useEffect(() => {
+    if (isHtmlFile() && content) {
+      setWysiwygContent(content);
+    }
+  }, [content, fileName]);
+
+  // Check if the file is HTML or PHP
+  const isHtmlFile = () => {
+    return fileName ? /\.(html?|htm|php)$/i.test(fileName) : false;
+  };
+
+  // Toggle between code and WYSIWYG modes
+  const handleToggleMode = (value: string) => {
+    if (value === 'wysiwyg' || value === 'code') {
+      setEditMode(value);
+    }
+  };
+
+  // Sync the content between editors
+  const syncContent = () => {
+    if (editMode === 'wysiwyg') {
+      // From WYSIWYG to code
+      if (wysiwygRef.current) {
+        const htmlContent = wysiwygContent;
+        debouncedChange(htmlContent);
+      }
+    } else {
+      // From code to WYSIWYG
+      setWysiwygContent(content);
+    }
+  };
+
+  // Update preview when content changes
   useEffect(() => {
     if (error) {
       setSrcDoc(`
@@ -55,7 +98,17 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
     }
   }, [content, fileName, error, baseUrl]);
 
-  console.log(`[SplitEditor] Rendering with fileName: ${fileName}, content length: ${content?.length || 0}, baseUrl: ${baseUrl}`);
+  // Generate preview on demand from the current state
+  const refreshPreview = () => {
+    if (editMode === 'wysiwyg') {
+      // If in WYSIWYG mode, update the preview from the WYSIWYG content
+      const previewContent = wysiwygContent;
+      setSrcDoc(previewContent);
+    } else {
+      // If in code mode, update the preview from the code content
+      setSrcDoc(content);
+    }
+  };
 
   return (
     <ResizablePanelGroup 
@@ -63,12 +116,71 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
       className="h-full rounded-lg border"
     >
       <ResizablePanel defaultSize={55} minSize={30}>
-        <CodeEditor
-          content={content || ""}
-          language={getFileLanguage()}
-          onChange={debouncedChange}
-          editorRef={editorRef}
-        />
+        <div className="h-full flex flex-col">
+          <div className="flex items-center justify-between border-b p-1 bg-muted/30">
+            <ToggleGroup 
+              type="single" 
+              value={editMode}
+              onValueChange={handleToggleMode}
+              className="ml-2"
+            >
+              <ToggleGroupItem 
+                value="code" 
+                aria-label="Toggle code editor"
+                disabled={!isHtmlFile()}
+                title={!isHtmlFile() ? "WYSIWYG only available for HTML files" : "Code editor"}
+              >
+                <Code className="h-4 w-4 mr-1" />
+                Code
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="wysiwyg" 
+                aria-label="Toggle WYSIWYG editor"
+                disabled={!isHtmlFile()}
+                title={!isHtmlFile() ? "WYSIWYG only available for HTML files" : "Visual editor"}
+              >
+                <Bot className="h-4 w-4 mr-1" />
+                WYSIWYG
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <div className="flex items-center">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={syncContent}
+                className="mr-2"
+                title="Sync content between editors"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" /> Sync
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={refreshPreview}
+                title="Refresh preview"
+                className="mr-2"
+              >
+                Preview
+              </Button>
+            </div>
+          </div>
+          <div className="flex-grow relative">
+            {editMode === 'code' ? (
+              <CodeEditor
+                content={content || ""}
+                language={getFileLanguage()}
+                onChange={debouncedChange}
+                editorRef={editorRef}
+              />
+            ) : (
+              <WysiwygEditor 
+                content={wysiwygContent}
+                onChange={setWysiwygContent}
+                editorRef={wysiwygRef}
+              />
+            )}
+          </div>
+        </div>
       </ResizablePanel>
       
       <ResizableHandle withHandle />
