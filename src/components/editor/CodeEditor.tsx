@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 
 interface CodeEditorProps {
@@ -15,9 +15,21 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   onChange, 
   editorRef 
 }) => {
+  // Force editor refresh when content changes
+  useEffect(() => {
+    if (editorRef?.current?.layout) {
+      const timer = setTimeout(() => {
+        editorRef.current.layout();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [content, editorRef]);
+
   const handleEditorDidMount = (editor: any) => {
     if (editorRef) {
       editorRef.current = editor;
+      // Force layout update after mount
+      setTimeout(() => editor.layout(), 100);
     }
   };
 
@@ -36,6 +48,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           scrollBeyondLastLine: false,
           automaticLayout: true,
           tabSize: 2,
+          fixedOverflowWidgets: true, // Important for modal contexts
         }}
         onMount={handleEditorDidMount}
       />

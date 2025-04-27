@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { CodeEditor } from "../editor/CodeEditor";
 import { FileEditorToolbar } from "./FileEditorToolbar";
 import { getLanguageFromFileName } from "@/utils/language-detector";
+import { useEffect, useRef } from "react";
 
 interface FileEditorModalProps {
   isOpen: boolean;
@@ -25,9 +26,30 @@ export function FileEditorModal({
   hasUnsavedChanges,
   onContentChange,
 }: FileEditorModalProps) {
+  const editorRef = useRef<any>(null);
+  
+  // Force editor to refresh when modal opens
+  useEffect(() => {
+    if (isOpen && editorRef.current) {
+      // Small delay to ensure the DOM is fully rendered
+      const timer = setTimeout(() => {
+        editorRef.current?.layout?.();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, content]);
+
   const getFileLanguage = () => {
     if (!fileName) return "plaintext";
     return getLanguageFromFileName(fileName) || "plaintext";
+  };
+
+  // Handler to ensure content changes are properly captured
+  const handleEditorChange = (value: string | undefined) => {
+    if (value !== undefined) {
+      onContentChange(value);
+    }
   };
 
   return (
@@ -44,12 +66,13 @@ export function FileEditorModal({
             Editing: {fileName || 'Untitled File'}
           </DialogTitle>
         </div>
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-4 overflow-hidden">
           <div className="h-[calc(80vh-8rem)] border border-ezgray-dark rounded">
             <CodeEditor
               content={content}
               language={getFileLanguage()}
-              onChange={onContentChange}
+              onChange={handleEditorChange}
+              editorRef={editorRef}
             />
           </div>
         </div>
