@@ -1,8 +1,9 @@
 
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { CodeEditor } from "@/components/editor/CodeEditor";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getLanguageFromFileName } from "@/utils/language-detector";
+import { debounce } from "debounce";
 
 interface SplitEditorProps {
   fileName: string | null;
@@ -12,31 +13,47 @@ interface SplitEditorProps {
 }
 
 export function SplitEditor({ fileName, content, onChange, editorRef }: SplitEditorProps) {
-  const [iframeKey, setIframeKey] = useState(0);
+  const [srcDoc, setSrcDoc] = useState("");
   
-  const handleEditorChange = (value: string | undefined) => {
+  // Create debounced change handler to prevent excessive updates
+  const debouncedChange = debounce((value: string | undefined) => {
     if (value !== undefined) {
       onChange(value);
-      // Refresh preview when content changes
-      setIframeKey(prev => prev + 1);
     }
-  };
+  }, 500);
 
   const getFileLanguage = () => {
     if (!fileName) return "plaintext";
     return getLanguageFromFileName(fileName) || "plaintext";
   };
 
+  // Build preview content whenever content changes
+  useEffect(() => {
+    if (!content) return;
+    
+    const isHtmlFile = fileName && /\.(html?|htm)$/i.test(fileName);
+    let previewContent = content;
+    
+    if (!isHtmlFile) {
+      // For non-HTML files, wrap content in pre tag for display
+      previewContent = `<pre style="white-space:pre-wrap;font-family:monospace;padding:1rem;">${
+        content.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]!))
+      }</pre>`;
+    }
+    
+    setSrcDoc(previewContent);
+  }, [content, fileName]);
+
   return (
     <ResizablePanelGroup 
       direction="vertical" 
       className="h-full rounded-lg border"
     >
-      <ResizablePanel defaultSize={50} minSize={30}>
+      <ResizablePanel defaultSize={55} minSize={30}>
         <CodeEditor
           content={content}
           language={getFileLanguage()}
-          onChange={handleEditorChange}
+          onChange={debouncedChange}
           editorRef={editorRef}
         />
       </ResizablePanel>
@@ -56,17 +73,16 @@ export function SplitEditor({ fileName, content, onChange, editorRef }: SplitEdi
               </span>
             ))}
           </div>
-          {fileName ? (
+          {fileName && srcDoc ? (
             <iframe
-              key={iframeKey}
-              src={fileName}
+              srcDoc={srcDoc}
               className="w-full h-full pt-4 bg-white"
               title="Preview"
               sandbox="allow-same-origin allow-scripts allow-forms"
             />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">
-              No file selected for preview
+              No preview available
             </div>
           )}
         </div>
