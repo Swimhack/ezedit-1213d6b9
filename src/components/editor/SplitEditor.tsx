@@ -1,6 +1,6 @@
 
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { MonacoEditor } from "@/components/editor/CodeEditor";
+import { CodeEditor } from "@/components/editor/CodeEditor";
 import { useState } from "react";
 import { getLanguageFromFileName } from "@/utils/language-detector";
 
@@ -33,8 +33,8 @@ export function SplitEditor({ fileName, content, onChange, editorRef }: SplitEdi
       className="h-full rounded-lg border"
     >
       <ResizablePanel defaultSize={50} minSize={30}>
-        <MonacoEditor
-          value={content}
+        <CodeEditor
+          content={content}
           language={getFileLanguage()}
           onChange={handleEditorChange}
           editorRef={editorRef}
@@ -58,7 +58,7 @@ export function SplitEditor({ fileName, content, onChange, editorRef }: SplitEdi
           </div>
           <iframe
             key={iframeKey}
-            src={`${fileName}`}
+            src={fileName || ''}
             className="w-full h-full pt-4 bg-white"
             title="Preview"
           />

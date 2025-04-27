@@ -67,3 +67,6 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     </div>
   );
 };
+
+// Export the MonacoEditor for use in other components
+export { MonacoEditor as MonacoEditor };
