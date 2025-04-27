@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PlusCircle } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import FTPConnectionModal from "@/components/FTPConnectionModal";
@@ -12,7 +12,7 @@ import { FileBrowserModal } from "@/components/ftp-explorer/FileBrowserModal";
 import { FileEditorModal } from "@/components/ftp-explorer/FileEditorModal";
 import { AIAssistantModal } from "@/components/ftp-explorer/AIAssistantModal";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
-import { listDirectory } from "@/lib/ftp";
+import { listDirectory, getFile } from "@/lib/ftp";
 import { toast } from "sonner";
 import { normalizePath } from "@/utils/path";
 
@@ -34,7 +34,15 @@ const MySites = () => {
   const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   const { connections, isLoading: isLoadingConnections, testResults, fetchConnections, handleTestConnection } = useFTPConnections();
-  const { content: fileContent, isLoading: isFileLoading, updateContent, saveContent, isSaving, hasUnsavedChanges } = useFileContent({
+  const { 
+    content: fileContent, 
+    isLoading: isFileLoading, 
+    updateContent, 
+    saveContent, 
+    isSaving, 
+    hasUnsavedChanges,
+    loadFile
+  } = useFileContent({
     connection: activeConnection,
     filePath: currentFilePath
   });
@@ -51,31 +59,35 @@ const MySites = () => {
     setIsLoading(true);
     try {
       const normalizedPath = normalizePath(path);
+      console.log(`[normalizePath] Original: "${path}" → Normalized: "${normalizedPath}"`);
       const files = await listDirectory(activeConnection, normalizedPath);
       setFiles(files);
       setCurrentPath(normalizedPath);
     } catch (error: any) {
-      console.error("[FTPFileExplorer] Directory loading error:", error);
+      console.error("[MySites] Directory loading error:", error);
       toast.error(`Failed to load directory: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleOpenFileExplorer = (connection: FtpConnection) => {
+  const handleOpenFileExplorer = async (connection: FtpConnection) => {
     setActiveConnection(connection);
     const startPath = connection.root_directory ? normalizePath(connection.root_directory) : "/";
-    loadDirectory(startPath);
+    
     setShowFileBrowser(true);
+    await loadDirectory(startPath);
   };
 
   const handleSelectFile = async (file: { key: string; isDir: boolean }) => {
-    if (!file.isDir) {
-      setCurrentFilePath(file.key);
-      setShowFileBrowser(false);
-      setShowFileEditor(true);
+    if (file.isDir) {
+      await loadDirectory(file.key);
     } else {
-      loadDirectory(file.key);
+      setCurrentFilePath(file.key);
+      if (activeConnection) {
+        setShowFileBrowser(false);
+        setShowFileEditor(true);
+      }
     }
   };
 

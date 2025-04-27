@@ -1,5 +1,5 @@
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FTPFileList } from "@/components/FTPFileList";
 import { FileExplorerHeader } from "./FileExplorerHeader";
 
@@ -30,7 +30,7 @@ export function FileBrowserModal({
         <FileExplorerHeader serverName={serverName} onClose={onClose} />
         <div className="flex-1 overflow-hidden">
           <div className="p-3 border-b border-ezgray-dark">
-            <h3 className="text-sm font-medium text-ezwhite">File Browser</h3>
+            <DialogTitle className="text-sm font-medium text-ezwhite">File Browser</DialogTitle>
           </div>
           <div className="flex-1 overflow-y-auto h-[calc(80vh-8rem)]">
             <FTPFileList
