@@ -1,24 +1,6 @@
 
-# This file is managed by Lovable.
 project_id = "natjhcqynqziccssnwim"
 
-[functions.ftp-connect]
-verify_jwt = true
+[functions.cline-chat]
+verify_jwt = false
 
-[functions.ftp-download-file]
-verify_jwt = true
-
-[functions.ftp-list-directory]
-verify_jwt = true
-
-[functions.ftp-test-connection]
-verify_jwt = true
-
-[functions.ftp-get-file]
-verify_jwt = true
-
-[functions.ftp-list]
-verify_jwt = true
-
-[functions.send-email]
-verify_jwt = true

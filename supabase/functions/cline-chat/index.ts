@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const KLEIN_API_KEY = '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';
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -14,16 +16,11 @@ serve(async (req) => {
 
   try {
     const { message, filePath, fileContent, previousMessages } = await req.json();
-    const key = Deno.env.get('KLEIN_API_KEY');
     
-    if (!key) {
-      throw new Error('Klein API key not configured');
-    }
-
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${key}`,
+        'Authorization': `Bearer ${KLEIN_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://ezedit.co',
       },
