@@ -1,4 +1,3 @@
-
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { CodeEditor } from "@/components/editor/CodeEditor";
 import { useEffect, useRef, useState } from "react";
@@ -19,7 +18,6 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
   const activeConnection = useFileExplorerStore(state => state.activeConnection);
   const baseUrl = activeConnection?.web_url ?? '';
   
-  // Create debounced change handler to prevent excessive updates
   const debouncedChange = debounce((value: string | undefined) => {
     if (value !== undefined) {
       onChange(value);
@@ -31,10 +29,8 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
     return getLanguageFromFileName(fileName) || "plaintext";
   };
 
-  // Build preview content whenever content changes
   useEffect(() => {
     if (error) {
-      // Display error message in preview with improved styling
       setSrcDoc(`
         <body style="font:16px/1.5 system-ui;padding:2rem;
                      color:#f87171;background:#1e293b">
@@ -47,13 +43,11 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
     
     if (!content) return;
     
-    const isHtmlFile = fileName && /\.(html?|htm|php)$/i.test(fileName);
+    const isPreviewableFile = fileName && /\.(html?|htm|php)$/i.test(fileName);
     
-    if (isHtmlFile && baseUrl) {
-      // For HTML/PHP files with a base URL, we'll use live preview
+    if (isPreviewableFile && baseUrl) {
       setSrcDoc('');
     } else {
-      // For non-HTML files or when no base URL is available, wrap content in pre tag
       const previewContent = `<pre style="white-space:pre-wrap;font-family:monospace;padding:1rem;">${
         content.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]!))
       }</pre>`;
@@ -118,4 +112,3 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
     </ResizablePanelGroup>
   );
 }
-
