@@ -1,4 +1,3 @@
-
 import { 
   Bold, 
   Italic, 
@@ -15,16 +14,38 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 export interface EditorToolbarProps {
-  editor: any;
-  filePath?: string; // Added this prop to fix the type error
+  editor?: any; // Make editor optional since code editor doesn't need it
+  filePath?: string;
   isSaving?: boolean;
   hasUnsavedChanges?: boolean;
   onSave?: () => void;
 }
 
 export function EditorToolbar({ editor, filePath, isSaving, hasUnsavedChanges, onSave }: EditorToolbarProps) {
+  // Show format controls only when editor is available
   if (!editor) {
-    return null;
+    return (
+      <div className="border-b border-border flex flex-wrap gap-1 p-1">
+        {onSave && (
+          <>
+            <div className="flex items-center ml-2 text-sm text-muted-foreground">
+              {filePath ? filePath : 'No file selected'}
+              {hasUnsavedChanges && <span className="ml-2 text-amber-500">●</span>}
+            </div>
+            <div className="flex-1"></div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSave}
+              disabled={isSaving || !hasUnsavedChanges}
+              className="mr-2"
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </Button>
+          </>
+        )}
+      </div>
+    );
   }
 
   return (

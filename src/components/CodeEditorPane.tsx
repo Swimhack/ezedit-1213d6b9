@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { FileCode2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -88,24 +87,17 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     }
   }, [filePath]);
 
-  const handleEditorChange = (value: string | undefined) => {
+  const handleCodeEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       updateContent(value);
       onContentChange(value);
     }
   };
 
-  const handleClineResponse = (text: string) => {
-    if (content) {
-      const newContent = content + '\n' + text;
-      updateContent(newContent);
-      onContentChange(newContent);
-    }
-  };
-
   return (
     <div className="h-full flex flex-col">
       <EditorToolbar
+        editor={null}
         filePath={filePath}
         isSaving={isSaving}
         hasUnsavedChanges={hasUnsavedChanges}

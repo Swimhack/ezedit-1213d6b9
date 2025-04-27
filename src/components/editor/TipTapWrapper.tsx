@@ -29,7 +29,7 @@ const TipTapEditor = React.lazy(async () => {
             alignments: ['left', 'center', 'right'],
           }),
         ],
-        content: html || '', // Ensure we don't pass null/undefined
+        content: html || '<p style="color:#888;font-style:italic">[empty file]</p>', // Default content for empty files
         editable: true,
         onUpdate: ({ editor }) => {
           const content = editor.getHTML();
