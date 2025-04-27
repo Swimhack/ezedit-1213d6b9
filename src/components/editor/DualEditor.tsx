@@ -11,6 +11,7 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
     editorRef?: React.MutableRefObject<any>;
     fileName?: string;
 }) => {
+    // Expand the file types that can use visual editor
     const isVisualCapable = /html|php|htm/.test(language);
     const [mode, setMode] = useState<'code' | 'visual'>(
         isVisualCapable ? 'visual' : 'code'
@@ -25,12 +26,14 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
         }
     });
 
+    // Ensure content is synced when it changes or mode changes
     useEffect(() => {
         if (tiptap && mode === 'visual') {
             tiptap.commands.setContent(content);
         }
     }, [content, tiptap, mode]);
 
+    // Focus the editor when switching to visual mode
     useEffect(() => {
         if (mode === 'visual') {
             setTimeout(() => tiptap?.commands.focus(), 50);
