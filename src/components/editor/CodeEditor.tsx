@@ -25,6 +25,18 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     }
   }, [content, editorRef]);
 
+  // Additional useEffect to handle window resize events
+  useEffect(() => {
+    const handleResize = () => {
+      if (editorRef?.current?.layout) {
+        editorRef.current.layout();
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [editorRef]);
+
   const handleEditorDidMount = (editor: any) => {
     if (editorRef) {
       editorRef.current = editor;

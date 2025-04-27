@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { CodeEditor } from "../editor/CodeEditor";
 import { FileEditorToolbar } from "./FileEditorToolbar";
 import { getLanguageFromFileName } from "@/utils/language-detector";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface FileEditorModalProps {
   isOpen: boolean;
@@ -27,13 +27,31 @@ export function FileEditorModal({
   onContentChange,
 }: FileEditorModalProps) {
   const editorRef = useRef<any>(null);
+  const [isEditorReady, setIsEditorReady] = useState(false);
   
   // Force editor to refresh when modal opens
   useEffect(() => {
-    if (isOpen && editorRef.current) {
+    if (isOpen) {
+      // Mark editor as not ready when modal opens
+      setIsEditorReady(false);
+      
       // Small delay to ensure the DOM is fully rendered
       const timer = setTimeout(() => {
-        editorRef.current?.layout?.();
+        if (editorRef.current) {
+          editorRef.current.layout();
+          setIsEditorReady(true);
+        }
+      }, 200);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  // Additional refresh when content changes
+  useEffect(() => {
+    if (isOpen && editorRef.current && content) {
+      const timer = setTimeout(() => {
+        editorRef.current.layout();
       }, 100);
       
       return () => clearTimeout(timer);
@@ -53,7 +71,9 @@ export function FileEditorModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) onClose();
+    }}>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
         <FileEditorToolbar 
           fileName={fileName} 

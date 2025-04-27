@@ -4,6 +4,7 @@ import { getLanguageFromFileName } from "@/utils/language-detector";
 import ClinePane from "../ClinePane";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRef, useEffect } from "react";
 
 interface FileEditorContentProps {
   filePath: string;
@@ -21,6 +22,17 @@ export const FileEditorContent = ({
   onApplyResponse
 }: FileEditorContentProps) => {
   const isMobile = useIsMobile();
+  const editorRef = useRef<any>(null);
+  
+  useEffect(() => {
+    // Force layout when component mounts or content changes
+    if (editorRef.current?.layout) {
+      const timer = setTimeout(() => {
+        editorRef.current.layout();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [content]);
   
   const getFileLanguage = () => {
     if (!filePath) return "plaintext";
@@ -44,6 +56,7 @@ export const FileEditorContent = ({
               content={content}
               language={getFileLanguage()}
               onChange={onContentChange}
+              editorRef={editorRef}
             />
           </div>
         </ResizablePanel>
@@ -67,4 +80,4 @@ export const FileEditorContent = ({
       </ResizablePanelGroup>
     </div>
   );
-};
+}
