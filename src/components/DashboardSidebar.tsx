@@ -1,6 +1,5 @@
-
 import { Link, useLocation } from "react-router-dom";
-import { Home, Globe, Settings } from "lucide-react";
+import { Globe, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -9,7 +8,6 @@ const DashboardSidebar = () => {
   const isMobile = useIsMobile();
   
   const menuItems = [
-    { icon: Home, label: "Overview", path: "/dashboard" },
     { icon: Globe, label: "My Sites", path: "/dashboard/sites" },
     { icon: Settings, label: "Settings", path: "/dashboard/settings" },
   ];

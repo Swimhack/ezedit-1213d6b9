@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -44,7 +44,7 @@ const App = () => (
           <Route path="/terms" element={<Terms />} />
           <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/support" element={<Support />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Navigate to="/dashboard/sites" replace />} />
           <Route path="/dashboard/ftp" element={<FTPConnection />} />
           <Route path="/dashboard/settings" element={<Settings />} />
           <Route path="/dashboard/sites" element={<MySites />} />
