@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import TipTapWrapper from './TipTapWrapper';
@@ -43,7 +44,8 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
     /* keep TipTap in sync */
     useEffect(() => {
         // Always default to code mode for non-HTML content
-        if (!isVisualCapable) {
+        if (!isVisualCapable && mode === 'visual') {
+            console.log('[DualEditor] File not visual capable, switching to code mode');
             setMode('code');
             return;
         }
@@ -51,7 +53,12 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
         // Update TipTap editor with current content when in visual mode
         if (tipTapEditorRef.current && mode === 'visual') {
             console.log('[DualEditor] Updating TipTap with content, length:', content?.length);
-            tipTapEditorRef.current.commands?.setContent(content || '<p></p>'); // Ensure there's at least an empty paragraph
+            // Force a small delay to ensure editor is ready
+            setTimeout(() => {
+                if (tipTapEditorRef.current && tipTapEditorRef.current.commands) {
+                    tipTapEditorRef.current.commands.setContent(content || '<p></p>');
+                }
+            }, 50);
         }
     }, [fileName, content, mode, isVisualCapable]);
 
@@ -140,7 +147,7 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
                         </div>
                         <div className="flex-1 overflow-y-auto bg-background">
                             <TipTapWrapper 
-                                html={content} 
+                                html={content || '<p></p>'} 
                                 onChange={(value) => onChange(value)}
                                 autoFocus={isOpen}
                                 editorRef={tipTapEditorRef}

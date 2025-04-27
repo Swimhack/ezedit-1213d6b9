@@ -1,5 +1,5 @@
 
-import React, { useLayoutEffect, Suspense, useImperativeHandle } from 'react';
+import React, { useLayoutEffect, Suspense, useImperativeHandle, useEffect } from 'react';
 
 // Use React's lazy loading instead of Next.js dynamic
 const TipTapEditor = React.lazy(async () => {
@@ -33,8 +33,18 @@ const TipTapEditor = React.lazy(async () => {
       // Expose editor instance through ref for external manipulation
       useImperativeHandle(editorRef, () => editor, [editor]);
 
+      // Ensure content is updated when html prop changes
+      useEffect(() => {
+        if (editor && html !== editor.getHTML()) {
+          console.log('[TipTap] External content update, length:', html?.length);
+          editor.commands.setContent(html || '<p></p>');
+        }
+      }, [editor, html]);
+
       /** DEBUG — confirm content and editor mounted */
-      console.log('[TipTap] mounted →', !!editor, 'content length:', html?.length);
+      useEffect(() => {
+        console.log('[TipTap] mounted →', !!editor, 'content length:', html?.length);
+      }, [editor, html]);
 
       // focus after animation
       useLayoutEffect(() => {
