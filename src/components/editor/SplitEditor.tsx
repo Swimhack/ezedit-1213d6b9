@@ -3,7 +3,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { CodeEditor } from "@/components/editor/CodeEditor";
 import { useEffect, useRef, useState } from "react";
 import { getLanguageFromFileName } from "@/utils/language-detector";
-import { debounce } from "debounce";
+import debounce from "debounce"; // Changed from "import { debounce } from 'debounce'"
 
 interface SplitEditorProps {
   fileName: string | null;
