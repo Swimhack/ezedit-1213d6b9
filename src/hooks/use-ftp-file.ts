@@ -8,20 +8,21 @@ export function useFtpFile() {
   const [isLoading, setIsLoading] = useState(false);
 
   const loadFileContent = async (connection: {
+    id: string;
     host: string;
     port: number;
     username: string;
     password: string;
+    root_directory?: string;
   }, filePath: string) => {
     setIsLoading(true);
     try {
       console.log(`Loading file content from: ${filePath}`);
       
-      // Use the ftp-get-file function instead of ftp-download-file
+      // Use the ftp-get-file function
       const { data, error } = await supabase.functions.invoke('ftp-get-file', {
         body: {
-          // Pass the connection ID instead of the full connection details
-          siteId: connection.host, // We need to add proper site ID here
+          siteId: connection.id,
           path: filePath
         }
       });
@@ -32,15 +33,15 @@ export function useFtpFile() {
         throw error;
       }
       
-      if (data.success) {
+      if (data && data.success) {
         console.log(`File content received, decoding...`);
         const decodedContent = atob(data.content);
         setContent(decodedContent);
         return decodedContent;
       } else {
         console.error("Error in response:", data);
-        toast.error(`Error loading file: ${data.message || 'Unknown error'}`);
-        throw new Error(data.message || 'Failed to load file content');
+        toast.error(`Error loading file: ${data?.message || 'Unknown error'}`);
+        throw new Error(data?.message || 'Failed to load file content');
       }
     } catch (error: any) {
       console.error("File loading error:", error);

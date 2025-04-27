@@ -49,7 +49,25 @@ serve(async (req) => {
         secure: false
       });
       
-      console.log(`[GET-FILE] Downloading file: ${path}`);
+      console.log(`[GET-FILE] Accessing path: ${path}`);
+      
+      // First check if this is a directory
+      try {
+        const list = await client.list(path);
+        // If we got here, it's a directory
+        console.log(`[GET-FILE] Path is a directory with ${list.length} items`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            isDirectory: true,
+            message: "Path is a directory, not a file" 
+          }),
+          { status: 400, headers: corsHeaders }
+        );
+      } catch (dirError) {
+        // Not a directory, continue with file download
+        console.log(`[GET-FILE] Path is not a directory, proceeding with file download`);
+      }
       
       // Force ASCII mode for text files to avoid binary issues
       await client.send("TYPE A");
@@ -69,7 +87,18 @@ serve(async (req) => {
       });
       
       // Download the file to our stream
-      await client.downloadTo(stream, path);
+      try {
+        await client.downloadTo(stream, path);
+      } catch (downloadError) {
+        console.error("[GET-FILE] Download error:", downloadError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: downloadError.message || "Failed to download file" 
+          }),
+          { status: 500, headers: corsHeaders }
+        );
+      }
       
       // Wait for the stream to complete
       await streamEnd;
