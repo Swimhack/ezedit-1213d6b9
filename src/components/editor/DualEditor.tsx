@@ -42,7 +42,7 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
                         onClick={() => setMode(m => (m === 'code' ? 'visual' : 'code'))}
                         className="text-xs px-3 py-1.5 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     >
-                        {mode === 'code' ? 'Visual' : 'Code'}
+                        {mode === 'code' ? 'Visual Editor' : 'Code Editor'}
                     </button>
                 )}
             </div>
@@ -67,12 +67,19 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
                         onMount={handleEditorDidMount}
                     />
                 ) : (
-                    <div className="h-full overflow-y-auto bg-background">
-                        <TipTapWrapper 
-                            html={content} 
-                            onChange={(value) => onChange(value)}
-                            autoFocus={isOpen} 
-                        />
+                    <div className="flex flex-col h-full overflow-hidden">
+                        <div className="bg-muted flex gap-2 px-3 py-2 border-b border-border items-center">
+                            <span className="text-xs text-muted-foreground mr-2">Visual Editor</span>
+                            <div className="h-4 border-r border-border mx-1"></div>
+                            <span className="text-xs text-muted-foreground">Use the visual editor to easily format HTML content</span>
+                        </div>
+                        <div className="flex-1 overflow-y-auto bg-background">
+                            <TipTapWrapper 
+                                html={content} 
+                                onChange={(value) => onChange(value)}
+                                autoFocus={isOpen} 
+                            />
+                        </div>
                     </div>
                 )}
             </div>
