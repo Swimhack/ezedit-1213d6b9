@@ -17,7 +17,7 @@ export function SplitEditor({ fileName, content, onChange, editorRef }: SplitEdi
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       onChange(value);
-      // Optionally refresh preview
+      // Refresh preview when content changes
       setIframeKey(prev => prev + 1);
     }
   };
@@ -62,7 +62,7 @@ export function SplitEditor({ fileName, content, onChange, editorRef }: SplitEdi
               src={fileName}
               className="w-full h-full pt-4 bg-white"
               title="Preview"
-              sandbox="allow-same-origin allow-scripts"
+              sandbox="allow-same-origin allow-scripts allow-forms"
             />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">

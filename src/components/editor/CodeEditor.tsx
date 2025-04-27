@@ -40,7 +40,6 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const handleEditorDidMount = (editor: any) => {
     if (editorRef) {
       editorRef.current = editor;
-      // Force layout update after mount
       setTimeout(() => editor.layout(), 100);
     }
   };
@@ -60,13 +59,10 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           scrollBeyondLastLine: false,
           automaticLayout: true,
           tabSize: 2,
-          fixedOverflowWidgets: true, // Important for modal contexts
+          fixedOverflowWidgets: true,
         }}
         onMount={handleEditorDidMount}
       />
     </div>
   );
 };
-
-// Export the MonacoEditor for use in other components
-export { MonacoEditor as MonacoEditor };
