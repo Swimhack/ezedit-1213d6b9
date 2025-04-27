@@ -32,31 +32,48 @@ export const DualEditor = ({
     filePath: fileName || ''
   });
 
+  // Debug logs for content loading
+  useEffect(() => {
+    console.log('[DualEditor] Props content length:', initialContent?.length || 0);
+    console.log('[DualEditor] FTP content length:', ftpContent?.length || 0);
+  }, [initialContent, ftpContent]);
+
   // Initialize with content from FTP when available
   useEffect(() => {
     if (fileName && ftpContent) {
+      console.log('[DualEditor] Setting content from FTP, length:', ftpContent.length);
       if (fileName.endsWith('.html')) {
         setActiveTab('index.html');
         setTabContents(prev => ({ ...prev, 'index.html': ftpContent }));
       } else if (fileName.endsWith('.css')) {
         setActiveTab('style.css');
         setTabContents(prev => ({ ...prev, 'style.css': ftpContent }));
+      } else {
+        // For other file types
+        const tabName = fileName.split('/').pop() || 'file';
+        setActiveTab(tabName);
+        setTabContents(prev => ({ ...prev, [tabName]: ftpContent }));
       }
+    } else if (initialContent) {
+      console.log('[DualEditor] Setting content from props, length:', initialContent.length);
+      setTabContents(prev => ({ ...prev, [activeTab]: initialContent }));
     }
     setIsOpen(true);
     
     return () => setIsOpen(false);
-  }, [fileName, ftpContent]);
+  }, [fileName, ftpContent, initialContent]);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     // Ensure editor content is updated when tab changes
     if (tipTapEditorRef.current && tipTapEditorRef.current.commands) {
-      tipTapEditorRef.current.commands.setContent(tabContents[tab]);
+      tipTapEditorRef.current.commands.setContent(tabContents[tab] || '');
     }
   };
 
   const handleContentChange = (newContent: string) => {
+    console.log('[DualEditor] Content changed, new length:', newContent.length);
+    
     // Auto-insert viewport meta once per document for HTML/PHP files
     if (fileName && /\.html?$|\.php$/i.test(fileName)) {
       let html = newContent;
@@ -89,6 +106,9 @@ export const DualEditor = ({
     );
   }
 
+  const currentContent = tabContents[activeTab] || '';
+  console.log('[DualEditor] Rendering with content length:', currentContent.length);
+
   return (
     <div className="h-full flex flex-col bg-background border border-border rounded-md overflow-hidden">
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
@@ -96,7 +116,7 @@ export const DualEditor = ({
       <div className="flex-1">
         <div className="h-full">
           <TipTapWrapper 
-            html={tabContents[activeTab] || ''}
+            html={currentContent}
             onChange={handleContentChange}
             autoFocus={isOpen}
             editorRef={tipTapEditorRef}

@@ -19,6 +19,8 @@ const TipTapEditor = React.lazy(async () => {
       autoFocus?: boolean;
       editorRef?: React.MutableRefObject<any>;
     }) {
+      console.log('[TipTap] Initializing with content length:', html?.length || 0);
+      
       const editor = useEditor({
         extensions: [
           StarterKit,
@@ -27,9 +29,13 @@ const TipTapEditor = React.lazy(async () => {
             alignments: ['left', 'center', 'right'],
           }),
         ],
-        content: html,
+        content: html || '', // Ensure we don't pass null/undefined
         editable: true,
-        onUpdate: ({ editor }) => onChange(editor.getHTML()),
+        onUpdate: ({ editor }) => {
+          const content = editor.getHTML();
+          console.log('[TipTap] Content updated, new length:', content.length);
+          onChange(content);
+        },
         editorProps: {
           attributes: {
             class: 'prose prose-invert max-w-none focus:outline-none h-full p-6 overflow-y-auto',
@@ -41,8 +47,12 @@ const TipTapEditor = React.lazy(async () => {
 
       // Update content when html prop changes
       useEffect(() => {
-        if (editor && html !== editor.getHTML()) {
-          editor.commands.setContent(html);
+        if (editor && html !== undefined && html !== null) {
+          console.log('[TipTap] Content prop changed, new length:', html.length);
+          if (html !== editor.getHTML()) {
+            console.log('[TipTap] Setting new content');
+            editor.commands.setContent(html);
+          }
         }
       }, [editor, html]);
 
@@ -75,6 +85,8 @@ export default function TipTapWrapper(props: {
   autoFocus?: boolean;
   editorRef?: React.MutableRefObject<any>;
 }) {
+  console.log('[TipTapWrapper] Rendering with html length:', props.html?.length || 0);
+  
   return (
     <Suspense fallback={<div className="p-6 text-center">Loading editor...</div>}>
       <TipTapEditor {...props} />
