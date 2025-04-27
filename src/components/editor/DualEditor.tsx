@@ -69,9 +69,23 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
                 ) : (
                     <div className="flex flex-col h-full overflow-hidden">
                         <div className="bg-muted flex gap-2 px-3 py-2 border-b border-border items-center">
-                            <span className="text-xs text-muted-foreground mr-2">Visual Editor</span>
-                            <div className="h-4 border-r border-border mx-1"></div>
-                            <span className="text-xs text-muted-foreground">Use the visual editor to easily format HTML content</span>
+                            <span className="text-xs text-muted-foreground">Visual Editor</span>
+                            <div className="h-4 border-r border-border"></div>
+                            <button className="text-xs px-2 py-0.5 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                                B
+                            </button>
+                            <button className="text-xs px-2 py-0.5 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 italic">
+                                I
+                            </button>
+                            <button className="text-xs px-2 py-0.5 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 underline">
+                                U
+                            </button>
+                            <button className="text-xs px-2 py-0.5 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                                H1
+                            </button>
+                            <button className="text-xs px-2 py-0.5 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                                H2
+                            </button>
                         </div>
                         <div className="flex-1 overflow-y-auto bg-background">
                             <TipTapWrapper 
