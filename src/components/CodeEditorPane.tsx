@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { FileCode2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -33,7 +34,7 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     saveContent
   } = useFileContent({ connection, filePath });
 
-  const [showKlein, setShowKlein] = useState(true);
+  const [showKlein, setShowKlein] = useState(!isMobile);
   
   useEffect(() => {
     const checkScreenSize = () => {
@@ -94,6 +95,14 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
     }
   };
 
+  const handleClineResponse = (text: string) => {
+    if (content) {
+      const newContent = content + '\n' + text;
+      updateContent(newContent);
+      onContentChange(newContent);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <EditorToolbar
@@ -117,18 +126,20 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
             direction={isMobile ? "vertical" : "horizontal"}
             className="h-full"
           >
-            <ResizablePanel defaultSize={70} minSize={40}>
-              <CodeEditor
-                content={content}
-                language={language}
-                onChange={updateContent}
-                editorRef={editorRef}
-              />
+            <ResizablePanel defaultSize={isMobile ? 60 : 70} minSize={40}>
+              <div className="h-full">
+                <CodeEditor
+                  content={content}
+                  language={language}
+                  onChange={handleCodeEditorChange}
+                  editorRef={editorRef}
+                />
+              </div>
             </ResizablePanel>
             {showKlein && (
               <>
                 <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={30} minSize={20}>
+                <ResizablePanel defaultSize={isMobile ? 40 : 30} minSize={20}>
                   <ClinePane 
                     filePath={filePath}
                     fileContent={content || ''}
