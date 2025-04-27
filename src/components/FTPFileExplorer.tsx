@@ -118,8 +118,8 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
         </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row flex-1 h-[calc(100vh-8rem)]">
-        <div className="w-full md:w-1/3 border-r border-ezgray-dark flex flex-col">
+      <div className="flex flex-col md:flex-row flex-1 h-[calc(100vh-8rem)] overflow-hidden">
+        <div className="w-full md:w-1/3 border-r border-ezgray-dark flex flex-col overflow-hidden">
           <div className="p-3 border-b border-ezgray-dark">
             <h3 className="text-sm font-medium text-ezwhite">File Browser</h3>
           </div>
