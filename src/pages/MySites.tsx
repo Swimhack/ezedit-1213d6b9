@@ -1,27 +1,25 @@
 
 import { useState } from "react";
-import { PlusCircle } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
-import FTPConnectionModal from "@/components/FTPConnectionModal";
-import { Button } from "@/components/ui/button";
-import { FTPConnectionCard } from "@/components/FTPConnectionCard";
 import { FTPPageHeader } from "@/components/FTPPageHeader";
+import { ConnectionsGrid } from "@/components/ftp-connections/ConnectionsGrid";
+import { ConnectionModals } from "@/components/ftp-connections/ConnectionModals";
 import { useFTPConnections } from "@/hooks/use-ftp-connections";
-import { FileBrowserModal } from "@/components/ftp-explorer/FileBrowserModal";
-import { FileEditorModal } from "@/components/ftp-explorer/FileEditorModal";
-import { AIAssistantModal } from "@/components/ftp-explorer/AIAssistantModal";
-import type { FtpConnection } from "@/hooks/use-ftp-connections";
 import { useFileExplorer } from "@/hooks/use-file-explorer";
+import type { FtpConnection } from "@/hooks/use-ftp-connections";
 
 const MySites = () => {
-  // Connection form state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<FtpConnection | null>(null);
   
-  // FTP connections hook
-  const { connections, isLoading: isLoadingConnections, testResults, fetchConnections, handleTestConnection } = useFTPConnections();
+  const { 
+    connections, 
+    isLoading: isLoadingConnections, 
+    testResults, 
+    fetchConnections, 
+    handleTestConnection 
+  } = useFTPConnections();
   
-  // File explorer state and functions
   const {
     activeConnection,
     showFileBrowser, 
@@ -36,7 +34,7 @@ const MySites = () => {
     currentFilePath,
     fileContent,
     hasUnsavedChanges,
-    isSaving: isFileContentLoading,
+    isSaving,
     loadDirectory,
     selectFile,
     updateFileContent,
@@ -51,6 +49,11 @@ const MySites = () => {
     setEditingConnection(null);
   };
 
+  const handleConnect = () => {
+    setEditingConnection(null);
+    setIsModalOpen(true);
+  };
+
   const handleEdit = (connection: FtpConnection) => {
     setEditingConnection(connection);
     setIsModalOpen(true);
@@ -59,112 +62,46 @@ const MySites = () => {
   return (
     <DashboardLayout>
       <div className="container py-6 space-y-6">
-        <FTPPageHeader onConnect={() => {
-          setEditingConnection(null);
-          setIsModalOpen(true);
-        }} />
+        <FTPPageHeader onConnect={handleConnect} />
 
-        <FTPConnectionModal 
-          isOpen={isModalOpen} 
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingConnection(null);
-          }} 
-          onSave={handleSaveConnection}
-          editConnection={editingConnection}
+        <ConnectionsGrid
+          connections={connections}
+          isLoadingConnections={isLoadingConnections}
+          testResults={testResults}
+          onConnect={handleConnect}
+          onTest={handleTestConnection}
+          onViewFiles={openConnection}
+          onEdit={handleEdit}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {isLoadingConnections ? (
-            <div className="col-span-full text-center py-8">
-              <div className="animate-pulse">Loading connections...</div>
-            </div>
-          ) : connections.length === 0 ? (
-            <div className="col-span-full text-center py-8 border border-dashed border-ezgray-dark rounded-lg">
-              <h3 className="text-xl font-medium mb-2">No sites connected yet</h3>
-              <p className="text-ezgray mb-4">
-                Add your first FTP connection to start managing your sites
-              </p>
-              <Button onClick={() => setIsModalOpen(true)} variant="outline">
-                <PlusCircle className="mr-2" size={16} /> Connect a Site
-              </Button>
-            </div>
-          ) : (
-            connections.map((connection) => (
-              <FTPConnectionCard
-                key={connection.id}
-                connection={connection}
-                testResult={testResults[connection.id]}
-                onTest={() => handleTestConnection(connection)}
-                onViewFiles={() => openConnection(connection)}
-                onEdit={() => handleEdit(connection)}
-              />
-            ))
-          )}
-        </div>
-
-        {activeConnection && (
-          <>
-            <FileBrowserModal
-              isOpen={showFileBrowser}
-              onClose={() => setShowFileBrowser(false)}
-              currentPath={currentPath}
-              files={files}
-              isLoading={isLoading}
-              serverName={activeConnection.server_name}
-              onNavigate={loadDirectory}
-              onSelectFile={selectFile}
-            />
-
-            <FileEditorModal
-              isOpen={showFileEditor}
-              onClose={() => setShowFileEditor(false)}
-              fileName={currentFilePath}
-              content={fileContent || ""}
-              onSave={saveFileContent}
-              isSaving={isFileContentLoading}
-              hasUnsavedChanges={hasUnsavedChanges}
-              onContentChange={updateFileContent}
-            />
-
-            <AIAssistantModal
-              isOpen={showAIAssistant}
-              onClose={() => setShowAIAssistant(false)}
-              filePath={currentFilePath}
-              fileContent={fileContent || ""}
-              onApplyResponse={applyAIResponse}
-            />
-
-            {/* Floating button controls when any modal is open */}
-            {(showFileEditor || showFileBrowser || showAIAssistant) && (
-              <div className="fixed bottom-4 right-4 space-x-2">
-                <Button
-                  onClick={() => setShowFileBrowser(!showFileBrowser)}
-                  variant={showFileBrowser ? "default" : "outline"}
-                  className={showFileBrowser ? "bg-ezblue hover:bg-ezblue/90" : ""}
-                >
-                  Files
-                </Button>
-                <Button
-                  onClick={() => setShowFileEditor(!showFileEditor)}
-                  variant={showFileEditor ? "default" : "outline"}
-                  className={showFileEditor ? "bg-ezblue hover:bg-ezblue/90" : ""}
-                  disabled={!currentFilePath}
-                >
-                  Editor
-                </Button>
-                <Button
-                  onClick={() => setShowAIAssistant(!showAIAssistant)}
-                  variant={showAIAssistant ? "default" : "outline"}
-                  className={showAIAssistant ? "bg-ezblue hover:bg-ezblue/90" : ""}
-                  disabled={!currentFilePath}
-                >
-                  AI
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+        <ConnectionModals
+          isModalOpen={isModalOpen}
+          editingConnection={editingConnection}
+          activeConnection={activeConnection}
+          showFileBrowser={showFileBrowser}
+          showFileEditor={showFileEditor}
+          showAIAssistant={showAIAssistant}
+          currentPath={currentPath}
+          files={files}
+          isLoading={isLoading}
+          currentFilePath={currentFilePath}
+          fileContent={fileContent}
+          hasUnsavedChanges={hasUnsavedChanges}
+          isSaving={isSaving}
+          onCloseModal={() => {
+            setIsModalOpen(false);
+            setEditingConnection(null);
+          }}
+          onSaveConnection={handleSaveConnection}
+          onLoadDirectory={loadDirectory}
+          onSelectFile={selectFile}
+          onUpdateContent={updateFileContent}
+          onSaveContent={saveFileContent}
+          onApplyAIResponse={applyAIResponse}
+          setShowFileBrowser={setShowFileBrowser}
+          setShowFileEditor={setShowFileEditor}
+          setShowAIAssistant={setShowAIAssistant}
+        />
       </div>
     </DashboardLayout>
   );
