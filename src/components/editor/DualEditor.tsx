@@ -11,16 +11,17 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
     editorRef?: React.MutableRefObject<any>;
     fileName?: string;
 }) => {
-    // Expand the file types that can use visual editor
+    // Expand the file types that can use visual editor and ensure proper detection
     const isVisualCapable = /html|php|htm/.test(language);
     const [mode, setMode] = useState<'code' | 'visual'>(
         isVisualCapable ? 'visual' : 'code'
     );
 
+    // Initialize TipTap editor with proper configuration
     const tiptap = useEditor({
         extensions: [StarterKit],
         content: content,
-        editable: mode === 'visual',
+        editable: true,
         onUpdate: ({ editor }) => {
             onChange(editor.getHTML());
         }
