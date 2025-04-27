@@ -23,7 +23,7 @@ interface ConnectionModalsProps {
   onCloseModal: () => void;
   onSaveConnection: () => void;
   onLoadDirectory: (path: string) => void;
-  onSelectFile: (file: { key: string; isDir: boolean }) => void;
+  onSelectFile: (file: { key: string; isDir: boolean }) => Promise<void>;
   onUpdateContent: (content: string) => void;
   onSaveContent: () => void;
   onApplyAIResponse: (text: string) => void;
