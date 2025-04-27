@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PlusCircle } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import FTPConnectionModal from "@/components/FTPConnectionModal";
@@ -7,95 +7,48 @@ import { Button } from "@/components/ui/button";
 import { FTPConnectionCard } from "@/components/FTPConnectionCard";
 import { FTPPageHeader } from "@/components/FTPPageHeader";
 import { useFTPConnections } from "@/hooks/use-ftp-connections";
-import { useFileContent } from "@/hooks/use-file-content";
 import { FileBrowserModal } from "@/components/ftp-explorer/FileBrowserModal";
 import { FileEditorModal } from "@/components/ftp-explorer/FileEditorModal";
 import { AIAssistantModal } from "@/components/ftp-explorer/AIAssistantModal";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
-import { listDirectory, getFile } from "@/lib/ftp";
-import { toast } from "sonner";
-import { normalizePath } from "@/utils/path";
+import { useFileExplorer } from "@/hooks/use-file-explorer";
 
 const MySites = () => {
-  // Connection state
+  // Connection form state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<FtpConnection | null>(null);
-  const [activeConnection, setActiveConnection] = useState<FtpConnection | null>(null);
   
-  // File explorer state
-  const [currentPath, setCurrentPath] = useState("/");
-  const [currentFilePath, setCurrentFilePath] = useState("");
-  const [files, setFiles] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Modal visibility state
-  const [showFileBrowser, setShowFileBrowser] = useState(false);
-  const [showFileEditor, setShowFileEditor] = useState(false);
-  const [showAIAssistant, setShowAIAssistant] = useState(false);
-
+  // FTP connections hook
   const { connections, isLoading: isLoadingConnections, testResults, fetchConnections, handleTestConnection } = useFTPConnections();
-  const { 
-    content: fileContent, 
-    isLoading: isFileLoading, 
-    updateContent, 
-    saveContent, 
-    isSaving, 
+  
+  // File explorer state and functions
+  const {
+    activeConnection,
+    showFileBrowser, 
+    showFileEditor, 
+    showAIAssistant,
+    setShowFileBrowser,
+    setShowFileEditor,
+    setShowAIAssistant,
+    currentPath,
+    files,
+    isLoading,
+    currentFilePath,
+    fileContent,
     hasUnsavedChanges,
-    loadFile
-  } = useFileContent({
-    connection: activeConnection,
-    filePath: currentFilePath
-  });
+    isSaving: isFileContentLoading,
+    loadDirectory,
+    selectFile,
+    updateFileContent,
+    saveFileContent,
+    openConnection,
+    applyAIResponse
+  } = useFileExplorer();
 
   const handleSaveConnection = () => {
     fetchConnections();
     setIsModalOpen(false);
     setEditingConnection(null);
-  };
-
-  const loadDirectory = async (path: string) => {
-    if (!activeConnection) return;
-    
-    setIsLoading(true);
-    try {
-      const normalizedPath = normalizePath(path);
-      console.log(`[normalizePath] Original: "${path}" → Normalized: "${normalizedPath}"`);
-      const files = await listDirectory(activeConnection, normalizedPath);
-      setFiles(files);
-      setCurrentPath(normalizedPath);
-    } catch (error: any) {
-      console.error("[MySites] Directory loading error:", error);
-      toast.error(`Failed to load directory: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOpenFileExplorer = async (connection: FtpConnection) => {
-    setActiveConnection(connection);
-    const startPath = connection.root_directory ? normalizePath(connection.root_directory) : "/";
-    
-    setShowFileBrowser(true);
-    await loadDirectory(startPath);
-  };
-
-  const handleSelectFile = async (file: { key: string; isDir: boolean }) => {
-    if (file.isDir) {
-      await loadDirectory(file.key);
-    } else {
-      setCurrentFilePath(file.key);
-      if (activeConnection) {
-        setShowFileBrowser(false);
-        setShowFileEditor(true);
-      }
-    }
-  };
-
-  const handleApplyResponse = (text: string) => {
-    if (fileContent) {
-      const newContent = fileContent + '\n' + text;
-      updateContent(newContent);
-    }
   };
 
   const handleEdit = (connection: FtpConnection) => {
@@ -143,7 +96,7 @@ const MySites = () => {
                 connection={connection}
                 testResult={testResults[connection.id]}
                 onTest={() => handleTestConnection(connection)}
-                onViewFiles={() => handleOpenFileExplorer(connection)}
+                onViewFiles={() => openConnection(connection)}
                 onEdit={() => handleEdit(connection)}
               />
             ))
@@ -160,7 +113,7 @@ const MySites = () => {
               isLoading={isLoading}
               serverName={activeConnection.server_name}
               onNavigate={loadDirectory}
-              onSelectFile={handleSelectFile}
+              onSelectFile={selectFile}
             />
 
             <FileEditorModal
@@ -168,10 +121,10 @@ const MySites = () => {
               onClose={() => setShowFileEditor(false)}
               fileName={currentFilePath}
               content={fileContent || ""}
-              onSave={saveContent}
-              isSaving={isSaving}
+              onSave={saveFileContent}
+              isSaving={isFileContentLoading}
               hasUnsavedChanges={hasUnsavedChanges}
-              onContentChange={updateContent}
+              onContentChange={updateFileContent}
             />
 
             <AIAssistantModal
@@ -179,22 +132,34 @@ const MySites = () => {
               onClose={() => setShowAIAssistant(false)}
               filePath={currentFilePath}
               fileContent={fileContent || ""}
-              onApplyResponse={handleApplyResponse}
+              onApplyResponse={applyAIResponse}
             />
 
-            {showFileEditor && (
+            {/* Floating button controls when any modal is open */}
+            {(showFileEditor || showFileBrowser || showAIAssistant) && (
               <div className="fixed bottom-4 right-4 space-x-2">
                 <Button
-                  onClick={() => setShowFileBrowser(true)}
-                  variant="outline"
+                  onClick={() => setShowFileBrowser(!showFileBrowser)}
+                  variant={showFileBrowser ? "default" : "outline"}
+                  className={showFileBrowser ? "bg-ezblue hover:bg-ezblue/90" : ""}
                 >
-                  Browse Files
+                  Files
                 </Button>
                 <Button
-                  onClick={() => setShowAIAssistant(true)}
-                  className="bg-ezblue hover:bg-ezblue/90"
+                  onClick={() => setShowFileEditor(!showFileEditor)}
+                  variant={showFileEditor ? "default" : "outline"}
+                  className={showFileEditor ? "bg-ezblue hover:bg-ezblue/90" : ""}
+                  disabled={!currentFilePath}
                 >
-                  AI Assistant
+                  Editor
+                </Button>
+                <Button
+                  onClick={() => setShowAIAssistant(!showAIAssistant)}
+                  variant={showAIAssistant ? "default" : "outline"}
+                  className={showAIAssistant ? "bg-ezblue hover:bg-ezblue/90" : ""}
+                  disabled={!currentFilePath}
+                >
+                  AI
                 </Button>
               </div>
             )}
