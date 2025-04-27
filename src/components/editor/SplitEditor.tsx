@@ -57,6 +57,8 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
     setSrcDoc(previewContent);
   }, [content, fileName, error]);
 
+  console.log(`[SplitEditor] Rendering with fileName: ${fileName}, content length: ${content?.length || 0}`);
+
   return (
     <ResizablePanelGroup 
       direction="vertical" 
@@ -64,7 +66,7 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
     >
       <ResizablePanel defaultSize={55} minSize={30}>
         <CodeEditor
-          content={content}
+          content={content || ""}
           language={getFileLanguage()}
           onChange={debouncedChange}
           editorRef={editorRef}

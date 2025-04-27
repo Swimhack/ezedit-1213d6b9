@@ -27,6 +27,19 @@ serve(async (req) => {
 
     console.log(`[SFTP] Attempting to get file: ${path}`);
     
+    // Parse request body if it exists
+    let body = {};
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      body = await req.json();
+    }
+    
+    // Get connection info either from query params or body
+    const siteId = body.siteId || id;
+    const filePath = body.path || path;
+    
+    console.log(`[SFTP] Using siteId: ${siteId}, path: ${filePath}`);
+    
     const config = {
       host: Deno.env.get("SFTP_HOST"),
       port: Number(Deno.env.get("SFTP_PORT") || "22"),
@@ -40,7 +53,7 @@ serve(async (req) => {
       await sftp.connect(config);
       console.log(`[SFTP] Connected successfully`);
       
-      const data = await sftp.get(path);
+      const data = await sftp.get(filePath || path);
       console.log(`[SFTP] File retrieved successfully, size: ${data.length} bytes`);
       
       return new Response(
