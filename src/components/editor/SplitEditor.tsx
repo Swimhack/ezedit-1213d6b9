@@ -4,6 +4,7 @@ import { CodeEditor } from "@/components/editor/CodeEditor";
 import { useEffect, useRef, useState } from "react";
 import { getLanguageFromFileName } from "@/utils/language-detector";
 import debounce from "debounce";
+import { useFileExplorerStore } from "@/store/fileExplorerStore";
 
 interface SplitEditorProps {
   fileName: string | null;
@@ -15,6 +16,8 @@ interface SplitEditorProps {
 
 export function SplitEditor({ fileName, content, onChange, editorRef, error }: SplitEditorProps) {
   const [srcDoc, setSrcDoc] = useState("");
+  const activeConnection = useFileExplorerStore(state => state.activeConnection);
+  const baseUrl = activeConnection?.web_url ?? '';
   
   // Create debounced change handler to prevent excessive updates
   const debouncedChange = debounce((value: string | undefined) => {
@@ -44,20 +47,21 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
     
     if (!content) return;
     
-    const isHtmlFile = fileName && /\.(html?|htm)$/i.test(fileName);
-    let previewContent = content;
+    const isHtmlFile = fileName && /\.(html?|htm|php)$/i.test(fileName);
     
-    if (!isHtmlFile) {
-      // For non-HTML files, wrap content in pre tag for display
-      previewContent = `<pre style="white-space:pre-wrap;font-family:monospace;padding:1rem;">${
+    if (isHtmlFile && baseUrl) {
+      // For HTML/PHP files with a base URL, we'll use live preview
+      setSrcDoc('');
+    } else {
+      // For non-HTML files or when no base URL is available, wrap content in pre tag
+      const previewContent = `<pre style="white-space:pre-wrap;font-family:monospace;padding:1rem;">${
         content.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]!))
       }</pre>`;
+      setSrcDoc(previewContent);
     }
-    
-    setSrcDoc(previewContent);
-  }, [content, fileName, error]);
+  }, [content, fileName, error, baseUrl]);
 
-  console.log(`[SplitEditor] Rendering with fileName: ${fileName}, content length: ${content?.length || 0}`);
+  console.log(`[SplitEditor] Rendering with fileName: ${fileName}, content length: ${content?.length || 0}, baseUrl: ${baseUrl}`);
 
   return (
     <ResizablePanelGroup 
@@ -89,12 +93,21 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
             ))}
           </div>
           {fileName || error ? (
-            <iframe
-              srcDoc={srcDoc}
-              className="w-full h-full pt-4 bg-white"
-              title="Preview"
-              sandbox="allow-same-origin allow-scripts allow-forms"
-            />
+            fileName && /\.(html?|htm|php)$/i.test(fileName) && baseUrl ? (
+              <iframe
+                key={fileName}
+                src={`${baseUrl}${fileName.startsWith('/') ? '' : '/'}${fileName}`}
+                className="w-full h-full pt-4 bg-white"
+                title="Live Preview"
+              />
+            ) : (
+              <iframe
+                srcDoc={srcDoc}
+                className="w-full h-full pt-4 bg-white"
+                title="Preview"
+                sandbox="allow-same-origin allow-scripts allow-forms"
+              />
+            )
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">
               No preview available
@@ -105,3 +118,4 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
     </ResizablePanelGroup>
   );
 }
+
