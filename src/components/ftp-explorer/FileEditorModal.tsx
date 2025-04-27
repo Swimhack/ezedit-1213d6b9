@@ -1,6 +1,5 @@
-
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { CodeEditor } from "../editor/CodeEditor";
+import { DualEditor } from "../editor/DualEditor";
 import { FileEditorToolbar } from "./FileEditorToolbar";
 import { getLanguageFromFileName } from "@/utils/language-detector";
 import { useEffect, useRef, useState } from "react";
@@ -29,31 +28,24 @@ export function FileEditorModal({
   const editorRef = useRef<any>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
   
-  // Force editor to refresh when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Mark editor as not ready when modal opens
       setIsEditorReady(false);
-      
-      // Small delay to ensure the DOM is fully rendered
       const timer = setTimeout(() => {
         if (editorRef.current) {
           editorRef.current.layout();
           setIsEditorReady(true);
         }
       }, 200);
-      
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
-  // Additional refresh when content changes
   useEffect(() => {
     if (isOpen && editorRef.current && content) {
       const timer = setTimeout(() => {
         editorRef.current.layout();
       }, 100);
-      
       return () => clearTimeout(timer);
     }
   }, [isOpen, content]);
@@ -63,7 +55,6 @@ export function FileEditorModal({
     return getLanguageFromFileName(fileName) || "plaintext";
   };
 
-  // Handler to ensure content changes are properly captured
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       onContentChange(value);
@@ -88,11 +79,12 @@ export function FileEditorModal({
         </div>
         <div className="flex-1 p-4 overflow-hidden">
           <div className="h-[calc(80vh-8rem)] border border-ezgray-dark rounded">
-            <CodeEditor
+            <DualEditor
               content={content}
               language={getFileLanguage()}
               onChange={handleEditorChange}
               editorRef={editorRef}
+              fileName={fileName || undefined}
             />
           </div>
         </div>
