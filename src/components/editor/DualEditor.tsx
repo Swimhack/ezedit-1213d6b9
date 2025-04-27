@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import TipTapWrapper from './TipTapWrapper';
@@ -10,8 +9,9 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
     editorRef?: React.MutableRefObject<any>;
     fileName?: string;
 }) => {
-    // Expand the file types that can use visual editor and ensure proper detection
-    const isVisualCapable = /html|php|htm/.test(language);
+    // Improve detection of HTML-capable files
+    const looksLikeHtml = /<\w+[^>]*>/i.test(content);   // crude tag sniff
+    const isVisualCapable = looksLikeHtml && /\.(html?|php)$/i.test(language);
     const [mode, setMode] = useState<'code' | 'visual'>(
         isVisualCapable ? 'visual' : 'code'
     );
@@ -36,12 +36,13 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
 
     /* keep TipTap in sync */
     useEffect(() => {
-        if (!isVisualCapable) return;
-        setMode('visual');              // ensure visual mode for html/php
+        if (!isVisualCapable) {
+            setMode('code');  // force code mode for non-HTML content
+            return;
+        }
         if (tipTapEditorRef.current && mode === 'visual') {
             tipTapEditorRef.current.commands?.setContent(content || '');
         }
-    // 🚩 listen to BOTH fileName *and* content
     }, [fileName, content, mode, isVisualCapable]);
 
     return (
