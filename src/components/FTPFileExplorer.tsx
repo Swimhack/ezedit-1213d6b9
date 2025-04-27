@@ -11,6 +11,7 @@ import { useFileContent } from "@/hooks/use-file-content";
 import { getLanguageFromFileName } from "@/utils/language-detector";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import ClinePane from "./ClinePane";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface FTPFileExplorerProps {
   connection: {
@@ -33,7 +34,8 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const [files, setFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showKlein, setShowKlein] = useState(true);
-  
+  const isMobile = useIsMobile();
+
   const { 
     content: fileContent, 
     isLoading: isFileLoading,
@@ -163,7 +165,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
             </div>
           ) : (
             <div className="flex-1 px-4 pb-4">
-              <ResizablePanelGroup direction="horizontal">
+              <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"}>
                 <ResizablePanel defaultSize={70} minSize={40}>
                   <div className="h-[calc(100vh-280px)] border border-ezgray-dark rounded">
                     <CodeEditor

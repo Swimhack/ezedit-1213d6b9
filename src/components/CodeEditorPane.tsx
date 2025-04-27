@@ -1,5 +1,7 @@
+
 import { useState, useEffect, useRef } from "react";
 import { FileCode2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useFileContent } from "@/hooks/use-file-content";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
 import { LoadingOverlay } from "@/components/editor/LoadingOverlay";
@@ -22,6 +24,7 @@ interface CodeEditorPaneProps {
 export default function CodeEditorPane({ connection, filePath, onContentChange }: CodeEditorPaneProps) {
   const [language, setLanguage] = useState<string>("javascript");
   const editorRef = useRef(null);
+  const isMobile = useIsMobile();
   const {
     content,
     isLoading,
@@ -118,7 +121,10 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
             <p>Select a file from the file tree to edit</p>
           </div>
         ) : (
-          <ResizablePanelGroup direction="horizontal">
+          <ResizablePanelGroup 
+            direction={isMobile ? "vertical" : "horizontal"}
+            className="h-full"
+          >
             <ResizablePanel defaultSize={70} minSize={40}>
               <CodeEditor
                 content={content}
@@ -127,7 +133,7 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
                 editorRef={editorRef}
               />
             </ResizablePanel>
-            {filePath && showKlein && (
+            {showKlein && (
               <>
                 <ResizableHandle withHandle />
                 <ResizablePanel defaultSize={30} minSize={20}>
