@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -10,8 +11,9 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
     editorRef?: React.MutableRefObject<any>;
     fileName?: string;
 }) => {
+    const isVisualCapable = /html|php|htm/.test(language);
     const [mode, setMode] = useState<'code' | 'visual'>(
-        language === 'html' ? 'visual' : 'code'
+        isVisualCapable ? 'visual' : 'code'
     );
 
     const tiptap = useEditor({
@@ -46,7 +48,7 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
         <div className="h-full flex flex-col">
             <div className="flex items-center justify-between bg-background px-4 py-2 border-b border-border">
                 <span className="text-sm text-muted-foreground">{fileName || 'Untitled'}</span>
-                {language === 'html' && (
+                {isVisualCapable && (
                     <button
                         onClick={() => setMode(m => (m === 'code' ? 'visual' : 'code'))}
                         className="text-xs px-3 py-1.5 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80"
