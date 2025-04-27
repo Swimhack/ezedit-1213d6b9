@@ -1,3 +1,4 @@
+
 import { useFileExplorerStore } from "@/store/fileExplorerStore";
 import { listDirectory } from "@/lib/ftp";
 import { normalizePath } from "@/utils/path";
@@ -63,6 +64,7 @@ export function useFileExplorer() {
     setError(null);
     try {
       console.log(`[fetchFileContent] Loading: ${currentFilePath} from connection: ${activeConnection.id}`);
+      console.time(`[FTP] ${currentFilePath}`);
       
       const { data, error: supabaseError } = await supabase.functions.invoke('ftp-get-file', {
         body: {
@@ -71,8 +73,11 @@ export function useFileExplorer() {
         }
       });
 
+      console.timeEnd(`[FTP] ${currentFilePath}`);
+
       if (supabaseError) {
         const errorMsg = supabaseError.message || "Unknown error";
+        console.log('→ status: error, bytes: 0, error:', errorMsg);
         setError(errorMsg);
         toast.error(`Error loading file: ${errorMsg}`);
         setFileContent("");
@@ -82,17 +87,20 @@ export function useFileExplorer() {
       
       if (data && data.success) {
         const decodedContent = atob(data.content);
+        console.log('→ status: success, bytes:', decodedContent.length);
         setFileContent(decodedContent);
         setError(null);
         setHasUnsavedChanges(false);
       } else {
         const errorMsg = data?.message || data?.error || 'Unknown error';
+        console.log('→ status: error, bytes: 0, error:', errorMsg);
         setError(errorMsg);
         setFileContent("");
         toast.error(`Failed to load file: ${errorMsg}`);
       }
     } catch (error: any) {
       console.error("[useFileExplorer] File loading error:", error);
+      console.log('→ status: exception, bytes: 0, error:', error.message);
       setError(error.message || "Unknown error");
       setFileContent("");
       toast.error(`Error loading file: ${error.message}`);
@@ -114,6 +122,9 @@ export function useFileExplorer() {
 
     setIsSaving(true);
     try {
+      console.log(`[saveFileContent] Saving: ${currentFilePath}`);
+      console.time(`[FTP Save] ${currentFilePath}`);
+      
       const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-upload-file`, {
         method: "POST",
         headers: {
@@ -130,14 +141,19 @@ export function useFileExplorer() {
         }),
       });
 
+      console.timeEnd(`[FTP Save] ${currentFilePath}`);
+      
       const data = await response.json();
       if (data.success) {
+        console.log('→ status: success saved');
         toast.success("File saved successfully!");
         setHasUnsavedChanges(false);
       } else {
+        console.log('→ status: error saving, error:', data.message);
         throw new Error(data.message);
       }
     } catch (error: any) {
+      console.log('→ status: exception saving, error:', error.message);
       toast.error(`Failed to save file: ${error.message}`);
     } finally {
       setIsSaving(false);

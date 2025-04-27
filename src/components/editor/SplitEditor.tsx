@@ -3,7 +3,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { CodeEditor } from "@/components/editor/CodeEditor";
 import { useEffect, useRef, useState } from "react";
 import { getLanguageFromFileName } from "@/utils/language-detector";
-import debounce from "debounce"; // Changed from "import { debounce } from 'debounce'"
+import debounce from "debounce";
 
 interface SplitEditorProps {
   fileName: string | null;
@@ -31,8 +31,14 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
   // Build preview content whenever content changes
   useEffect(() => {
     if (error) {
-      // Display error message in preview
-      setSrcDoc(`<body style="font:14px/1.4 sans-serif;padding:2rem;color:#e11d48;background:#fff;">${error}</body>`);
+      // Display error message in preview with improved styling
+      setSrcDoc(`
+        <body style="font:16px/1.5 system-ui;padding:2rem;
+                     color:#f87171;background:#1e293b">
+          <h3 style="margin:0 0 1rem;font:600 18px sans-serif">FTP Error</h3>
+          <pre style="white-space:pre-wrap;">${error}</pre>
+          <p style="margin-top:1rem;font-size:13px;">Check Dashboard ▸ Functions ▸ Logs</p>
+        </body>`);
       return;
     }
     

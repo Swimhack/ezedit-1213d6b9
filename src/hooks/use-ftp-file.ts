@@ -20,6 +20,7 @@ export function useFtpFile() {
     setError(null);
     try {
       console.log(`Loading file content from: ${filePath}`);
+      console.time(`[FTP] ${filePath}`);
       
       // Use the ftp-get-file function
       const { data, error } = await supabase.functions.invoke('ftp-get-file', {
@@ -29,9 +30,12 @@ export function useFtpFile() {
         }
       });
 
+      console.timeEnd(`[FTP] ${filePath}`);
+
       if (error) {
         console.error("Error from edge function:", error);
         const errorMessage = error.message || "Failed to load file";
+        console.log('→ status:', 'error', 'bytes:', 0, 'error:', errorMessage);
         setError(errorMessage);
         toast.error(`Error loading file: ${errorMessage}`);
         throw error;
@@ -40,11 +44,13 @@ export function useFtpFile() {
       if (data && data.success) {
         console.log(`File content received, decoding...`);
         const decodedContent = atob(data.content);
+        console.log('→ status:', 'success', 'bytes:', decodedContent.length, 'error:', null);
         setContent(decodedContent);
         return decodedContent;
       } else {
         const errorMessage = data?.message || data?.error || 'Unknown error';
         console.error("Error in response:", data);
+        console.log('→ status:', 'error', 'bytes:', 0, 'error:', errorMessage);
         setError(errorMessage);
         toast.error(`Error loading file: ${errorMessage}`);
         throw new Error(errorMessage);
@@ -52,6 +58,7 @@ export function useFtpFile() {
     } catch (error: any) {
       console.error("File loading error:", error);
       const errorMessage = error.message || "Failed to load file";
+      console.log('→ status:', 'exception', 'bytes:', 0, 'error:', errorMessage);
       setError(errorMessage);
       toast.error(`Error loading file: ${errorMessage}`);
       throw error;

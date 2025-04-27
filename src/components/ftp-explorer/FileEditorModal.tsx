@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FileEditorToolbar } from "./FileEditorToolbar";
 import { SplitEditor } from "../editor/SplitEditor";
 import { useEffect, useRef, useState } from "react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface FileEditorModalProps {
   isOpen: boolean;
@@ -68,6 +70,13 @@ export function FileEditorModal({
             Editing: {fileName || 'Untitled File'}
           </DialogTitle>
         </div>
+        {error && (
+          <Alert variant="destructive" className="mx-4 mt-4 bg-red-950/30 border-red-800">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>FTP Error</AlertTitle>
+            <AlertDescription className="text-xs">{error}</AlertDescription>
+          </Alert>
+        )}
         <div className="flex-1 p-4 overflow-hidden">
           <div className="h-[calc(80vh-8rem)]">
             <SplitEditor
