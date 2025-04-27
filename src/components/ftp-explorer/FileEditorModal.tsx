@@ -13,6 +13,7 @@ interface FileEditorModalProps {
   isSaving: boolean;
   hasUnsavedChanges: boolean;
   onContentChange: (content: string) => void;
+  error?: string;
 }
 
 export function FileEditorModal({
@@ -24,6 +25,7 @@ export function FileEditorModal({
   isSaving,
   hasUnsavedChanges,
   onContentChange,
+  error,
 }: FileEditorModalProps) {
   const editorRef = useRef<any>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
@@ -73,6 +75,7 @@ export function FileEditorModal({
               content={content}
               onChange={onContentChange}
               editorRef={editorRef}
+              error={error}
             />
           </div>
         </div>

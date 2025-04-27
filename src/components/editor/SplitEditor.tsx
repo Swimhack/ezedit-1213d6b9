@@ -10,9 +10,10 @@ interface SplitEditorProps {
   content: string;
   onChange: (content: string) => void;
   editorRef?: React.MutableRefObject<any>;
+  error?: string;
 }
 
-export function SplitEditor({ fileName, content, onChange, editorRef }: SplitEditorProps) {
+export function SplitEditor({ fileName, content, onChange, editorRef, error }: SplitEditorProps) {
   const [srcDoc, setSrcDoc] = useState("");
   
   // Create debounced change handler to prevent excessive updates
@@ -29,6 +30,12 @@ export function SplitEditor({ fileName, content, onChange, editorRef }: SplitEdi
 
   // Build preview content whenever content changes
   useEffect(() => {
+    if (error) {
+      // Display error message in preview
+      setSrcDoc(`<body style="font:14px/1.4 sans-serif;padding:2rem;color:#e11d48;background:#fff;">${error}</body>`);
+      return;
+    }
+    
     if (!content) return;
     
     const isHtmlFile = fileName && /\.(html?|htm)$/i.test(fileName);
@@ -42,7 +49,7 @@ export function SplitEditor({ fileName, content, onChange, editorRef }: SplitEdi
     }
     
     setSrcDoc(previewContent);
-  }, [content, fileName]);
+  }, [content, fileName, error]);
 
   return (
     <ResizablePanelGroup 
@@ -73,7 +80,7 @@ export function SplitEditor({ fileName, content, onChange, editorRef }: SplitEdi
               </span>
             ))}
           </div>
-          {fileName && srcDoc ? (
+          {fileName || error ? (
             <iframe
               srcDoc={srcDoc}
               className="w-full h-full pt-4 bg-white"

@@ -37,8 +37,19 @@ export async function listDirectory(connection: {
 
     if (error) {
       console.error("[FTP] List error:", error);
-      toast.error(`Failed to list directory: ${error.message}`);
-      throw error;
+      
+      // Provide more specific error messages based on the error
+      let errorMessage = error.message;
+      if (error.message.includes("ECONNREFUSED")) {
+        errorMessage = "Connection refused. Please check server address and firewall settings.";
+      } else if (error.message.includes("530")) {
+        errorMessage = "Login incorrect. Please check username and password.";
+      } else if (error.message.includes("ENOENT") || error.message.includes("No such")) {
+        errorMessage = `Directory "${cleanPath}" not found.`;
+      }
+      
+      toast.error(`Failed to list directory: ${errorMessage}`);
+      throw new Error(errorMessage);
     }
 
     console.log(`[FTP] Raw response:`, data);
@@ -47,7 +58,7 @@ export async function listDirectory(connection: {
     if (!data || !data.files) {
       console.error("[FTP] Unexpected response format:", data);
       toast.error("Received unexpected response format from FTP server");
-      return [];
+      throw new Error("Unexpected response format from FTP server");
     }
 
     console.log(`[FTP] Received ${data.files.length} files from server for path "${cleanPath}"`);
@@ -95,12 +106,23 @@ export async function getFile(connection: {
     
     if (error) {
       console.error("[FTP] Get file error:", error);
-      toast.error(`Failed to get file: ${error.message}`);
-      throw error;
+      
+      // Provide more specific error messages based on the error
+      let errorMessage = error.message;
+      if (error.message.includes("ECONNREFUSED")) {
+        errorMessage = "Connection refused. Please check server address and firewall settings.";
+      } else if (error.message.includes("530")) {
+        errorMessage = "Login incorrect. Please check username and password.";
+      } else if (error.message.includes("ENOENT") || error.message.includes("No such")) {
+        errorMessage = `File "${filePath}" not found.`;
+      }
+      
+      toast.error(`Failed to get file: ${errorMessage}`);
+      throw new Error(errorMessage);
     }
     
     if (!data || !data.success) {
-      const errorMsg = data?.message || "Unknown error getting file";
+      const errorMsg = data?.message || data?.error || "Unknown error getting file";
       console.error("[FTP] File download failed:", errorMsg);
       toast.error(`Failed to get file: ${errorMsg}`);
       throw new Error(errorMsg);

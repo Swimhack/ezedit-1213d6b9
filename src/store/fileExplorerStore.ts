@@ -31,6 +31,10 @@ interface FileExplorerState {
   hasUnsavedChanges: boolean;
   setHasUnsavedChanges: (hasUnsavedChanges: boolean) => void;
 
+  // Error state
+  error: string | null;
+  setError: (error: string | null) => void;
+
   // Modal visibility
   showFileBrowser: boolean;
   setShowFileBrowser: (show: boolean) => void;
@@ -53,6 +57,7 @@ const initialState = {
   files: [],
   isLoading: false,
   hasUnsavedChanges: false,
+  error: null,
   showFileBrowser: false,
   showFileEditor: false,
   showAIAssistant: false,
@@ -68,6 +73,7 @@ export const useFileExplorerStore = create<FileExplorerState>((set) => ({
   setFiles: (files) => set({ files }),
   setIsLoading: (isLoading) => set({ isLoading }),
   setHasUnsavedChanges: (hasUnsavedChanges) => set({ hasUnsavedChanges }),
+  setError: (error) => set({ error }),
   setShowFileBrowser: (showFileBrowser) => set({ showFileBrowser }),
   setShowFileEditor: (showFileEditor) => set({ showFileEditor }),
   setShowAIAssistant: (showAIAssistant) => set({ showAIAssistant }),

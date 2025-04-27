@@ -1,83 +1,103 @@
-
-import { CodeEditor } from "../editor/CodeEditor";
-import { getLanguageFromFileName } from "@/utils/language-detector";
-import ClinePane from "../ClinePane";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useRef, useEffect } from "react";
+import { useState } from "react";
+import { SplitEditor } from "../editor/SplitEditor";
+import { KleinPane } from "./KleinPane";
+import { Button } from "../ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface FileEditorContentProps {
   filePath: string;
   content: string;
   showKlein: boolean;
   onContentChange: (content: string) => void;
-  onApplyResponse: (text: string) => void;
+  onApplyResponse: (response: string) => void;
+  error?: string;
 }
 
-export const FileEditorContent = ({
+export function FileEditorContent({
   filePath,
   content,
   showKlein,
   onContentChange,
-  onApplyResponse
-}: FileEditorContentProps) => {
-  const isMobile = useIsMobile();
-  const editorRef = useRef<any>(null);
+  onApplyResponse,
+  error,
+}: FileEditorContentProps) {
+  const [kleinVisible, setKleinVisible] = useState(true);
+  const [kleinWidth, setKleinWidth] = useState(400);
   
-  useEffect(() => {
-    // Force layout when component mounts or content changes
-    if (editorRef.current?.layout) {
-      const timer = setTimeout(() => {
-        editorRef.current.layout();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [content]);
-  
-  const getFileLanguage = () => {
-    if (!filePath) return "plaintext";
-    return getLanguageFromFileName(filePath) || "plaintext";
+  const toggleKlein = () => {
+    setKleinVisible(!kleinVisible);
   };
 
-  if (!filePath) {
-    return (
-      <div className="flex items-center justify-center h-64 text-ezgray border border-dashed border-ezgray-dark rounded-md mx-4">
-        Select a file to view its contents
-      </div>
-    );
-  }
+  const handleResize = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.buttons === 1) {
+      const startX = e.clientX;
+      const startWidth = kleinWidth;
+      
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const newWidth = Math.max(300, Math.min(600, startWidth - deltaX));
+        setKleinWidth(newWidth);
+      };
+      
+      const handleMouseUp = () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+  };
 
   return (
-    <div className="flex-1 px-4 pb-4">
-      <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"}>
-        <ResizablePanel defaultSize={70} minSize={40}>
-          <div className="h-[calc(100vh-280px)] border border-ezgray-dark rounded">
-            <CodeEditor
+    <div className="flex flex-1 h-full overflow-hidden">
+      {showKlein ? (
+        <div className="flex flex-col md:flex-row w-full h-full overflow-hidden">
+          <div className={`flex-1 overflow-hidden ${showKlein ? 'md:w-1/2' : 'w-full'}`}>
+            <SplitEditor
+              fileName={filePath.split('/').pop() || null}
               content={content}
-              language={getFileLanguage()}
               onChange={onContentChange}
-              editorRef={editorRef}
+              error={error}
             />
           </div>
-        </ResizablePanel>
-        {showKlein && (
-          <>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={30} minSize={20}>
-              <div className="h-full">
-                <div className="p-3 border-b border-ezgray-dark">
-                  <h3 className="text-sm font-medium text-ezwhite">AI Assistant</h3>
-                </div>
-                <ClinePane 
+          
+          {kleinVisible && (
+            <>
+              <div 
+                className="hidden md:block w-1 bg-ezgray-dark cursor-col-resize" 
+                onMouseDown={handleResize}
+              />
+              <div 
+                className="md:flex-shrink-0 klein-pane-transition overflow-hidden"
+                style={{ width: showKlein ? kleinWidth : 0 }}
+              >
+                <KleinPane 
                   filePath={filePath}
                   fileContent={content}
                   onApplyResponse={onApplyResponse}
                 />
               </div>
-            </ResizablePanel>
-          </>
-        )}
-      </ResizablePanelGroup>
+            </>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-4 md:right-6 md:top-6 z-10 bg-eznavy-light/80 hover:bg-eznavy"
+            onClick={toggleKlein}
+          >
+            {kleinVisible ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </Button>
+        </div>
+      ) : (
+        <SplitEditor
+          fileName={filePath.split('/').pop() || null}
+          content={content}
+          onChange={onContentChange}
+          error={error}
+        />
+      )}
     </div>
   );
 }

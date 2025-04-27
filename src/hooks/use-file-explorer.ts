@@ -1,4 +1,3 @@
-
 import { useFileExplorerStore } from "@/store/fileExplorerStore";
 import { listDirectory } from "@/lib/ftp";
 import { normalizePath } from "@/utils/path";
@@ -9,6 +8,7 @@ import type { FtpConnection } from "@/hooks/use-ftp-connections";
 
 export function useFileExplorer() {
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const {
     activeConnection, setActiveConnection,
@@ -27,6 +27,7 @@ export function useFileExplorer() {
     if (!activeConnection) return;
     
     setIsLoading(true);
+    setError(null);
     try {
       const normalizedPath = normalizePath(path);
       console.log(`[loadDirectory] Original: "${path}" → Normalized: "${normalizedPath}"`);
@@ -35,6 +36,7 @@ export function useFileExplorer() {
       setCurrentPath(normalizedPath);
     } catch (error: any) {
       console.error("[useFileExplorer] Directory loading error:", error);
+      setError(error.message || "Failed to load directory");
       toast.error(`Failed to load directory: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -58,30 +60,41 @@ export function useFileExplorer() {
     if (!activeConnection || !currentFilePath) return;
     
     setIsLoading(true);
+    setError(null);
     try {
       console.log(`[fetchFileContent] Loading: ${currentFilePath} from connection: ${activeConnection.id}`);
       
-      const { data, error } = await supabase.functions.invoke('ftp-get-file', {
+      const { data, error: supabaseError } = await supabase.functions.invoke('ftp-get-file', {
         body: {
           siteId: activeConnection.id,
           path: currentFilePath
         }
       });
 
-      if (error) {
-        toast.error(`Error loading file: ${error.message}`);
-        throw error;
+      if (supabaseError) {
+        const errorMsg = supabaseError.message || "Unknown error";
+        setError(errorMsg);
+        toast.error(`Error loading file: ${errorMsg}`);
+        setFileContent("");
+        setHasUnsavedChanges(false);
+        return;
       }
       
       if (data && data.success) {
         const decodedContent = atob(data.content);
         setFileContent(decodedContent);
+        setError(null);
         setHasUnsavedChanges(false);
       } else {
-        toast.error(`Failed to load file: ${data?.message || 'Unknown error'}`);
+        const errorMsg = data?.message || data?.error || 'Unknown error';
+        setError(errorMsg);
+        setFileContent("");
+        toast.error(`Failed to load file: ${errorMsg}`);
       }
     } catch (error: any) {
       console.error("[useFileExplorer] File loading error:", error);
+      setError(error.message || "Unknown error");
+      setFileContent("");
       toast.error(`Error loading file: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -147,7 +160,6 @@ export function useFileExplorer() {
   };
 
   return {
-    // State
     activeConnection,
     currentPath,
     currentFilePath,
@@ -159,8 +171,8 @@ export function useFileExplorer() {
     showFileBrowser,
     showFileEditor,
     showAIAssistant,
+    error,
     
-    // Actions
     setShowFileBrowser,
     setShowFileEditor,
     setShowAIAssistant,

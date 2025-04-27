@@ -6,6 +6,7 @@ import { toast } from "sonner";
 export function useFtpFile() {
   const [content, setContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadFileContent = async (connection: {
     id: string;
@@ -16,6 +17,7 @@ export function useFtpFile() {
     root_directory?: string;
   }, filePath: string) => {
     setIsLoading(true);
+    setError(null);
     try {
       console.log(`Loading file content from: ${filePath}`);
       
@@ -29,7 +31,9 @@ export function useFtpFile() {
 
       if (error) {
         console.error("Error from edge function:", error);
-        toast.error(`Error loading file: ${error.message}`);
+        const errorMessage = error.message || "Failed to load file";
+        setError(errorMessage);
+        toast.error(`Error loading file: ${errorMessage}`);
         throw error;
       }
       
@@ -39,13 +43,17 @@ export function useFtpFile() {
         setContent(decodedContent);
         return decodedContent;
       } else {
+        const errorMessage = data?.message || data?.error || 'Unknown error';
         console.error("Error in response:", data);
-        toast.error(`Error loading file: ${data?.message || 'Unknown error'}`);
-        throw new Error(data?.message || 'Failed to load file content');
+        setError(errorMessage);
+        toast.error(`Error loading file: ${errorMessage}`);
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
       console.error("File loading error:", error);
-      toast.error(`Error loading file: ${error.message}`);
+      const errorMessage = error.message || "Failed to load file";
+      setError(errorMessage);
+      toast.error(`Error loading file: ${errorMessage}`);
       throw error;
     } finally {
       setIsLoading(false);
@@ -55,6 +63,7 @@ export function useFtpFile() {
   return {
     content,
     isLoading,
+    error,
     loadFileContent
   };
 }
