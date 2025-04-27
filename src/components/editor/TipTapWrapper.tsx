@@ -1,5 +1,5 @@
 
-import React, { useLayoutEffect, Suspense } from 'react';
+import React, { useLayoutEffect, Suspense, useImperativeHandle } from 'react';
 
 // Use React's lazy loading instead of Next.js dynamic
 const TipTapEditor = React.lazy(async () => {
@@ -11,10 +11,12 @@ const TipTapEditor = React.lazy(async () => {
       html,
       onChange,
       autoFocus = false,
+      editorRef,
     }: {
       html: string;
       onChange: (val: string) => void;
       autoFocus?: boolean;
+      editorRef?: React.MutableRefObject<any>;
     }) {
       const editor = useEditor({
         extensions: [StarterKit],
@@ -22,6 +24,9 @@ const TipTapEditor = React.lazy(async () => {
         editable: true,
         onUpdate: ({editor}) => onChange(editor.getHTML()),
       });
+
+      // Expose editor instance through ref for external manipulation
+      useImperativeHandle(editorRef, () => editor, [editor]);
 
       /** DEBUG — confirm TipTap mounted */
       console.log('[TipTap] mounted →', !!editor);
@@ -50,6 +55,7 @@ export default function TipTapWrapper(props: {
   html: string;
   onChange: (val: string) => void;
   autoFocus?: boolean;
+  editorRef?: React.MutableRefObject<any>;
 }) {
   return (
     <Suspense fallback={<div className="p-4 text-center">Loading editor...</div>}>

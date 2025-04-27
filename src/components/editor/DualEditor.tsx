@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import TipTapWrapper from './TipTapWrapper';
 
@@ -18,6 +18,7 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
     
     // Track modal open status for autoFocus behavior
     const [isOpen, setIsOpen] = useState(false);
+    const tipTapEditorRef = useRef<any>(null);
     
     // Ensure the component recognizes it's mounted
     useEffect(() => {
@@ -32,6 +33,16 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
             setTimeout(() => editor.layout(), 100);
         }
     };
+
+    /* keep TipTap in sync */
+    useEffect(() => {
+        if (!isVisualCapable) return;
+        setMode('visual');              // ensure visual mode for html/php
+        if (tipTapEditorRef.current && mode === 'visual') {
+            tipTapEditorRef.current.commands?.setContent(content || '');
+        }
+    // 🚩 listen to BOTH fileName *and* content
+    }, [fileName, content, mode, isVisualCapable]);
 
     return (
         <div className="h-full flex flex-col">
@@ -91,7 +102,8 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
                             <TipTapWrapper 
                                 html={content} 
                                 onChange={(value) => onChange(value)}
-                                autoFocus={isOpen} 
+                                autoFocus={isOpen}
+                                editorRef={tipTapEditorRef}
                             />
                         </div>
                     </div>
