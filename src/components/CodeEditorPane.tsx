@@ -4,7 +4,7 @@ import { useFileContent } from "@/hooks/use-file-content";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
 import { LoadingOverlay } from "@/components/editor/LoadingOverlay";
 import { CodeEditor } from "@/components/editor/CodeEditor";
-import KleinChat from "@/components/KleinChat";
+import ClinePane from "@/components/ClinePane";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 interface CodeEditorPaneProps {
@@ -33,7 +33,6 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
 
   const [showKlein, setShowKlein] = useState(true);
   
-  // Check if screen is wide enough to show Klein pane
   useEffect(() => {
     const checkScreenSize = () => {
       setShowKlein(window.innerWidth >= 1024);
@@ -132,7 +131,11 @@ export default function CodeEditorPane({ connection, filePath, onContentChange }
               <>
                 <ResizableHandle withHandle />
                 <ResizablePanel defaultSize={30} minSize={20}>
-                  <KleinChat filePath={filePath} />
+                  <ClinePane 
+                    filePath={filePath}
+                    fileContent={content || ''}
+                    onApplyResponse={handleClineResponse}
+                  />
                 </ResizablePanel>
               </>
             )}
