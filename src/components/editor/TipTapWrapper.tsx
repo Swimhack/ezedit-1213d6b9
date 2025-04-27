@@ -1,9 +1,11 @@
 
 import React, { useLayoutEffect, Suspense, useImperativeHandle, useEffect } from 'react';
+import { EditorToolbar } from './EditorToolbar';
 
 const TipTapEditor = React.lazy(async () => {
   const { useEditor, EditorContent } = await import('@tiptap/react');
   const StarterKit = (await import('@tiptap/starter-kit')).default;
+  const TextAlign = (await import('@tiptap/extension-text-align')).default;
 
   return {
     default: function TipTapWrapper({
@@ -18,7 +20,13 @@ const TipTapEditor = React.lazy(async () => {
       editorRef?: React.MutableRefObject<any>;
     }) {
       const editor = useEditor({
-        extensions: [StarterKit],
+        extensions: [
+          StarterKit,
+          TextAlign.configure({
+            types: ['heading', 'paragraph'],
+            alignments: ['left', 'center', 'right'],
+          }),
+        ],
         content: html,
         editable: true,
         onUpdate: ({ editor }) => onChange(editor.getHTML()),
@@ -38,6 +46,7 @@ const TipTapEditor = React.lazy(async () => {
         }
       }, [editor, html]);
 
+      // Handle autofocus
       useLayoutEffect(() => {
         if (autoFocus && editor) {
           const id = setTimeout(() => editor.commands.focus('end'), 60);
@@ -48,10 +57,13 @@ const TipTapEditor = React.lazy(async () => {
       if (!editor) return null;
       
       return (
-        <EditorContent
-          editor={editor}
-          className="h-full bg-background"
-        />
+        <div className="flex flex-col h-full bg-background">
+          <EditorToolbar editor={editor} />
+          <EditorContent
+            editor={editor}
+            className="flex-1 overflow-auto"
+          />
+        </div>
       );
     }
   };

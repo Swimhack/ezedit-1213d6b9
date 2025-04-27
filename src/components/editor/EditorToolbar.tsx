@@ -1,33 +1,123 @@
 
-import { Save, FileCode2, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { 
+  Bold, 
+  Italic, 
+  List, 
+  ListOrdered,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Heading,
+  Undo,
+  Redo
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 interface EditorToolbarProps {
-  filePath: string;
-  isSaving: boolean;
-  hasUnsavedChanges: boolean;
-  onSave: () => void;
+  editor: any;
 }
 
-export function EditorToolbar({ filePath, isSaving, hasUnsavedChanges, onSave }: EditorToolbarProps) {
+export function EditorToolbar({ editor }: EditorToolbarProps) {
+  if (!editor) {
+    return null;
+  }
+
   return (
-    <div className="flex items-center justify-between p-2 border-b border-ezgray-dark">
-      <div className="flex items-center space-x-2">
-        <FileCode2 size={16} />
-        <span className="text-sm truncate">
-          {filePath ? filePath : "No file selected"}
-        </span>
-      </div>
-      <div className="flex items-center space-x-2">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={onSave}
-          disabled={!filePath || isSaving || !hasUnsavedChanges}
-        >
-          {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-        </Button>
-      </div>
+    <div className="border-b border-border flex flex-wrap gap-1 p-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        data-active={editor.isActive('bold')}
+        className="data-[active=true]:bg-accent"
+      >
+        <Bold className="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        data-active={editor.isActive('italic')}
+        className="data-[active=true]:bg-accent"
+      >
+        <Italic className="h-4 w-4" />
+      </Button>
+
+      <Separator orientation="vertical" className="mx-1 h-8" />
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        data-active={editor.isActive('bulletList')}
+        className="data-[active=true]:bg-accent"
+      >
+        <List className="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        data-active={editor.isActive('orderedList')}
+        className="data-[active=true]:bg-accent"
+      >
+        <ListOrdered className="h-4 w-4" />
+      </Button>
+
+      <Separator orientation="vertical" className="mx-1 h-8" />
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        data-active={editor.isActive({ textAlign: 'left' })}
+        className="data-[active=true]:bg-accent"
+      >
+        <AlignLeft className="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        data-active={editor.isActive({ textAlign: 'center' })}
+        className="data-[active=true]:bg-accent"
+      >
+        <AlignCenter className="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        data-active={editor.isActive({ textAlign: 'right' })}
+        className="data-[active=true]:bg-accent"
+      >
+        <AlignRight className="h-4 w-4" />
+      </Button>
+
+      <Separator orientation="vertical" className="mx-1 h-8" />
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => editor.chain().focus().undo().run()}
+        disabled={!editor.can().undo()}
+      >
+        <Undo className="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => editor.chain().focus().redo().run()}
+        disabled={!editor.can().redo()}
+      >
+        <Redo className="h-4 w-4" />
+      </Button>
     </div>
   );
 }
