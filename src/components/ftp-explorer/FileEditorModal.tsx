@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FileEditorToolbar } from "./FileEditorToolbar";
 import { SplitEditor } from "../editor/SplitEditor";

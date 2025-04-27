@@ -56,12 +56,19 @@ export function SplitEditor({ fileName, content, onChange, editorRef }: SplitEdi
               </span>
             ))}
           </div>
-          <iframe
-            key={iframeKey}
-            src={fileName || ''}
-            className="w-full h-full pt-4 bg-white"
-            title="Preview"
-          />
+          {fileName ? (
+            <iframe
+              key={iframeKey}
+              src={fileName}
+              className="w-full h-full pt-4 bg-white"
+              title="Preview"
+              sandbox="allow-same-origin allow-scripts"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              No file selected for preview
+            </div>
+          )}
         </div>
       </ResizablePanel>
     </ResizablePanelGroup>
