@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -20,17 +19,16 @@ export function useFtpFile() {
     setError(null);
     try {
       console.log(`Loading file content from: ${filePath}`);
-      console.time(`[FTP] ${filePath}`);
+      console.time(`[SFTP] ${filePath}`);
       
-      // Use the ftp-get-file function
-      const { data, error } = await supabase.functions.invoke('ftp-get-file', {
+      const { data, error } = await supabase.functions.invoke('sftp-file', {
         body: {
           siteId: connection.id,
           path: filePath
         }
       });
 
-      console.timeEnd(`[FTP] ${filePath}`);
+      console.timeEnd(`[SFTP] ${filePath}`);
 
       if (error) {
         console.error("Error from edge function:", error);
@@ -42,11 +40,10 @@ export function useFtpFile() {
       }
       
       if (data && data.success) {
-        console.log(`File content received, decoding...`);
-        const decodedContent = atob(data.content);
-        console.log('→ status:', 'success', 'bytes:', decodedContent.length, 'error:', null);
-        setContent(decodedContent);
-        return decodedContent;
+        const content = data.content;
+        console.log('→ status:', 'success', 'bytes:', content.length, 'error:', null);
+        setContent(content);
+        return content;
       } else {
         const errorMessage = data?.message || data?.error || 'Unknown error';
         console.error("Error in response:", data);
