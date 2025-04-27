@@ -31,6 +31,7 @@ export function FileEditorModal({
 }: FileEditorModalProps) {
   const editorRef = useRef<any>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const isContentLoaded = content && content.length > 0;
   
   useEffect(() => {
     if (isOpen) {
@@ -79,13 +80,19 @@ export function FileEditorModal({
         )}
         <div className="flex-1 p-4 overflow-hidden">
           <div className="h-[calc(80vh-8rem)]">
-            <SplitEditor
-              fileName={fileName}
-              content={content}
-              onChange={onContentChange}
-              editorRef={editorRef}
-              error={error}
-            />
+            {!isContentLoaded ? (
+              <div className="flex items-center justify-center h-full text-slate-400">
+                Loading file content...
+              </div>
+            ) : (
+              <SplitEditor
+                fileName={fileName}
+                content={content}
+                onChange={onContentChange}
+                editorRef={editorRef}
+                error={error}
+              />
+            )}
           </div>
         </div>
       </DialogContent>

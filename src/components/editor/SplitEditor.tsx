@@ -21,15 +21,22 @@ interface SplitEditorProps {
 
 export function SplitEditor({ fileName, content, onChange, editorRef, error }: SplitEditorProps) {
   const [srcDoc, setSrcDoc] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
   const activeConnection = useFileExplorerStore(state => state.activeConnection);
   const baseUrl = activeConnection?.web_url ?? '';
   const [editMode, setEditMode] = useState<'code' | 'wysiwyg'>('code');
   const [wysiwygContent, setWysiwygContent] = useState("");
   const wysiwygRef = useRef<HTMLDivElement>(null);
   
+  // If no content is loaded yet, show a loading state
+  if (!content || content.length === 0) {
+    return <div className="flex items-center justify-center h-full text-slate-400">Loading…</div>;
+  }
+  
   const debouncedChange = debounce((value: string | undefined) => {
     if (value !== undefined) {
       onChange(value);
+      setRefreshKey(k => k + 1); // Refresh preview after content changes
     }
   }, 500);
 
@@ -69,6 +76,8 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
       // From code to WYSIWYG
       setWysiwygContent(content);
     }
+    // Refresh preview after sync
+    setRefreshKey(k => k + 1);
   };
 
   // Update preview when content changes
@@ -108,6 +117,8 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
       // If in code mode, update the preview from the code content
       setSrcDoc(content);
     }
+    // Force iframe refresh
+    setRefreshKey(k => k + 1);
   };
 
   return (
@@ -202,6 +213,7 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
             fileName && /\.(html?|htm|php)$/i.test(fileName) && baseUrl ? (
               <iframe
                 key={fileName}
+                data-key={refreshKey}
                 src={`${baseUrl}${fileName.startsWith('/') ? '' : '/'}${fileName}`}
                 className="w-full h-full pt-4 bg-white"
                 title="Live Preview"
@@ -209,6 +221,7 @@ export function SplitEditor({ fileName, content, onChange, editorRef, error }: S
             ) : (
               <iframe
                 srcDoc={srcDoc}
+                data-key={refreshKey}
                 className="w-full h-full pt-4 bg-white"
                 title="Preview"
                 sandbox="allow-same-origin allow-scripts allow-forms"
