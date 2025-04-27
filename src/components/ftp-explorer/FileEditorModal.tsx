@@ -1,8 +1,6 @@
-
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { DualEditor } from "../editor/DualEditor";
 import { FileEditorToolbar } from "./FileEditorToolbar";
-import { getLanguageFromFileName } from "@/utils/language-detector";
+import { SplitEditor } from "../editor/SplitEditor";
 import { useEffect, useRef, useState } from "react";
 
 interface FileEditorModalProps {
@@ -29,7 +27,6 @@ export function FileEditorModal({
   const editorRef = useRef<any>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
   
-  // Reset editor ready state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setIsEditorReady(false);
@@ -43,7 +40,6 @@ export function FileEditorModal({
     }
   }, [isOpen]);
 
-  // Ensure layout is called when content changes
   useEffect(() => {
     if (isOpen && editorRef.current && content) {
       const timer = setTimeout(() => {
@@ -52,17 +48,6 @@ export function FileEditorModal({
       return () => clearTimeout(timer);
     }
   }, [isOpen, content]);
-
-  const getFileLanguage = () => {
-    if (!fileName) return "plaintext";
-    return getLanguageFromFileName(fileName) || "plaintext";
-  };
-
-  const handleEditorChange = (value: string | undefined) => {
-    if (value !== undefined) {
-      onContentChange(value);
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -81,13 +66,12 @@ export function FileEditorModal({
           </DialogTitle>
         </div>
         <div className="flex-1 p-4 overflow-hidden">
-          <div className="h-[calc(80vh-8rem)] border border-ezgray-dark rounded">
-            <DualEditor
+          <div className="h-[calc(80vh-8rem)]">
+            <SplitEditor
+              fileName={fileName}
               content={content}
-              language={getFileLanguage()}
-              onChange={handleEditorChange}
+              onChange={onContentChange}
               editorRef={editorRef}
-              fileName={fileName || undefined}
             />
           </div>
         </div>

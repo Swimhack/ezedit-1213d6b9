@@ -110,6 +110,19 @@
     --tw-prose-th-borders: theme(colors.slate.600);
     --tw-prose-td-borders: theme(colors.slate.700);
   }
+
+  /* Thin scrollbar for preview iframe */
+  iframe::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  iframe::-webkit-scrollbar-thumb {
+    @apply bg-muted rounded;
+  }
+  
+  iframe::-webkit-scrollbar-track {
+    @apply bg-muted/20;
+  }
 }
 
 /* Modal Responsiveness */
