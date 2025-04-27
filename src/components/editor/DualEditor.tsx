@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import TipTapWrapper from './TipTapWrapper';
@@ -11,7 +12,9 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
 }) => {
     // Improve detection of HTML-capable files
     const looksLikeHtml = /<\w+[^>]*>/i.test(content);   // crude tag sniff
-    const isVisualCapable = looksLikeHtml && /\.(html?|php)$/i.test(language);
+    const isHtmlFile = /\.(html?|php)$/i.test(fileName || '');
+    const isVisualCapable = isHtmlFile && (looksLikeHtml || content.trim() === '');
+    
     const [mode, setMode] = useState<'code' | 'visual'>(
         isVisualCapable ? 'visual' : 'code'
     );
@@ -36,12 +39,16 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
 
     /* keep TipTap in sync */
     useEffect(() => {
+        // Always default to code mode for non-HTML content
         if (!isVisualCapable) {
-            setMode('code');  // force code mode for non-HTML content
+            setMode('code');
             return;
         }
+        
+        // Update TipTap editor with current content when in visual mode
         if (tipTapEditorRef.current && mode === 'visual') {
-            tipTapEditorRef.current.commands?.setContent(content || '');
+            console.log('[DualEditor] Updating TipTap with content, length:', content?.length);
+            tipTapEditorRef.current.commands?.setContent(content || '<p></p>'); // Ensure there's at least an empty paragraph
         }
     }, [fileName, content, mode, isVisualCapable]);
 
@@ -49,7 +56,7 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
         <div className="h-full flex flex-col">
             <div className="flex items-center justify-between bg-background px-4 py-2 border-b border-border">
                 <span className="text-sm text-muted-foreground">{fileName || 'Untitled'}</span>
-                {isVisualCapable && (
+                {isHtmlFile && (
                     <button
                         onClick={() => setMode(m => (m === 'code' ? 'visual' : 'code'))}
                         className="text-xs px-3 py-1.5 rounded bg-secondary text-secondary-foreground hover:bg-secondary/80"
