@@ -11,7 +11,7 @@ import { useFileContent } from "@/hooks/use-file-content";
 import { getLanguageFromFileName } from "@/utils/language-detector";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import ClinePane from "./ClinePane";
-import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FTPFileExplorerProps {
   connection: {
