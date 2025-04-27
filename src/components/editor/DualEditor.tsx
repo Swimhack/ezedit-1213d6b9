@@ -33,6 +33,13 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
         return () => setIsOpen(false);
     }, []);
 
+    // Helper function to extract HTML from PHP
+    const htmlFromPhp = (raw: string) => {
+        const cleaned = raw.replace(/<\?php[\s\S]*?\?>/gi, '').trim();
+        if (/<[a-z][\s\S]*>/i.test(cleaned)) return cleaned;     // contains a tag
+        return '<p style="color:#666;font-style:italic">[PHP output here]</p>';
+    };
+
     // Handle editor mounting
     const handleEditorDidMount = (editor: any) => {
         if (editorRef) {
@@ -53,10 +60,15 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
         // Update TipTap editor with current content when in visual mode
         if (tipTapEditorRef.current && mode === 'visual') {
             console.log('[DualEditor] Updating TipTap with content, length:', content?.length);
+            // Process PHP content for visual editor
+            const processedContent = isHtmlFile && fileName?.endsWith('.php') 
+                ? htmlFromPhp(content)
+                : content || '<p></p>';
+                
             // Force a small delay to ensure editor is ready
             setTimeout(() => {
                 if (tipTapEditorRef.current && tipTapEditorRef.current.commands) {
-                    tipTapEditorRef.current.commands.setContent(content || '<p></p>');
+                    tipTapEditorRef.current.commands.setContent(processedContent);
                 }
             }, 50);
         }
@@ -147,7 +159,7 @@ export const DualEditor = ({ content, language, onChange, editorRef, fileName }:
                         </div>
                         <div className="flex-1 overflow-y-auto bg-background">
                             <TipTapWrapper 
-                                html={content || '<p></p>'} 
+                                html={isHtmlFile && fileName?.endsWith('.php') ? htmlFromPhp(content) : (content || '<p></p>')}
                                 onChange={(value) => onChange(value)}
                                 autoFocus={isOpen}
                                 editorRef={tipTapEditorRef}
