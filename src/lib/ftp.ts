@@ -15,7 +15,7 @@ export async function listDir(id: string, path = "/") {
 }
 
 export async function getFile(id: string, filepath: string) {
-  return supabase.functions.invoke("getFile", { body: { id, filepath } });
+  return supabase.functions.invoke("sftp-file", { body: { siteId: id, path: filepath } });
 }
 
 export async function saveFile({ id, filepath, content, originalChecksum, username }: { 
