@@ -54,9 +54,14 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     setIsLoading(true);
     try {
       const normalizedPath = normalizePath(path);
-      const files = await listDir(connection.id, normalizedPath);
-      setFiles(files);
-      setCurrentPath(normalizedPath);
+      const result = await listDir(connection.id, normalizedPath);
+      if (result && result.data && result.data.files) {
+        setFiles(result.data.files);
+        setCurrentPath(normalizedPath);
+      } else {
+        console.error("[FTPFileExplorer] Invalid response format:", result);
+        toast.error("Failed to load directory: Invalid response format");
+      }
     } catch (error: any) {
       console.error("[FTPFileExplorer] Directory loading error:", error);
       toast.error(`Failed to load directory: ${error.message}`);

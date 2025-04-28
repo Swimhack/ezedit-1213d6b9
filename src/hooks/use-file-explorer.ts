@@ -39,9 +39,14 @@ export function useFileExplorer() {
     try {
       const normalizedPath = normalizePath(path);
       console.log(`[loadDirectory] Original: "${path}" → Normalized: "${normalizedPath}"`);
-      const fileList = await listDir(activeConnection.id, normalizedPath);
-      setFiles(fileList);
-      setCurrentPath(normalizedPath);
+      
+      const result = await listDir(activeConnection.id, normalizedPath);
+      if (result && result.data && result.data.files) {
+        setFiles(result.data.files);
+        setCurrentPath(normalizedPath);
+      } else {
+        throw new Error("Invalid response format from server");
+      }
     } catch (error: any) {
       console.error("[useFileExplorer] Directory loading error:", error);
       setError(error.message || "Failed to load directory");

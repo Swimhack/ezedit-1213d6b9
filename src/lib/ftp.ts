@@ -1,38 +1,6 @@
 
-import { Client } from "basic-ftp";
 import { supabase } from "@/integrations/supabase/client";
-
-const cache: Record<string, Client> = {};
-
-export async function connectFtp(id: string) {
-  if (cache[id]) return cache[id];
-  
-  const { data, error } = await supabase.functions.invoke("getFtpCreds", { 
-    body: { id } 
-  });
-  
-  if (error) {
-    throw new Error(`Failed to get FTP credentials: ${error.message}`);
-  }
-  
-  const creds = data as { host: string; port: number; user: string; password: string };
-  const client = new Client();
-  
-  try {
-    await client.access({
-      host: creds.host,
-      port: creds.port,
-      user: creds.user,
-      password: creds.password,
-      secure: false
-    });
-    
-    cache[id] = client;
-    return client;
-  } catch (error) {
-    throw new Error(`FTP connection failed: ${error.message}`);
-  }
-}
+import { normalizePath, joinPath } from "@/utils/path";
 
 export async function listDir(id: string, path = "/") {
   return supabase.functions.invoke("listDir", { body: { id, path } });
@@ -61,8 +29,6 @@ export async function uploadFile(id: string, path: string, file: File) {
   formData.append("file", file);
   
   // We need to use fetch directly since FormData is not supported by supabase.functions.invoke
-  const { SUPABASE_URL, SUPABASE_ANON_KEY } = import.meta.env;
-  
   const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/uploadFile`, {
     method: "POST",
     body: formData,
@@ -115,17 +81,7 @@ export async function testFtpConnection(host: string, port: number, user: string
 // Re-export the path utils
 export { normalizePath, joinPath } from "@/utils/path";
 
-// Clear FTP connection cache
-export function clearFtpCache(id?: string) {
-  if (id) {
-    if (cache[id]) {
-      cache[id].close();
-      delete cache[id];
-    }
-  } else {
-    Object.keys(cache).forEach(key => {
-      cache[key].close();
-      delete cache[key];
-    });
-  }
+// Clear FTP connection cache (now moved entirely to the server side)
+export function clearFtpCache() {
+  console.log("FTP cache clearing is handled on the server side");
 }
