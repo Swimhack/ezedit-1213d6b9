@@ -2,9 +2,10 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FTPFileList } from "@/components/FTPFileList";
 import { FileExplorerHeader } from "./FileExplorerHeader";
+import { FileEditorModal } from "./FileEditorModal";
 import { useFileExplorerStore } from "@/store/fileExplorerStore";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface FileBrowserModalProps {
   isOpen: boolean;
@@ -27,28 +28,20 @@ export function FileBrowserModal({
   onNavigate,
   onSelectFile,
 }: FileBrowserModalProps) {
-  // Use store to access setShowFileEditor function
-  const setShowFileEditor = useFileExplorerStore(state => state.setShowFileEditor);
-  const setIsLoading = useFileExplorerStore(state => state.setIsLoading);
+  // Use store to access activeConnection
+  const activeConnection = useFileExplorerStore(state => state.activeConnection);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   
-  // Enhanced onSelectFile handler that ensures file loading completes before opening editor
+  // Enhanced onSelectFile handler that opens the editor modal for files
   const handleSelectFile = async (file: { key: string; isDir: boolean }) => {
-    if (!file.isDir) {
-      try {
-        setIsLoading(true);
-        // First call the original onSelectFile to load the file content
-        await onSelectFile(file);
-        // Then open the editor modal after file is loaded
-        setShowFileEditor(true);
-      } catch (error) {
-        console.error("[FileBrowserModal] Error loading file:", error);
-        toast.error("Failed to load file content. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
+    if (file.isDir) {
       // For directories, just use original handler
       onSelectFile(file);
+    } else {
+      // For files, store the path and open the editor modal
+      setSelectedFile(file.key);
+      // Still call the original handler to load file content
+      await onSelectFile(file);
     }
   };
   
@@ -71,26 +64,37 @@ export function FileBrowserModal({
   }, [isOpen, files.length, isLoading, currentPath, onNavigate]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0">
-        <FileExplorerHeader serverName={serverName} onClose={onClose} />
-        <div className="flex-1 overflow-hidden">
-          <div className="p-3 border-b border-ezgray-dark">
-            <DialogTitle className="text-sm font-medium text-ezwhite">
-              {serverName} - File Explorer
-            </DialogTitle>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0">
+          <FileExplorerHeader serverName={serverName} onClose={onClose} />
+          <div className="flex-1 overflow-hidden">
+            <div className="p-3 border-b border-ezgray-dark">
+              <DialogTitle className="text-sm font-medium text-ezwhite">
+                {serverName} - File Explorer
+              </DialogTitle>
+            </div>
+            <div className="flex-1 overflow-y-auto h-[calc(80vh-8rem)]">
+              <FTPFileList
+                currentPath={currentPath}
+                files={files}
+                onNavigate={onNavigate}
+                onSelectFile={handleSelectFile}
+                isLoading={isLoading}
+              />
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto h-[calc(80vh-8rem)]">
-            <FTPFileList
-              currentPath={currentPath}
-              files={files}
-              onNavigate={onNavigate}
-              onSelectFile={handleSelectFile}
-              isLoading={isLoading}
-            />
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+      
+      {activeConnection && selectedFile && (
+        <FileEditorModal
+          isOpen={!!selectedFile}
+          onClose={() => setSelectedFile(null)}
+          connectionId={activeConnection.id}
+          filePath={selectedFile}
+        />
+      )}
+    </>
   );
 }

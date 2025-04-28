@@ -130,7 +130,7 @@ export function FTPFileList({
               files.map((file) => (
                 <TableRow
                   key={file.name}
-                  className={`cursor-pointer hover:bg-eznavy-light`}
+                  className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
                   onClick={() => handleFileClick(file)}
                 >
                   <TableCell className="font-medium flex items-center">

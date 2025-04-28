@@ -1,92 +1,221 @@
 
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect, useRef } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import Editor from "@monaco-editor/react";
+import { Split } from "@/components/ui/split";
+import { ClineChatDrawer } from "./ClineChatDrawer";
+import { useLivePreview } from "@/hooks/useLivePreview";
 import { FileEditorToolbar } from "./FileEditorToolbar";
-import { SplitEditor } from "../editor/SplitEditor";
-import { useEffect, useRef } from "react";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { useFileExplorerStore } from "@/store/fileExplorerStore";
+import { getFile, saveFile } from "@/lib/ftp";
+import { toast } from "sonner";
+import SplitHandle from "./SplitHandle";
 
 interface FileEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  fileName: string | null;
-  content: string;
-  onSave: () => void;
-  isSaving: boolean;
-  hasUnsavedChanges: boolean;
-  onContentChange: (content: string) => void;
-  error?: string;
+  connectionId: string;
+  filePath: string;
 }
 
 export function FileEditorModal({
   isOpen,
   onClose,
-  fileName,
-  content,
-  onSave,
-  isSaving,
-  hasUnsavedChanges,
-  onContentChange,
-  error,
+  connectionId,
+  filePath,
 }: FileEditorModalProps) {
+  const [code, setCode] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const editorRef = useRef<any>(null);
-  const isLoading = useFileExplorerStore(state => state.isLoading);
+  
+  const previewSrc = useLivePreview(code, filePath || "");
   
   useEffect(() => {
-    if (isOpen && editorRef.current && content) {
-      const timer = setTimeout(() => {
-        editorRef.current.layout?.();
-      }, 100);
-      return () => clearTimeout(timer);
+    if (isOpen && connectionId && filePath) {
+      loadFile();
     }
-  }, [isOpen, content]);
+  }, [isOpen, connectionId, filePath]);
+  
+  const loadFile = async () => {
+    if (!connectionId || !filePath) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data, error } = await getFile(connectionId, filePath);
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (data && data.content) {
+        setCode(data.content);
+        setHasUnsavedChanges(false);
+      } else {
+        throw new Error("Failed to load file content");
+      }
+    } catch (error: any) {
+      console.error("Error loading file:", error);
+      setError(error.message || "Failed to load file");
+      toast.error(`Error loading file: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleSave = async () => {
+    if (!connectionId || !filePath || !code) {
+      toast.error("Missing data for saving");
+      return;
+    }
+    
+    setIsSaving(true);
+    
+    try {
+      const { error } = await saveFile({
+        id: connectionId,
+        filepath: filePath,
+        content: code,
+        username: "editor-user"
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      toast.success("File saved successfully");
+      setHasUnsavedChanges(false);
+    } catch (error: any) {
+      console.error("Error saving file:", error);
+      toast.error(`Error saving file: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const handleCodeChange = (newCode: string | undefined) => {
+    if (newCode !== undefined && newCode !== code) {
+      setCode(newCode);
+      setHasUnsavedChanges(true);
+    }
+  };
+  
+  const handleEditorDidMount = (editor: any) => {
+    editorRef.current = editor;
+    editor.focus();
+  };
+  
+  const detectLanguage = () => {
+    if (!filePath) return "plaintext";
+    
+    const extension = filePath.split('.').pop()?.toLowerCase();
+    const langMap: Record<string, string> = {
+      js: "javascript",
+      jsx: "javascript",
+      ts: "typescript",
+      tsx: "typescript",
+      html: "html",
+      htm: "html",
+      css: "css",
+      json: "json",
+      md: "markdown",
+      php: "php",
+      py: "python",
+      rb: "ruby",
+      go: "go",
+      java: "java",
+      c: "c",
+      cpp: "cpp",
+      cs: "csharp",
+      sql: "sql",
+      yml: "yaml",
+      yaml: "yaml",
+      xml: "xml",
+      sh: "shell",
+      bash: "shell",
+      txt: "plaintext"
+    };
+    
+    return langMap[extension || ""] || "plaintext";
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) onClose();
-    }}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
-        <FileEditorToolbar 
-          fileName={fileName} 
-          onSave={onSave}
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-screen-xl w-[95vw] h-[90vh] p-0 flex flex-col">
+        <FileEditorToolbar
+          fileName={filePath}
+          onSave={handleSave}
           isSaving={isSaving}
           hasUnsavedChanges={hasUnsavedChanges}
         />
-        <div className="p-3 border-b border-ezgray-dark">
-          <DialogTitle className="text-sm font-medium text-ezwhite">
-            Editing: {fileName || 'Untitled File'}
-          </DialogTitle>
-        </div>
-        {error && (
-          <Alert variant="destructive" className="mx-4 mt-4 bg-red-950/30 border-red-800">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>FTP Error</AlertTitle>
-            <AlertDescription className="text-xs">{error}</AlertDescription>
-          </Alert>
-        )}
-        <div className="flex-1 p-4 overflow-hidden">
-          <div className="h-[calc(80vh-8rem)]">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full text-slate-400">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
-                <span>Loading file content...</span>
-              </div>
-            ) : !content && !isLoading ? (
-              <div className="flex items-center justify-center h-full text-slate-400">
-                Failed to load file content. Please try again.
-              </div>
-            ) : (
-              <SplitEditor
-                fileName={fileName}
-                content={content}
-                onChange={onContentChange}
-                editorRef={editorRef}
-                error={error}
-              />
-            )}
+        
+        {error ? (
+          <div className="flex items-center justify-center h-full p-8">
+            <div className="text-center text-red-500">
+              <p className="text-xl font-bold">Error</p>
+              <p>{error}</p>
+              <Button 
+                variant="outline" 
+                className="mt-4" 
+                onClick={loadFile}
+              >
+                Retry
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin h-8 w-8 border-4 border-ezblue border-t-transparent rounded-full"></div>
+            <span className="ml-3 text-ezblue">Loading file...</span>
+          </div>
+        ) : (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <Split
+              direction="vertical"
+              className="h-full"
+              sizes={[60, 40]}
+              minSize={100}
+            >
+              <div className="overflow-hidden">
+                <Editor
+                  height="100%"
+                  language={detectLanguage()}
+                  theme="vs-dark"
+                  value={code}
+                  onChange={handleCodeChange}
+                  onMount={handleEditorDidMount}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    wordWrap: "on",
+                    automaticLayout: true,
+                  }}
+                />
+              </div>
+              <div className="overflow-hidden bg-white dark:bg-gray-900">
+                <div className="p-2 bg-gray-100 dark:bg-gray-800 text-xs font-mono border-t border-b dark:border-gray-700">
+                  Preview
+                </div>
+                <iframe
+                  srcDoc={previewSrc}
+                  className="w-full h-[calc(100%-28px)] border-none"
+                  sandbox="allow-scripts"
+                  title="Preview"
+                />
+              </div>
+            </Split>
+            
+            <ClineChatDrawer
+              filePath={filePath}
+              code={code}
+              onInsert={setCode}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -1,6 +1,6 @@
 
 import { useFileExplorerStore } from "@/store/fileExplorerStore";
-import { listDir } from "@/lib/ftp";
+import { listDir, getFile } from "@/lib/ftp";
 import { normalizePath } from "@/utils/path";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,12 +82,7 @@ export function useFileExplorer() {
       console.log(`[fetchFileContent] Loading: ${currentFilePath} from connection: ${activeConnection.id}`);
       console.time(`[FTP] ${currentFilePath}`);
       
-      const { data, error: supabaseError } = await supabase.functions.invoke('getFile', {
-        body: {
-          id: activeConnection.id,
-          filepath: currentFilePath
-        }
-      });
+      const { data, error: supabaseError } = await getFile(activeConnection.id, currentFilePath);
 
       console.timeEnd(`[FTP] ${currentFilePath}`);
 
