@@ -8,6 +8,8 @@ import { useFileExplorer } from "@/hooks/use-file-explorer";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
 import { SiteCard } from "@/components/SiteCard";
 import { SkeletonSiteCard } from "@/components/SkeletonSiteCard";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
 
 const MySites = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
