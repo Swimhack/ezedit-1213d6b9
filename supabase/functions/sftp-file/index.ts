@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import SftpClient from "npm:ssh2-sftp-client@9.1.0";
+import { getFtpCreds } from "../_shared/creds.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,16 +29,19 @@ serve(async (req) => {
     console.log(`[SFTP] Attempting to get file: ${path}`);
     console.log(`[SFTP] Using siteId: ${siteId}`);
     
-    // In a real app, we would fetch connection details from a database
-    // Here we're using environment variables for simplicity
-    const config = {
-      host: Deno.env.get("SFTP_HOST") || '',
-      port: Number(Deno.env.get("SFTP_PORT") || "22"),
-      username: Deno.env.get("SFTP_USER") || '',
-      password: Deno.env.get("SFTP_PASS") || ''
-    };
-
-    if (!config.host || !config.username || !config.password) {
+    // Get credentials from database
+    const creds = await getFtpCreds(siteId);
+    if (!creds) {
+      console.error(`[SFTP] No credentials found for siteId: ${siteId}`);
+      return new Response(
+        JSON.stringify({ success: false, message: "Server configuration missing" }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+    
+    const { host, user, password, port } = creds;
+    
+    if (!host || !user || !password) {
       console.error("[SFTP] Missing configuration");
       return new Response(
         JSON.stringify({ success: false, message: "Server configuration missing" }),
@@ -45,10 +49,15 @@ serve(async (req) => {
       );
     }
 
-    const sftp = new SftpClient();
-    
     try {
-      await sftp.connect(config);
+      const sftp = new SftpClient();
+      
+      await sftp.connect({
+        host,
+        port,
+        username: user,
+        password
+      });
       console.log(`[SFTP] Connected successfully`);
       
       // Make sure path doesn't have a leading slash if using a root directory
@@ -68,6 +77,8 @@ serve(async (req) => {
         contentString = JSON.stringify(data);
       }
       
+      await sftp.end();
+      
       return new Response(
         JSON.stringify({ 
           success: true,
@@ -86,12 +97,6 @@ serve(async (req) => {
         JSON.stringify({ success: false, message: msg }),
         { status, headers: corsHeaders }
       );
-    } finally {
-      try {
-        await sftp.end();
-      } catch (e) {
-        console.error("[SFTP] Error closing connection:", e);
-      }
     }
   } catch (error) {
     console.error("[SFTP] Request processing error:", error);
