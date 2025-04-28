@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { FileEditorToolbar } from "./FileEditorToolbar";
 import { getFile, saveFile } from "@/lib/ftp";
 import { toast } from "sonner";
 import SplitHandle from "./SplitHandle";
-import { Loader } from "lucide-react";
+import { Loader, X } from "lucide-react";
 
 interface FileEditorModalProps {
   isOpen: boolean;
@@ -48,19 +47,17 @@ export function FileEditorModal({
     setError(null);
     
     try {
-      const { data, error } = await getFile(connectionId, filePath);
+      const res = await fetch(`/api/ftp/get-file?path=${encodeURIComponent(filePath)}`);
+      if (!res.ok) throw new Error(`Failed to load (${res.status})`);
+      const fileData = await res.text();
       
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      if (data && data.content) {
-        setCode(data.content);
+      if (fileData) {
+        setCode(fileData);
         setHasUnsavedChanges(false);
         
         // Update Monaco editor if it exists
         if (editorRef.current) {
-          editorRef.current.setValue(data.content);
+          editorRef.current.setValue(fileData);
         }
       } else {
         throw new Error("Failed to load file content");
@@ -168,6 +165,17 @@ export function FileEditorModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-screen-xl w-[95vw] h-[90vh] p-0 flex flex-col">
+        <div className="modal-header flex items-center justify-between px-4 py-2">
+          <h2 className="text-lg font-semibold truncate">{filePath}</h2>
+          <button 
+            onClick={onClose} 
+            aria-label="Close" 
+            className="w-4 h-4"
+          >
+            <X />
+          </button>
+        </div>
+        
         <FileEditorToolbar
           fileName={filePath}
           onSave={handleSave}
@@ -180,13 +188,15 @@ export function FileEditorModal({
             <div className="text-center text-red-500">
               <p className="text-xl font-bold">Error</p>
               <p>{error}</p>
-              <Button 
-                variant="outline" 
-                className="mt-4" 
-                onClick={loadFile}
-              >
-                Retry
-              </Button>
+              {error && (
+                <Button 
+                  variant="outline" 
+                  className="mt-2 btn-retry" 
+                  onClick={loadFile}
+                >
+                  Retry
+                </Button>
+              )}
             </div>
           </div>
         ) : isLoading ? (
