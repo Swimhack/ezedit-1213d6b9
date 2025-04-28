@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import { Globe, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,11 +15,11 @@ const DashboardSidebar = () => {
   
   return (
     <div className={cn(
-      "bg-eznavy-light border-ezgray-dark",
+      "bg-white border-gray-200",
       isMobile ? "w-full min-h-0" : "w-64 border-r min-h-[calc(100vh-4rem-3rem)]"
     )}>
       <div className="p-4">
-        {!isMobile && <h2 className="text-xl font-semibold text-ezwhite mb-4">Dashboard</h2>}
+        {!isMobile && <h2 className="text-xl font-semibold text-gray-900 mb-4">Dashboard</h2>}
         <nav>
           <ul className="space-y-2">
             {menuItems.map((item) => (
@@ -26,8 +27,8 @@ const DashboardSidebar = () => {
                 <Link
                   to={item.path}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-2 rounded-md text-ezgray hover:text-ezwhite hover:bg-eznavy transition-colors",
-                    location.pathname === item.path && "bg-eznavy text-ezwhite"
+                    "flex items-center gap-3 px-4 py-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors",
+                    location.pathname === item.path && "bg-gray-100 text-gray-900"
                   )}
                 >
                   <item.icon size={18} />

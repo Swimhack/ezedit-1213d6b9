@@ -11,14 +11,14 @@ const FileToolbar = () => {
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-4">
-        <h2 className="text-xl font-semibold text-ezwhite">
+        <h2 className="text-xl font-semibold text-gray-900">
           {currentFolder ? `Folder: ${currentFolder}` : 'My Files'}
         </h2>
         {currentFolder && (
           <Button 
             variant="outline" 
             onClick={navigateUp}
-            className="border-ezgray-dark text-ezgray hover:text-ezwhite hover:border-ezblue"
+            className="border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-300"
           >
             Go Back
           </Button>
@@ -30,18 +30,18 @@ const FileToolbar = () => {
           placeholder="Search files..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-64 bg-eznavy border-ezgray-dark text-ezwhite"
+          className="w-64 bg-white border-gray-200 text-gray-900"
         />
         
         <Dialog>
           <DialogTrigger asChild>
-            <Button className="bg-ezblue text-eznavy hover:bg-ezblue-light">
+            <Button className="bg-blue-500 text-white hover:bg-blue-600">
               Upload File
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-eznavy-light border-ezgray-dark">
+          <DialogContent className="bg-white border-gray-200">
             <DialogHeader>
-              <DialogTitle className="text-ezwhite">Upload File</DialogTitle>
+              <DialogTitle className="text-gray-900">Upload File</DialogTitle>
             </DialogHeader>
             <FileUploader 
               currentFolder={currentFolder} 

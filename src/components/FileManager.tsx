@@ -6,7 +6,7 @@ import FileGrid from "./FileGrid";
 const FileManager = () => {
   return (
     <FileProvider>
-      <div className="bg-eznavy-light rounded-lg p-6">
+      <div className="bg-white rounded-lg p-6 shadow-sm">
         <FileToolbar />
         <FileGrid />
       </div>

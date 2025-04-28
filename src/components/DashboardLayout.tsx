@@ -27,12 +27,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [open, setOpen] = useState(false);
   
   return (
-    <div className="flex flex-col min-h-screen bg-eznavy-light">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <Navbar />
       <div className="flex-grow flex flex-col md:flex-row">
         {isMobile ? (
           <>
-            <div className="px-4 py-2 bg-eznavy-light border-b border-ezgray-dark">
+            <div className="px-4 py-2 bg-white border-b border-gray-200">
               <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="icon" className="mr-2">
@@ -40,7 +40,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     <span className="sr-only">Toggle Menu</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="p-4 w-64 bg-eznavy-light">
+                <SheetContent side="left" className="p-4 w-64 bg-white">
                   <nav className="space-y-2">
                     {mobileNavItems.map((item) => (
                       <Link
@@ -49,8 +49,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                         onClick={() => setOpen(false)}
                         className={`flex items-center gap-2 p-2 rounded-md transition-colors ${
                           location.pathname === item.path
-                            ? "bg-eznavy text-ezwhite"
-                            : "text-ezgray hover:bg-eznavy hover:text-ezwhite"
+                            ? "bg-gray-100 text-gray-900"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                         }`}
                       >
                         <item.icon className="h-5 w-5" />
@@ -60,7 +60,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   </nav>
                 </SheetContent>
               </Sheet>
-              <span className="text-lg font-semibold text-ezwhite inline-flex items-center">
+              <span className="text-lg font-semibold text-gray-900 inline-flex items-center">
                 {mobileNavItems.find(item => item.path === location.pathname)?.label || "Dashboard"}
               </span>
             </div>

@@ -22,15 +22,15 @@ export function FTPConnectionCard({
 }: FTPConnectionCardProps) {
   return (
     <Card 
-      className="border-ezgray-dark bg-eznavy hover:bg-eznavy-light transition-colors cursor-pointer relative"
+      className="border-gray-200 bg-white hover:bg-gray-50 transition-colors cursor-pointer relative shadow-sm"
       onClick={onViewFiles}
     >
       <CardHeader className="pb-2">
         <CardTitle className="flex justify-between items-center">
-          <span className="truncate">{connection.server_name}</span>
+          <span className="truncate text-gray-800">{connection.server_name}</span>
           <div className="flex items-center space-x-1">
             {testResult === true && (
-              <Badge className="bg-green-600">
+              <Badge className="bg-green-500">
                 <Check size={12} className="mr-1" /> Connected
               </Badge>
             )}
@@ -44,15 +44,15 @@ export function FTPConnectionCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <p className="text-sm text-ezgray mb-1">Host: {connection.host}</p>
+          <p className="text-sm text-gray-600 mb-1">Host: {connection.host}</p>
           {connection.web_url && (
             <p className="text-sm flex items-center">
-              <ExternalLink size={14} className="mr-1" />
+              <ExternalLink size={14} className="mr-1 text-gray-500" />
               <a 
                 href={connection.web_url.startsWith('http') ? connection.web_url : `https://${connection.web_url}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-ezblue hover:underline truncate"
+                className="text-blue-600 hover:underline truncate"
                 onClick={(e) => e.stopPropagation()}
               >
                 {connection.web_url}
@@ -68,7 +68,7 @@ export function FTPConnectionCard({
             }} 
             variant="outline" 
             size="sm"
-            className="border-ezgray-dark hover:bg-eznavy-light px-2 h-7"
+            className="border-gray-200 hover:bg-gray-100 px-2 h-7"
           >
             Test
           </Button>
@@ -79,7 +79,7 @@ export function FTPConnectionCard({
             }}
             variant="outline"
             size="sm"
-            className="border-ezgray-dark hover:bg-eznavy-light px-2 h-7"
+            className="border-gray-200 hover:bg-gray-100 px-2 h-7"
           >
             <Settings size={14} />
           </Button>
