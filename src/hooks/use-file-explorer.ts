@@ -1,6 +1,6 @@
 
 import { useFileExplorerStore } from "@/store/fileExplorerStore";
-import { listDirectory } from "@/lib/ftp";
+import { listDir } from "@/lib/ftp";
 import { normalizePath } from "@/utils/path";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +39,7 @@ export function useFileExplorer() {
     try {
       const normalizedPath = normalizePath(path);
       console.log(`[loadDirectory] Original: "${path}" → Normalized: "${normalizedPath}"`);
-      const fileList = await listDirectory(activeConnection, normalizedPath);
+      const fileList = await listDir(activeConnection.id, normalizedPath);
       setFiles(fileList);
       setCurrentPath(normalizedPath);
     } catch (error: any) {

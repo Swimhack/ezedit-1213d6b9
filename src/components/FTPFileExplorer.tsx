@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { FileExplorerHeader } from "./ftp-explorer/FileExplorerHeader";
 import { FileEditorToolbar } from "./ftp-explorer/FileEditorToolbar";
 import { FileEditorContent } from "./ftp-explorer/FileEditorContent";
-import { listDirectory } from "@/lib/ftp";
+import { listDir } from "@/lib/ftp";
 import { toast } from "sonner";
 import { normalizePath } from "@/utils/path";
 import { FTPFileList } from "./FTPFileList";
@@ -54,7 +54,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     setIsLoading(true);
     try {
       const normalizedPath = normalizePath(path);
-      const files = await listDirectory(connection, normalizedPath);
+      const files = await listDir(connection.id, normalizedPath);
       setFiles(files);
       setCurrentPath(normalizedPath);
     } catch (error: any) {
