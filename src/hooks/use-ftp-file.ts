@@ -23,8 +23,8 @@ export function useFtpFile() {
       console.log(`[useFtpFile] Loading file content from: ${filePath}`);
       console.time(`[SFTP] ${filePath}`);
       
-      // Use sftp-file function
-      const { data, error } = await supabase.functions.invoke('sftp-file', {
+      // Use sftp-file function with improved error handling
+      const response = await supabase.functions.invoke('sftp-file', {
         body: {
           siteId: connection.id,
           path: filePath
@@ -33,15 +33,20 @@ export function useFtpFile() {
 
       console.timeEnd(`[SFTP] ${filePath}`);
 
-      if (error) {
-        console.error("[useFtpFile] Error from edge function:", error);
-        const errorMessage = error.message || "Failed to load file";
+      // Log the raw response for debugging
+      console.log('[useFtpFile] Raw response:', response);
+
+      if (response.error) {
+        console.error("[useFtpFile] Error from edge function:", response.error);
+        const errorMessage = response.error.message || "Failed to load file";
         console.log('→ status:', 'error', 'bytes:', 0, 'error:', errorMessage);
         setError(errorMessage);
         toast.error(`Error loading file: ${errorMessage}`);
         setContent("");
         return "";
       }
+      
+      const { data } = response;
       
       if (data && data.success) {
         const content = data.content || "";

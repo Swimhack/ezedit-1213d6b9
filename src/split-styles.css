@@ -1,0 +1,68 @@
+
+/* React Split styles */
+.gutter {
+  background-color: #f1f1f1;
+  position: relative;
+}
+
+.dark .gutter {
+  background-color: #2d2d2d;
+}
+
+.gutter:hover {
+  background-color: #e0e0e0;
+}
+
+.dark .gutter:hover {
+  background-color: #3d3d3d;
+}
+
+.gutter-dragging {
+  background-color: #007fd4 !important;
+  opacity: 0.6;
+}
+
+.gutter-vertical {
+  height: 8px;
+  cursor: row-resize;
+}
+
+.gutter-horizontal {
+  width: 8px;
+  cursor: col-resize;
+}
+
+/* Add a visible line in the middle of the gutter */
+.gutter-vertical::after,
+.gutter-horizontal::after {
+  content: "";
+  position: absolute;
+  background-color: #ccc;
+  border-radius: 3px;
+}
+
+.dark .gutter-vertical::after,
+.dark .gutter-horizontal::after {
+  background-color: #555;
+}
+
+.gutter-vertical::after {
+  height: 2px;
+  width: 30px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.gutter-horizontal::after {
+  width: 2px;
+  height: 30px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Handle hover effect for the gutter */
+.gutter:hover::after {
+  background-color: #007fd4;
+}
