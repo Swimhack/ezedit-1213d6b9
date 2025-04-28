@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 
 interface PreviewPaneProps {
@@ -34,8 +33,33 @@ export function PreviewPane({
     
     const isPreviewableFile = fileName && /\.(html?|htm|php)$/i.test(fileName);
     
-    if (isPreviewableFile && baseUrl) {
-      setSrcDoc('');
+    if (isPreviewableFile) {
+      if (baseUrl) {
+        setSrcDoc('');
+      } else {
+        let previewContent = content;
+        
+        if (!content.includes('<html') && !content.includes('<!DOCTYPE')) {
+          previewContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 1rem; }
+    pre { background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow: auto; }
+  </style>
+</head>
+<body>
+${content}
+</body>
+</html>`;
+        }
+        
+        setSrcDoc(previewContent);
+      }
     } else {
       const previewContent = `<pre style="white-space:pre-wrap;font-family:monospace;padding:1rem;">${
         content.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]!))

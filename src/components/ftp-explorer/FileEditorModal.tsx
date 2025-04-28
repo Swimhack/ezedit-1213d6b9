@@ -10,6 +10,7 @@ import { FileEditorToolbar } from "./FileEditorToolbar";
 import { getFile, saveFile } from "@/lib/ftp";
 import { toast } from "sonner";
 import SplitHandle from "./SplitHandle";
+import { Loader } from "lucide-react";
 
 interface FileEditorModalProps {
   isOpen: boolean;
@@ -56,6 +57,11 @@ export function FileEditorModal({
       if (data && data.content) {
         setCode(data.content);
         setHasUnsavedChanges(false);
+        
+        // Update Monaco editor if it exists
+        if (editorRef.current) {
+          editorRef.current.setValue(data.content);
+        }
       } else {
         throw new Error("Failed to load file content");
       }
@@ -184,9 +190,9 @@ export function FileEditorModal({
             </div>
           </div>
         ) : isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin h-8 w-8 border-4 border-ezblue border-t-transparent rounded-full"></div>
-            <span className="ml-3 text-ezblue">Loading file...</span>
+          <div className="flex flex-col items-center justify-center h-full">
+            <Loader className="h-8 w-8 animate-spin text-ezblue mb-3" />
+            <span className="text-ezblue">Loading file...</span>
           </div>
         ) : (
           <div className="flex flex-col flex-1 overflow-hidden">
@@ -221,6 +227,9 @@ export function FileEditorModal({
                     wordWrap: "on",
                     automaticLayout: true,
                   }}
+                  loading={<div className="flex items-center justify-center h-full">
+                    <Loader className="h-6 w-6 animate-spin text-gray-400" />
+                  </div>}
                 />
               </div>
               <div className="overflow-hidden bg-white dark:bg-gray-900">

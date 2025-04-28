@@ -1,8 +1,8 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SplitEditor } from "../editor/SplitEditor";
 import { Button } from "../ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader } from "lucide-react";
 
 interface FileEditorContentProps {
   filePath: string;
@@ -11,6 +11,7 @@ interface FileEditorContentProps {
   onContentChange: (content: string) => void;
   onApplyResponse: (response: string) => void;
   error?: string;
+  isLoading?: boolean;
 }
 
 export function FileEditorContent({
@@ -19,9 +20,11 @@ export function FileEditorContent({
   showKlein,
   onContentChange,
   error,
+  isLoading = false,
 }: FileEditorContentProps) {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(400);
+  const editorRef = useRef(null);
   
   const handleResize = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.buttons === 1) {
@@ -47,12 +50,20 @@ export function FileEditorContent({
   return (
     <div className="flex flex-1 h-full overflow-hidden">
       <div className={`flex-1 overflow-hidden ${showKlein ? 'md:w-1/2' : 'w-full'}`}>
-        <SplitEditor
-          fileName={filePath.split('/').pop() || null}
-          content={content}
-          onChange={onContentChange}
-          error={error}
-        />
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader className="w-8 h-8 animate-spin text-ezblue mr-3" />
+            <span className="text-ezwhite">Loading file...</span>
+          </div>
+        ) : (
+          <SplitEditor
+            fileName={filePath.split('/').pop() || null}
+            content={content}
+            onChange={onContentChange}
+            error={error}
+            editorRef={editorRef}
+          />
+        )}
       </div>
       
       {showKlein && sidebarVisible && (

@@ -6,6 +6,11 @@ export function useLivePreview(code: string, path: string) {
   
   useEffect(() => {
     const id = setTimeout(() => {
+      if (!code) {
+        setSrc(`<div style="padding:2rem;font-family:system-ui">No content available</div>`);
+        return;
+      }
+      
       if (/\.(html?|htm|php|md|txt|css|js)$/i.test(path)) {
         // For HTML content, wrap it in a proper HTML structure if it's just a fragment
         if (/\.(html?|htm|php)$/i.test(path) && !code.includes('<html')) {
