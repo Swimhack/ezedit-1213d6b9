@@ -1,5 +1,6 @@
 
 import { Client } from "basic-ftp";
+import { Writable } from "stream";
 
 class FTPConnector {
   private client: Client;
@@ -16,14 +17,23 @@ class FTPConnector {
       password: process.env.FTP_PASS!,
       secure: false,    // or true for FTPS
     });
-    const stream = await this.client.downloadTo(Buffer.alloc(0), path);
-    // if downloadTo into a buffer isn't available, use downloadToTemp or similar,
-    // then read that temp file back into a string.
+    
+    // Create a buffer to collect data
     const chunks: Buffer[] = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk as Buffer);
-    }
+    
+    // Create a writable stream that collects data into chunks
+    const writable = new Writable({
+      write(chunk, encoding, callback) {
+        chunks.push(Buffer.from(chunk));
+        callback();
+      }
+    });
+    
+    // Download file to the writable stream
+    await this.client.downloadTo(writable, path);
     await this.client.close();
+    
+    // Concatenate all chunks and convert to string
     return Buffer.concat(chunks).toString("utf-8");
   }
 

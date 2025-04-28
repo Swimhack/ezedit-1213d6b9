@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -205,7 +206,7 @@ export function FileEditorModal({
             <span className="text-ezblue">Loading file...</span>
           </div>
         ) : (
-          <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="modal-body h-full flex flex-col">
             <Split
               direction="vertical"
               sizes={[60, 40]}
@@ -223,7 +224,7 @@ export function FileEditorModal({
               }}
               className="h-full"
             >
-              <div className="overflow-hidden">
+              <div className="editor-pane overflow-hidden">
                 <Editor
                   height="100%"
                   language={detectLanguage()}
@@ -242,8 +243,8 @@ export function FileEditorModal({
                   </div>}
                 />
               </div>
-              <div className="overflow-hidden bg-white dark:bg-gray-900">
-                <div className="p-2 bg-gray-100 dark:bg-gray-800 text-xs font-mono border-t border-b dark:border-gray-700">
+              <div className="preview flex-1 min-h-0 overflow-auto bg-white dark:bg-gray-900">
+                <div className="p-2 bg-gray-100 dark:bg-gray-800 text-xs font-mono border-t border-b dark:border-gray-700 flex-none">
                   Preview
                 </div>
                 <iframe
