@@ -21,7 +21,10 @@ export function FTPConnectionCard({
   onEdit
 }: FTPConnectionCardProps) {
   return (
-    <Card className="border-ezgray-dark bg-eznavy">
+    <Card 
+      className="border-ezgray-dark bg-eznavy hover:bg-eznavy-light transition-colors cursor-pointer relative"
+      onClick={onViewFiles}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="flex justify-between items-center">
           <span className="truncate">{connection.server_name}</span>
@@ -50,31 +53,35 @@ export function FTPConnectionCard({
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-ezblue hover:underline truncate"
+                onClick={(e) => e.stopPropagation()}
               >
                 {connection.web_url}
               </a>
             </p>
           )}
         </div>
-        <div className="pt-2 flex flex-col space-y-2">
-          <Button onClick={onTest} variant="outline" size="sm">
-            Test Connection
-          </Button>
+        <div className="absolute top-2 right-2 flex gap-2">
           <Button 
-            onClick={onViewFiles} 
-            className="bg-ezblue hover:bg-ezblue/90" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onTest();
+            }} 
+            variant="outline" 
             size="sm"
+            className="border-ezgray-dark hover:bg-eznavy-light px-2 h-7"
           >
-            View Files
+            Test
           </Button>
           <Button
-            onClick={onEdit}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
             variant="outline"
             size="sm"
-            className="border-ezgray-dark hover:bg-eznavy-light"
+            className="border-ezgray-dark hover:bg-eznavy-light px-2 h-7"
           >
-            <Settings size={14} className="mr-1" />
-            Edit Settings
+            <Settings size={14} />
           </Button>
         </div>
       </CardContent>
