@@ -2,9 +2,10 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FileEditorToolbar } from "./FileEditorToolbar";
 import { SplitEditor } from "../editor/SplitEditor";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useFileExplorerStore } from "@/store/fileExplorerStore";
 
 interface FileEditorModalProps {
   isOpen: boolean;
@@ -30,22 +31,8 @@ export function FileEditorModal({
   error,
 }: FileEditorModalProps) {
   const editorRef = useRef<any>(null);
-  const [isEditorReady, setIsEditorReady] = useState(false);
-  const isContentLoaded = content && content.length > 0;
+  const isLoading = useFileExplorerStore(state => state.isLoading);
   
-  useEffect(() => {
-    if (isOpen) {
-      setIsEditorReady(false);
-      const timer = setTimeout(() => {
-        if (editorRef.current) {
-          editorRef.current.layout?.();
-          setIsEditorReady(true);
-        }
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
-
   useEffect(() => {
     if (isOpen && editorRef.current && content) {
       const timer = setTimeout(() => {
@@ -80,9 +67,14 @@ export function FileEditorModal({
         )}
         <div className="flex-1 p-4 overflow-hidden">
           <div className="h-[calc(80vh-8rem)]">
-            {!isContentLoaded ? (
+            {isLoading ? (
               <div className="flex items-center justify-center h-full text-slate-400">
-                Loading file content...
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+                <span>Loading file content...</span>
+              </div>
+            ) : !content && !isLoading ? (
+              <div className="flex items-center justify-center h-full text-slate-400">
+                Failed to load file content. Please try again.
               </div>
             ) : (
               <SplitEditor

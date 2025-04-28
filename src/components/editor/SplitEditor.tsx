@@ -24,16 +24,12 @@ export function SplitEditor({
   error 
 }: SplitEditorProps) {
   const [refreshKey, setRefreshKey] = useState(0);
+  const isLoading = useFileExplorerStore(state => state.isLoading);
   const activeConnection = useFileExplorerStore(state => state.activeConnection);
   const baseUrl = activeConnection?.web_url ?? '';
   const [editMode, setEditMode] = useState<'code' | 'wysiwyg'>('code');
   const [wysiwygContent, setWysiwygContent] = useState("");
   
-  // If no content is loaded yet, show a loading state
-  if (!content || content.length === 0) {
-    return <div className="flex items-center justify-center h-full text-slate-400">Loading…</div>;
-  }
-
   // Initialize WYSIWYG content when switching modes or when content changes
   useEffect(() => {
     if (isHtmlFile() && content) {
@@ -61,6 +57,14 @@ export function SplitEditor({
       setRefreshKey(k => k + 1);
     }
   }, 500);
+
+  if (!fileName || !content && !isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full text-slate-400">
+        No file selected or content available
+      </div>
+    );
+  }
 
   return (
     <ResizablePanelGroup 
@@ -91,6 +95,7 @@ export function SplitEditor({
               fileName={fileName}
               onChange={editMode === 'code' ? handleContentChange : setWysiwygContent}
               editorRef={editorRef}
+              isLoading={isLoading}
             />
           </div>
         </div>

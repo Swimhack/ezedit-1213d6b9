@@ -43,21 +43,22 @@ export function useFileExplorer() {
     }
   };
 
-  const selectFile = async (file: { key: string; isDir: boolean }) => {
+  const selectFile = async (file: { key: string; isDir: boolean }): Promise<void> => {
     if (file.isDir) {
-      return await loadDirectory(file.key);
+      return loadDirectory(file.key);
     } else {
       setCurrentFilePath(file.key);
       if (activeConnection) {
-        await fetchFileContent();
-        return Promise.resolve();
+        return fetchFileContent();
       }
       return Promise.resolve();
     }
   };
 
-  const fetchFileContent = async () => {
-    if (!activeConnection || !currentFilePath) return;
+  const fetchFileContent = async (): Promise<void> => {
+    if (!activeConnection || !currentFilePath) {
+      return Promise.resolve();
+    }
     
     setIsLoading(true);
     setError(null);
@@ -81,7 +82,7 @@ export function useFileExplorer() {
         toast.error(`Error loading file: ${errorMsg}`);
         setFileContent("");
         setHasUnsavedChanges(false);
-        return;
+        return Promise.reject(errorMsg);
       }
       
       if (data && data.success) {
@@ -90,12 +91,14 @@ export function useFileExplorer() {
         setFileContent(decodedContent);
         setError(null);
         setHasUnsavedChanges(false);
+        return Promise.resolve();
       } else {
         const errorMsg = data?.message || data?.error || 'Unknown error';
         console.log('→ status: error, bytes: 0, error:', errorMsg);
         setError(errorMsg);
         setFileContent("");
         toast.error(`Failed to load file: ${errorMsg}`);
+        return Promise.reject(errorMsg);
       }
     } catch (error: any) {
       console.error("[useFileExplorer] File loading error:", error);
@@ -103,6 +106,7 @@ export function useFileExplorer() {
       setError(error.message || "Unknown error");
       setFileContent("");
       toast.error(`Error loading file: ${error.message}`);
+      return Promise.reject(error);
     } finally {
       setIsLoading(false);
     }

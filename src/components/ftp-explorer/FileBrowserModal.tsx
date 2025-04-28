@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FTPFileList } from "@/components/FTPFileList";
 import { FileExplorerHeader } from "./FileExplorerHeader";
 import { useFileExplorerStore } from "@/store/fileExplorerStore";
+import { toast } from "sonner";
 
 interface FileBrowserModalProps {
   isOpen: boolean;
@@ -27,14 +28,23 @@ export function FileBrowserModal({
 }: FileBrowserModalProps) {
   // Use store to access setShowFileEditor function
   const setShowFileEditor = useFileExplorerStore(state => state.setShowFileEditor);
+  const setIsLoading = useFileExplorerStore(state => state.setIsLoading);
   
   // Enhanced onSelectFile handler that ensures file loading completes before opening editor
   const handleSelectFile = async (file: { key: string; isDir: boolean }) => {
     if (!file.isDir) {
-      // First call the original onSelectFile to load the file content
-      await onSelectFile(file);
-      // Then open the editor modal after file is loaded
-      setShowFileEditor(true);
+      try {
+        setIsLoading(true);
+        // First call the original onSelectFile to load the file content
+        await onSelectFile(file);
+        // Then open the editor modal after file is loaded
+        setShowFileEditor(true);
+      } catch (error) {
+        console.error("[FileBrowserModal] Error loading file:", error);
+        toast.error("Failed to load file content. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       // For directories, just use original handler
       onSelectFile(file);

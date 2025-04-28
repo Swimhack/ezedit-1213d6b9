@@ -10,6 +10,7 @@ interface EditorViewProps {
   fileName: string | null;
   onChange: (content: string) => void;
   editorRef?: React.MutableRefObject<any>;
+  isLoading?: boolean;
 }
 
 export function EditorView({
@@ -17,7 +18,8 @@ export function EditorView({
   content,
   fileName,
   onChange,
-  editorRef
+  editorRef,
+  isLoading = false
 }: EditorViewProps) {
   const getFileLanguage = () => {
     if (!fileName) return "plaintext";
@@ -25,8 +27,16 @@ export function EditorView({
   };
 
   // Show loading state if content is not ready
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full text-slate-400">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   if (!content) {
-    return <div className="flex items-center justify-center h-full text-slate-400">Loading editor content...</div>;
+    return <div className="flex items-center justify-center h-full text-slate-400">No content to display</div>;
   }
 
   return mode === 'code' ? (
