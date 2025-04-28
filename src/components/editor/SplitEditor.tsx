@@ -6,6 +6,7 @@ import { EditorView } from "./EditorView";
 import { PreviewPane } from "./PreviewPane";
 import { Button } from "@/components/ui/button";
 import { useFileExplorerStore } from "@/store/fileExplorerStore";
+import { RefreshCw } from "lucide-react";
 import debounce from "debounce";
 
 interface SplitEditorProps {
@@ -24,6 +25,7 @@ export function SplitEditor({
   error 
 }: SplitEditorProps) {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [frameKey, setFrameKey] = useState(0);
   const isLoading = useFileExplorerStore(state => state.isLoading);
   const activeConnection = useFileExplorerStore(state => state.activeConnection);
   const baseUrl = activeConnection?.web_url ?? '';
@@ -41,7 +43,7 @@ export function SplitEditor({
     return fileName ? /\.(html?|htm|php)$/i.test(fileName) : false;
   };
 
-  // Sync content between editors
+  // Enhanced sync function that also refreshes the preview
   const syncContent = () => {
     if (editMode === 'wysiwyg') {
       onChange(wysiwygContent);
@@ -49,6 +51,7 @@ export function SplitEditor({
       setWysiwygContent(content);
     }
     setRefreshKey(k => k + 1);
+    setFrameKey(k => k + 1); // Force iframe refresh
   };
 
   const handleContentChange = debounce((value: string | undefined) => {
@@ -71,7 +74,7 @@ export function SplitEditor({
       direction="vertical" 
       className="h-full rounded-lg border"
     >
-      <ResizablePanel defaultSize={40} minSize={30}>
+      <ResizablePanel defaultSize={30} minSize={20}>
         <div className="h-full flex flex-col">
           <div className="flex items-center justify-between border-b p-1 bg-muted/30">
             <EditorModeToggle
@@ -83,9 +86,10 @@ export function SplitEditor({
               variant="outline" 
               size="sm"
               onClick={syncContent}
-              className="mr-2"
+              className="mr-2 gap-2"
             >
-              Sync & Preview
+              <RefreshCw className="h-4 w-4" />
+              Sync Preview
             </Button>
           </div>
           <div className="flex-grow relative">
@@ -103,7 +107,7 @@ export function SplitEditor({
       
       <ResizableHandle withHandle />
       
-      <ResizablePanel defaultSize={60} minSize={40}>
+      <ResizablePanel defaultSize={70} minSize={30}>
         <div className="relative h-full bg-background">
           <div className="absolute top-0 left-0 w-full bg-muted/20 text-[10px] text-muted-foreground flex select-none border-b">
             {[400, 480, 600, 768, 860, 992, 1200].map(w => (
@@ -121,7 +125,7 @@ export function SplitEditor({
             content={content}
             baseUrl={baseUrl}
             error={error}
-            refreshKey={refreshKey}
+            refreshKey={frameKey}
           />
         </div>
       </ResizablePanel>
