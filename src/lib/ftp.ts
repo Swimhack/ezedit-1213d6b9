@@ -1,142 +1,131 @@
 
+import { Client } from "basic-ftp";
 import { supabase } from "@/integrations/supabase/client";
-import { FileItem } from "@/types/ftp";
-import { normalizePath, joinPath } from "@/utils/path";
-import { toast } from "sonner";
 
-export interface FtpEntry {
-  name: string;
-  type: "file" | "directory";
-  size?: number;
-  modified?: string;
-  isDirectory: boolean;
-}
+const cache: Record<string, Client> = {};
 
-/**
- * List the contents of an FTP directory
- */
-export async function listDirectory(connection: {
-  id: string;
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-}, path: string = '/') {
-  // Normalize the path to ensure it's consistent
-  const cleanPath = normalizePath(path);
+export async function connectFtp(id: string) {
+  if (cache[id]) return cache[id];
   
-  console.log(`[FTP] Listing directory "${cleanPath}" on ${connection.host} using ID: ${connection.id}`);
+  const { data, error } = await supabase.functions.invoke("getFtpCreds", { 
+    body: { id } 
+  });
+  
+  if (error) {
+    throw new Error(`Failed to get FTP credentials: ${error.message}`);
+  }
+  
+  const creds = data as { host: string; port: number; user: string; password: string };
+  const client = new Client();
   
   try {
-    const { data, error } = await supabase.functions.invoke('ftp-list', {
-      body: { 
-        siteId: connection.id,
-        path: cleanPath
-      }
-    });
-
-    if (error) {
-      console.error("[FTP] List error:", error);
-      
-      // Provide more specific error messages based on the error
-      let errorMessage = error.message;
-      if (error.message.includes("ECONNREFUSED")) {
-        errorMessage = "Connection refused. Please check server address and firewall settings.";
-      } else if (error.message.includes("530")) {
-        errorMessage = "Login incorrect. Please check username and password.";
-      } else if (error.message.includes("ENOENT") || error.message.includes("No such")) {
-        errorMessage = `Directory "${cleanPath}" not found.`;
-      }
-      
-      toast.error(`Failed to list directory: ${errorMessage}`);
-      throw new Error(errorMessage);
-    }
-
-    console.log(`[FTP] Raw response:`, data);
-
-    // Check if data.files exists (as expected from the edge function)
-    if (!data || !data.files) {
-      console.error("[FTP] Unexpected response format:", data);
-      toast.error("Received unexpected response format from FTP server");
-      throw new Error("Unexpected response format from FTP server");
-    }
-
-    console.log(`[FTP] Received ${data.files.length} files from server for path "${cleanPath}"`);
-
-    // Map FTP response to react-file-browser schema
-    const mappedFiles = (data.files as FileItem[]).map(file => {
-      const filePath = joinPath(cleanPath, file.name);
-      return {
-        key: file.isDirectory ? `${filePath}/` : filePath,
-        modified: new Date(file.modified),
-        size: file.size,
-        isDir: file.isDirectory,
-        name: file.name
-      };
+    await client.access({
+      host: creds.host,
+      port: creds.port,
+      user: creds.user,
+      password: creds.password,
+      secure: false
     });
     
-    console.log("[FTP] Mapped files for browser:", mappedFiles);
-    return mappedFiles;
-  } catch (error: any) {
-    console.error("[FTP] Listing failed:", error);
-    toast.error(`Failed to list directory: ${error.message}`);
-    throw new Error(`Failed to list directory: ${error.message}`);
+    cache[id] = client;
+    return client;
+  } catch (error) {
+    throw new Error(`FTP connection failed: ${error.message}`);
   }
 }
 
-/**
- * Get the content of a file from FTP server
- */
-export async function getFile(connection: {
-  id: string;
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-}, filePath: string): Promise<string> {
-  try {
-    console.log(`[FTP] Getting file "${filePath}" using connection ID: ${connection.id}`);
-    
-    const { data, error } = await supabase.functions.invoke('ftp-get-file', {
-      body: {
-        siteId: connection.id,
-        path: filePath
-      }
-    });
-    
-    if (error) {
-      console.error("[FTP] Get file error:", error);
-      
-      // Provide more specific error messages based on the error
-      let errorMessage = error.message;
-      if (error.message.includes("ECONNREFUSED")) {
-        errorMessage = "Connection refused. Please check server address and firewall settings.";
-      } else if (error.message.includes("530")) {
-        errorMessage = "Login incorrect. Please check username and password.";
-      } else if (error.message.includes("ENOENT") || error.message.includes("No such")) {
-        errorMessage = `File "${filePath}" not found.`;
-      }
-      
-      toast.error(`Failed to get file: ${errorMessage}`);
-      throw new Error(errorMessage);
-    }
-    
-    if (!data || !data.success) {
-      const errorMsg = data?.message || data?.error || "Unknown error getting file";
-      console.error("[FTP] File download failed:", errorMsg);
-      toast.error(`Failed to get file: ${errorMsg}`);
-      throw new Error(errorMsg);
-    }
-    
-    // Decode the base64 content
-    const decodedContent = atob(data.content);
-    return decodedContent;
-  } catch (error: any) {
-    console.error("[FTP] Get file failed:", error);
-    toast.error(`Failed to get file: ${error.message}`);
-    throw new Error(`Failed to get file: ${error.message}`);
-  }
+export async function listDir(id: string, path = "/") {
+  return supabase.functions.invoke("listDir", { body: { id, path } });
 }
 
-// Re-export the path utilities so UI uses the same logic
-export { joinPath, normalizePath };
+export async function getFile(id: string, filepath: string) {
+  return supabase.functions.invoke("getFile", { body: { id, filepath } });
+}
+
+export async function saveFile({ id, filepath, content, originalChecksum, username }: { 
+  id: string; 
+  filepath: string; 
+  content: string;
+  originalChecksum?: string;
+  username?: string;
+}) {
+  return supabase.functions.invoke("saveFile", { 
+    body: { id, filepath, content, originalChecksum, username } 
+  });
+}
+
+export async function uploadFile(id: string, path: string, file: File) {
+  const formData = new FormData();
+  formData.append("id", id);
+  formData.append("path", path);
+  formData.append("file", file);
+  
+  // We need to use fetch directly since FormData is not supported by supabase.functions.invoke
+  const { SUPABASE_URL, SUPABASE_ANON_KEY } = import.meta.env;
+  
+  const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/uploadFile`, {
+    method: "POST",
+    body: formData,
+    headers: {
+      "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+    }
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to upload file: ${error}`);
+  }
+  
+  return response.json();
+}
+
+export async function renameFile({ id, oldPath, newPath, username }: {
+  id: string;
+  oldPath: string;
+  newPath: string;
+  username?: string;
+}) {
+  return supabase.functions.invoke("renameFile", {
+    body: { id, oldPath, newPath, username }
+  });
+}
+
+export async function deleteFile(id: string, filepath: string, username?: string) {
+  return supabase.functions.invoke("deleteFile", {
+    body: { id, filepath, username }
+  });
+}
+
+export async function lockFile(id: string, filepath: string, username: string, minutes = 15) {
+  return supabase.functions.invoke("lockFile", {
+    body: { id, filepath, username, minutes }
+  });
+}
+
+export async function getStats(id: string) {
+  return supabase.functions.invoke("getStats", { body: { id } });
+}
+
+export async function testFtpConnection(host: string, port: number, user: string, password: string) {
+  return supabase.functions.invoke("e2eTest", {
+    body: { host, port, user, password }
+  });
+}
+
+// Re-export the path utils
+export { normalizePath, joinPath } from "@/utils/path";
+
+// Clear FTP connection cache
+export function clearFtpCache(id?: string) {
+  if (id) {
+    if (cache[id]) {
+      cache[id].close();
+      delete cache[id];
+    }
+  } else {
+    Object.keys(cache).forEach(key => {
+      cache[key].close();
+      delete cache[key];
+    });
+  }
+}
