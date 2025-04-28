@@ -4,6 +4,7 @@ import { FTPFileList } from "@/components/FTPFileList";
 import { FileExplorerHeader } from "./FileExplorerHeader";
 import { useFileExplorerStore } from "@/store/fileExplorerStore";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 interface FileBrowserModalProps {
   isOpen: boolean;
@@ -50,6 +51,24 @@ export function FileBrowserModal({
       onSelectFile(file);
     }
   };
+  
+  // Effect to ensure files are loaded when the modal is opened
+  useEffect(() => {
+    let timeout: number;
+    
+    if (isOpen && files.length === 0 && !isLoading) {
+      // If modal is opened but no files are loaded yet, trigger navigation to current path
+      timeout = window.setTimeout(() => {
+        onNavigate(currentPath);
+      }, 100);
+    }
+    
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [isOpen, files.length, isLoading, currentPath, onNavigate]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

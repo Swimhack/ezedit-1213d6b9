@@ -3,7 +3,7 @@ import { listDirectory } from "@/lib/ftp";
 import { normalizePath } from "@/utils/path";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
 
 export function useFileExplorer() {
@@ -22,6 +22,13 @@ export function useFileExplorer() {
     showFileEditor, setShowFileEditor,
     showAIAssistant, setShowAIAssistant,
   } = useFileExplorerStore();
+
+  useEffect(() => {
+    if (activeConnection && showFileBrowser) {
+      const startPath = activeConnection.root_directory ? normalizePath(activeConnection.root_directory) : "/";
+      loadDirectory(startPath);
+    }
+  }, [activeConnection, showFileBrowser]);
 
   const loadDirectory = async (path: string) => {
     if (!activeConnection) return;
@@ -165,9 +172,7 @@ export function useFileExplorer() {
 
   const openConnection = async (connection: FtpConnection) => {
     setActiveConnection(connection);
-    const startPath = connection.root_directory ? normalizePath(connection.root_directory) : "/";
     setShowFileBrowser(true);
-    await loadDirectory(startPath);
   };
 
   const applyAIResponse = (text: string) => {
