@@ -75,7 +75,7 @@ const Footer = () => {
         </div>
         <div className="mt-8 pt-6 border-t border-ezgray-dark flex flex-col md:flex-row justify-between items-center">
           <p className="text-ezgray text-sm">
-            &copy; 2025 Strickland Technology. All rights reserved.
+            &copy; 2025 <a href="https://www.stricklandtechnology.net" className="hover:text-ezblue transition-colors" target="_blank" rel="noopener noreferrer">Strickland Technology</a>. All rights reserved.
           </p>
           <div className="flex space-x-4 mt-4 md:mt-0">
             <a href="#" className="text-ezgray hover:text-ezblue">
