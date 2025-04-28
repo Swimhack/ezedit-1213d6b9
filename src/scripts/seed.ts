@@ -1,6 +1,4 @@
 
-#!/usr/bin/env node
-
 import { createClient } from "@supabase/supabase-js";
 import * as dotenv from "dotenv";
 import { readFileSync } from "fs";

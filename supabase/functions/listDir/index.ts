@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       
       files = list.map(item => ({
         name: item.name,
-        isDirectory: item.type === 2 || item.type === 'd',
+        isDirectory: item.type === 2 || item.isDirectory,
         size: item.size,
         modified: new Date(item.modifiedAt || Date.now()).toISOString()
       }));
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       });
       
       return new Response(
-        JSON.stringify({ files }),
+        JSON.stringify({ data: { files } }),
         { headers: corsHeaders, status: 200 }
       );
     } finally {

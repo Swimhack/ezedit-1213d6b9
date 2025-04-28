@@ -80,10 +80,10 @@ export function useFileExplorer() {
       console.log(`[fetchFileContent] Loading: ${currentFilePath} from connection: ${activeConnection.id}`);
       console.time(`[FTP] ${currentFilePath}`);
       
-      const { data, error: supabaseError } = await supabase.functions.invoke('sftp-file', {
+      const { data, error: supabaseError } = await supabase.functions.invoke('getFile', {
         body: {
-          siteId: activeConnection.id,
-          path: currentFilePath
+          id: activeConnection.id,
+          filepath: currentFilePath
         }
       });
 
@@ -99,7 +99,7 @@ export function useFileExplorer() {
         return Promise.reject(errorMsg);
       }
       
-      if (data && data.success) {
+      if (data && data.content) {
         const content = data.content || "";
         console.log(`→ status: success, bytes: ${content.length}`);
         setFileContent(content);
@@ -142,33 +142,25 @@ export function useFileExplorer() {
       console.log(`[saveFileContent] Saving: ${currentFilePath}`);
       console.time(`[FTP Save] ${currentFilePath}`);
       
-      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-upload-file`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          host: activeConnection.host,
-          port: activeConnection.port,
-          username: activeConnection.username,
-          password: activeConnection.password,
-          path: currentFilePath,
-          content: btoa(fileContent)
-        }),
+      const { data, error } = await supabase.functions.invoke("saveFile", {
+        body: {
+          id: activeConnection.id,
+          filepath: currentFilePath,
+          content: fileContent,
+          username: "webapp-user"
+        }
       });
 
       console.timeEnd(`[FTP Save] ${currentFilePath}`);
       
-      const data = await response.json();
-      if (data.success) {
-        console.log('→ status: success saved');
-        toast.success("File saved successfully!");
-        setHasUnsavedChanges(false);
-      } else {
-        console.log('→ status: error saving, error:', data.message);
-        throw new Error(data.message);
+      if (error) {
+        console.log('→ status: error saving, error:', error.message);
+        throw error;
       }
+      
+      console.log('→ status: success saved');
+      toast.success("File saved successfully!");
+      setHasUnsavedChanges(false);
     } catch (error: any) {
       console.log('→ status: exception saving, error:', error.message);
       toast.error(`Failed to save file: ${error.message}`);
