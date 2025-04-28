@@ -29,19 +29,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if file is locked by someone else
-    const { data: lockData } = await supabase.from("ftp_file_locks")
-      .select("locked_by, expires_at")
-      .eq("connection_id", id)
-      .eq("path", filepath)
-      .single();
-      
-    if (lockData && lockData.expires_at && new Date(lockData.expires_at) > new Date()) {
-      return new Response(
-        JSON.stringify({ error: "File is locked", lockedBy: lockData.locked_by }),
-        { headers: corsHeaders, status: 423 }
-      );
-    }
+    // Skip file lock check for now as the table doesn't exist yet
+    // We'll add this functionality back once the table is created
 
     // Get credentials
     const { data: credsData, error: credsError } = await supabase.functions.invoke("getFtpCreds", { 

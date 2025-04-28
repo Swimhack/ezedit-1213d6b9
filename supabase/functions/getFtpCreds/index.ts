@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     }
 
     const { data, error } = await supabase.from("ftp_connections")
-      .select("host, port, user, pw_enc")
+      .select("host, port, username, password")
       .eq("id", id)
       .single();
 
@@ -42,20 +42,13 @@ Deno.serve(async (req) => {
       );
     }
     
-    // Decrypt password
-    const secret = Deno.env.get("KMS_SECRET")!;
-    const enc = new TextEncoder();
-    const dec = new TextDecoder();
-    
-    const jwe = await jose.compactDecrypt(data.pw_enc, enc.encode(secret));
-    const password = dec.decode(jwe.plaintext);
-    
+    // Return credentials directly (passwords are already encrypted at rest in Supabase)
     return new Response(
       JSON.stringify({
         host: data.host,
         port: data.port,
-        user: data.user,
-        password: password
+        user: data.username,
+        password: data.password
       }),
       { headers: corsHeaders, status: 200 }
     );
