@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FTPPageHeader } from "@/components/FTPPageHeader";
@@ -7,6 +6,8 @@ import { ConnectionModals } from "@/components/ftp-connections/ConnectionModals"
 import { useFTPConnections } from "@/hooks/use-ftp-connections";
 import { useFileExplorer } from "@/hooks/use-file-explorer";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
+import { SiteCard } from "@/components/SiteCard";
+import { SkeletonSiteCard } from "@/components/SkeletonSiteCard";
 
 const MySites = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,15 +65,32 @@ const MySites = () => {
       <div className="container py-4 md:py-6 space-y-4 md:space-y-6">
         <FTPPageHeader onConnect={handleConnect} />
 
-        <ConnectionsGrid
-          connections={connections}
-          isLoadingConnections={isLoadingConnections}
-          testResults={testResults}
-          onConnect={handleConnect}
-          onTest={handleTestConnection}
-          onViewFiles={openConnection}
-          onEdit={handleEdit}
-        />
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {isLoadingConnections ? (
+            Array.from({ length: 3 }).map((_, i) => <SkeletonSiteCard key={i} />)
+          ) : connections.length === 0 ? (
+            <div className="col-span-full text-center py-6 md:py-8 border border-dashed border-gray-300 rounded-lg">
+              <h3 className="text-lg md:text-xl font-medium mb-2">No sites connected yet</h3>
+              <p className="text-gray-500 mb-4 px-4">
+                Add your first FTP connection to start managing your sites
+              </p>
+              <Button onClick={handleConnect} variant="outline">
+                <PlusCircle className="mr-2" size={16} /> Connect a Site
+              </Button>
+            </div>
+          ) : (
+            connections.map((connection) => (
+              <SiteCard
+                key={connection.id}
+                connection={connection}
+                testResult={testResults[connection.id]}
+                onTest={() => handleTestConnection(connection)}
+                onViewFiles={() => openConnection(connection)}
+                onEdit={() => handleEdit(connection)}
+              />
+            ))
+          )}
+        </div>
 
         <ConnectionModals
           isModalOpen={isModalOpen}
