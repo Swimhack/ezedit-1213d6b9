@@ -29,7 +29,7 @@ const TipTapEditor = React.lazy(async () => {
             alignments: ['left', 'center', 'right'],
           }),
         ],
-        content: html || '<p style="color:#888;font-style:italic">[empty file]</p>', // Default content for empty files
+        content: html || '<p style="color:#888;font-style:italic">[empty file]</p>',
         editable: true,
         onUpdate: ({ editor }) => {
           const content = editor.getHTML();
@@ -48,9 +48,9 @@ const TipTapEditor = React.lazy(async () => {
       // Update content when html prop changes
       useEffect(() => {
         if (editor && html !== undefined && html !== null) {
-          console.log('[TipTap] Content prop changed, new length:', html.length);
+          // Don't set content if it's already the same to avoid cursor jumps
           if (html !== editor.getHTML()) {
-            console.log('[TipTap] Setting new content');
+            console.log('[TipTap] Setting new content, length:', html.length);
             editor.commands.setContent(html);
           }
         }
@@ -59,7 +59,10 @@ const TipTapEditor = React.lazy(async () => {
       // Handle autofocus
       useLayoutEffect(() => {
         if (autoFocus && editor) {
-          const id = setTimeout(() => editor.commands.focus('end'), 60);
+          const id = setTimeout(() => {
+            console.log('[TipTap] Autofocus set');
+            editor.commands.focus('end');
+          }, 100);
           return () => clearTimeout(id);
         }
       }, [autoFocus, editor]);
@@ -88,7 +91,12 @@ export default function TipTapWrapper(props: {
   console.log('[TipTapWrapper] Rendering with html length:', props.html?.length || 0);
   
   return (
-    <Suspense fallback={<div className="p-6 text-center">Loading editor...</div>}>
+    <Suspense fallback={
+      <div className="p-6 text-center">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-4"></div>
+        <p>Loading editor...</p>
+      </div>
+    }>
       <TipTapEditor {...props} />
     </Suspense>
   );

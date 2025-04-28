@@ -18,11 +18,12 @@ export function useFtpFile() {
   }, filePath: string) => {
     setIsLoading(true);
     setError(null);
+    
     try {
-      console.log(`Loading file content from: ${filePath}`);
+      console.log(`[useFtpFile] Loading file content from: ${filePath}`);
       console.time(`[SFTP] ${filePath}`);
       
-      // Use sftp-file function instead of ftp-file
+      // Use sftp-file function
       const { data, error } = await supabase.functions.invoke('sftp-file', {
         body: {
           siteId: connection.id,
@@ -33,34 +34,38 @@ export function useFtpFile() {
       console.timeEnd(`[SFTP] ${filePath}`);
 
       if (error) {
-        console.error("Error from edge function:", error);
+        console.error("[useFtpFile] Error from edge function:", error);
         const errorMessage = error.message || "Failed to load file";
         console.log('→ status:', 'error', 'bytes:', 0, 'error:', errorMessage);
         setError(errorMessage);
         toast.error(`Error loading file: ${errorMessage}`);
-        throw error;
+        setContent("");
+        return "";
       }
       
       if (data && data.success) {
-        const content = data.content;
-        console.log('→ status:', 'success', 'bytes:', content.length, 'error:', null);
+        const content = data.content || "";
+        console.log(`[useFtpFile] File loaded successfully, size: ${content.length} bytes`);
         setContent(content);
+        setError(null);
         return content;
       } else {
         const errorMessage = data?.message || data?.error || 'Unknown error';
-        console.error("Error in response:", data);
+        console.error("[useFtpFile] Error in response:", data);
         console.log('→ status:', 'error', 'bytes:', 0, 'error:', errorMessage);
         setError(errorMessage);
         toast.error(`Error loading file: ${errorMessage}`);
-        throw new Error(errorMessage);
+        setContent("");
+        return "";
       }
     } catch (error: any) {
-      console.error("File loading error:", error);
+      console.error("[useFtpFile] File loading error:", error);
       const errorMessage = error.message || "Failed to load file";
       console.log('→ status:', 'exception', 'bytes:', 0, 'error:', errorMessage);
       setError(errorMessage);
       toast.error(`Error loading file: ${errorMessage}`);
-      throw error;
+      setContent("");
+      return "";
     } finally {
       setIsLoading(false);
     }

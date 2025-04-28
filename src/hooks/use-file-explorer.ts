@@ -1,3 +1,4 @@
+
 import { useFileExplorerStore } from "@/store/fileExplorerStore";
 import { listDirectory } from "@/lib/ftp";
 import { normalizePath } from "@/utils/path";
@@ -69,6 +70,7 @@ export function useFileExplorer() {
     
     setIsLoading(true);
     setError(null);
+    
     try {
       console.log(`[fetchFileContent] Loading: ${currentFilePath} from connection: ${activeConnection.id}`);
       console.time(`[FTP] ${currentFilePath}`);
@@ -93,8 +95,8 @@ export function useFileExplorer() {
       }
       
       if (data && data.success) {
-        const content = data.content;
-        console.log('→ status: success, bytes:', content.length);
+        const content = data.content || "";
+        console.log(`→ status: success, bytes: ${content.length}`);
         setFileContent(content);
         setError(null);
         setHasUnsavedChanges(false);

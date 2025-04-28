@@ -32,9 +32,10 @@ export function SplitEditor({
   const [editMode, setEditMode] = useState<'code' | 'wysiwyg'>('code');
   const [wysiwygContent, setWysiwygContent] = useState("");
   
-  // Initialize WYSIWYG content when switching modes or when content changes
+  // Initialize WYSIWYG content when loading new content
   useEffect(() => {
-    if (isHtmlFile() && content) {
+    console.log('[SplitEditor] Content updated, length:', content?.length || 0);
+    if (content) {
       setWysiwygContent(content);
     }
   }, [content, fileName]);
@@ -43,8 +44,21 @@ export function SplitEditor({
     return fileName ? /\.(html?|htm|php)$/i.test(fileName) : false;
   };
 
+  // Set initial mode based on file type
+  useEffect(() => {
+    if (fileName) {
+      const isHtml = isHtmlFile();
+      console.log(`[SplitEditor] File type: ${fileName}, isHtml: ${isHtml}`);
+      // Don't change the mode if already set, to respect user preference
+      if (!document.activeElement || !document.activeElement.closest('.editor-container')) {
+        setEditMode(isHtml ? 'wysiwyg' : 'code');
+      }
+    }
+  }, [fileName]);
+
   // Enhanced sync function that also refreshes the preview
   const syncContent = () => {
+    console.log(`[SplitEditor] Syncing content between editors, mode: ${editMode}`);
     if (editMode === 'wysiwyg') {
       onChange(wysiwygContent);
     } else {
@@ -79,7 +93,15 @@ export function SplitEditor({
           <div className="flex items-center justify-between border-b p-1 bg-muted/30">
             <EditorModeToggle
               mode={editMode}
-              onChange={setEditMode}
+              onChange={(mode) => {
+                // When switching modes, sync content
+                setEditMode(mode);
+                if (mode === 'wysiwyg') {
+                  setWysiwygContent(content);
+                } else if (mode === 'code' && wysiwygContent) {
+                  onChange(wysiwygContent);
+                }
+              }}
               isHtmlFile={isHtmlFile()}
             />
             <Button 
@@ -92,7 +114,7 @@ export function SplitEditor({
               Sync Preview
             </Button>
           </div>
-          <div className="flex-grow relative">
+          <div className="flex-grow relative editor-container">
             <EditorView
               mode={editMode}
               content={editMode === 'code' ? content : wysiwygContent}
@@ -122,7 +144,7 @@ export function SplitEditor({
           </div>
           <PreviewPane
             fileName={fileName}
-            content={content}
+            content={editMode === 'code' ? content : wysiwygContent}
             baseUrl={baseUrl}
             error={error}
             refreshKey={frameKey}

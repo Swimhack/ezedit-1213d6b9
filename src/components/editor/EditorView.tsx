@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CodeEditor } from "./CodeEditor";
 import { WysiwygEditor } from "./WysiwygEditor";
 import { getLanguageFromFileName } from "@/utils/language-detector";
@@ -21,6 +21,16 @@ export function EditorView({
   editorRef,
   isLoading = false
 }: EditorViewProps) {
+  const [contentLoaded, setContentLoaded] = useState(false);
+
+  useEffect(() => {
+    // Mark content as loaded when it arrives
+    if (content && !contentLoaded) {
+      console.log(`[EditorView] Content loaded, length: ${content.length}`);
+      setContentLoaded(true);
+    }
+  }, [content, contentLoaded]);
+
   const getFileLanguage = () => {
     if (!fileName) return "plaintext";
     return getLanguageFromFileName(fileName) || "plaintext";
@@ -30,15 +40,22 @@ export function EditorView({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full text-slate-400">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+        <span>Loading file content...</span>
       </div>
     );
   }
 
+  // Show empty state if no content is available
   if (!content) {
-    return <div className="flex items-center justify-center h-full text-slate-400">No content to display</div>;
+    return (
+      <div className="flex items-center justify-center h-full text-slate-400">
+        No content to display
+      </div>
+    );
   }
 
+  // Render the appropriate editor based on mode
   return mode === 'code' ? (
     <CodeEditor
       content={content}

@@ -20,22 +20,30 @@ serve(async (req) => {
     
     if (!path || !siteId) {
       return new Response(
-        JSON.stringify({ error: "Missing path or siteId parameter" }),
+        JSON.stringify({ success: false, message: "Missing path or siteId parameter" }),
         { status: 400, headers: corsHeaders }
       );
     }
 
     console.log(`[SFTP] Attempting to get file: ${path}`);
-    console.log(`[SFTP] Using siteId: ${siteId}, path: ${path}`);
+    console.log(`[SFTP] Using siteId: ${siteId}`);
     
     // In a real app, we would fetch connection details from a database
     // Here we're using environment variables for simplicity
     const config = {
-      host: Deno.env.get("SFTP_HOST"),
+      host: Deno.env.get("SFTP_HOST") || '',
       port: Number(Deno.env.get("SFTP_PORT") || "22"),
-      username: Deno.env.get("SFTP_USER"),
-      password: Deno.env.get("SFTP_PASS")
+      username: Deno.env.get("SFTP_USER") || '',
+      password: Deno.env.get("SFTP_PASS") || ''
     };
+
+    if (!config.host || !config.username || !config.password) {
+      console.error("[SFTP] Missing configuration");
+      return new Response(
+        JSON.stringify({ success: false, message: "Server configuration missing" }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
 
     const sftp = new SftpClient();
     
@@ -48,33 +56,47 @@ serve(async (req) => {
       console.log(`[SFTP] Accessing path: ${cleanPath}`);
       
       const data = await sftp.get(cleanPath);
-      console.log(`[SFTP] File retrieved successfully, size: ${data.length} bytes`);
+      console.log(`[SFTP] File retrieved successfully, size: ${data.length || 0} bytes`);
+      
+      let contentString = '';
+      
+      if (Buffer.isBuffer(data)) {
+        contentString = data.toString('utf8');
+      } else if (typeof data === 'string') {
+        contentString = data;
+      } else {
+        contentString = JSON.stringify(data);
+      }
       
       return new Response(
         JSON.stringify({ 
           success: true,
-          content: data.toString("utf8")
+          content: contentString
         }),
         { headers: corsHeaders }
       );
     } catch (e) {
       console.error("[SFTP] Error:", e);
-      const msg = e.message;
+      const msg = e.message || "Unknown error";
       const status = /No such file/i.test(msg) ? 404 
                   : /All configured/i.test(msg) ? 401 
                   : 500;
       
       return new Response(
-        JSON.stringify({ error: msg }),
+        JSON.stringify({ success: false, message: msg }),
         { status, headers: corsHeaders }
       );
     } finally {
-      await sftp.end();
+      try {
+        await sftp.end();
+      } catch (e) {
+        console.error("[SFTP] Error closing connection:", e);
+      }
     }
   } catch (error) {
     console.error("[SFTP] Request processing error:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ success: false, message: "Internal server error" }),
       { status: 500, headers: corsHeaders }
     );
   }
