@@ -14,32 +14,22 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const path = url.searchParams.get("path");
-    const id = url.searchParams.get("connectionId");
+    // Parse request body for parameters
+    const body = await req.json();
+    const { siteId, path } = body;
     
-    if (!path || !id) {
+    if (!path || !siteId) {
       return new Response(
-        JSON.stringify({ error: "Missing path or connectionId parameter" }),
+        JSON.stringify({ error: "Missing path or siteId parameter" }),
         { status: 400, headers: corsHeaders }
       );
     }
 
     console.log(`[SFTP] Attempting to get file: ${path}`);
+    console.log(`[SFTP] Using siteId: ${siteId}, path: ${path}`);
     
-    // Parse request body if it exists
-    let body = {};
-    const contentType = req.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
-      body = await req.json();
-    }
-    
-    // Get connection info either from query params or body
-    const siteId = body.siteId || id;
-    const filePath = body.path || path;
-    
-    console.log(`[SFTP] Using siteId: ${siteId}, path: ${filePath}`);
-    
+    // In a real app, we would fetch connection details from a database
+    // Here we're using environment variables for simplicity
     const config = {
       host: Deno.env.get("SFTP_HOST"),
       port: Number(Deno.env.get("SFTP_PORT") || "22"),
@@ -53,7 +43,11 @@ serve(async (req) => {
       await sftp.connect(config);
       console.log(`[SFTP] Connected successfully`);
       
-      const data = await sftp.get(filePath || path);
+      // Make sure path doesn't have a leading slash if using a root directory
+      const cleanPath = path.startsWith('/') && path !== '/' ? path.substring(1) : path;
+      console.log(`[SFTP] Accessing path: ${cleanPath}`);
+      
+      const data = await sftp.get(cleanPath);
       console.log(`[SFTP] File retrieved successfully, size: ${data.length} bytes`);
       
       return new Response(

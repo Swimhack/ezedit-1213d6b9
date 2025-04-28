@@ -66,7 +66,7 @@ export function useFileExplorer() {
       console.log(`[fetchFileContent] Loading: ${currentFilePath} from connection: ${activeConnection.id}`);
       console.time(`[FTP] ${currentFilePath}`);
       
-      const { data, error: supabaseError } = await supabase.functions.invoke('ftp-get-file', {
+      const { data, error: supabaseError } = await supabase.functions.invoke('sftp-file', {
         body: {
           siteId: activeConnection.id,
           path: currentFilePath
@@ -86,9 +86,9 @@ export function useFileExplorer() {
       }
       
       if (data && data.success) {
-        const decodedContent = atob(data.content);
-        console.log('→ status: success, bytes:', decodedContent.length);
-        setFileContent(decodedContent);
+        const content = data.content;
+        console.log('→ status: success, bytes:', content.length);
+        setFileContent(content);
         setError(null);
         setHasUnsavedChanges(false);
         return Promise.resolve();

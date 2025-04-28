@@ -22,6 +22,7 @@ export function useFtpFile() {
       console.log(`Loading file content from: ${filePath}`);
       console.time(`[SFTP] ${filePath}`);
       
+      // Use sftp-file function instead of ftp-file
       const { data, error } = await supabase.functions.invoke('sftp-file', {
         body: {
           siteId: connection.id,
