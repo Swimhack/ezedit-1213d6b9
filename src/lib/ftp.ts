@@ -3,7 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { normalizePath, joinPath } from "@/utils/path";
 
 export async function listDir(id: string, path = "/") {
-  return supabase.functions.invoke("listDir", { body: { id, path } });
+  const { data, error } = await supabase.functions.invoke("ftp-list", { 
+    body: { siteId: id, path } 
+  });
+  
+  if (error) {
+    throw new Error(error.message);
+  }
+  
+  return { data };
 }
 
 export async function getFile(id: string, filepath: string) {

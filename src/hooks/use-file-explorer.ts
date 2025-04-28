@@ -41,10 +41,12 @@ export function useFileExplorer() {
       console.log(`[loadDirectory] Original: "${path}" → Normalized: "${normalizedPath}"`);
       
       const result = await listDir(activeConnection.id, normalizedPath);
+      
       if (result && result.data && result.data.files) {
         setFiles(result.data.files);
         setCurrentPath(normalizedPath);
       } else {
+        console.error("[useFileExplorer] Invalid response format:", result);
         throw new Error("Invalid response format from server");
       }
     } catch (error: any) {

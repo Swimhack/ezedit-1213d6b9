@@ -36,7 +36,7 @@ export function FTPFileList({
   };
 
   const handleFileClick = (file: any) => {
-    if (file.isDirectory) {
+    if (file.isDirectory || file.type === "directory") {
       const newPath = currentPath.endsWith('/') 
         ? `${currentPath}${file.name}/`
         : `${currentPath}/${file.name}/`;
@@ -134,7 +134,7 @@ export function FTPFileList({
                   onClick={() => handleFileClick(file)}
                 >
                   <TableCell className="font-medium flex items-center">
-                    {file.isDirectory ? (
+                    {file.isDirectory || file.type === "directory" ? (
                       <FolderIcon className="h-4 w-4 mr-2 text-blue-500" />
                     ) : (
                       <FileIcon className="h-4 w-4 mr-2 text-gray-500" />
@@ -144,13 +144,13 @@ export function FTPFileList({
                     </span>
                   </TableCell>
                   <TableCell>
-                    {file.isDirectory ? "--" : formatFileSize(file.size)}
+                    {file.isDirectory || file.type === "directory" ? "--" : formatFileSize(file.size)}
                   </TableCell>
                   <TableCell>
                     {formatDate(file.modified)}
                   </TableCell>
                   <TableCell>
-                    {file.isDirectory ? "Directory" : "File"}
+                    {file.isDirectory || file.type === "directory" ? "Directory" : "File"}
                   </TableCell>
                 </TableRow>
               ))
