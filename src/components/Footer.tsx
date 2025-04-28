@@ -1,4 +1,3 @@
-
 import Logo from "@/components/Logo";
 import { Link } from "react-router-dom";
 
@@ -76,7 +75,7 @@ const Footer = () => {
         </div>
         <div className="mt-8 pt-6 border-t border-ezgray-dark flex flex-col md:flex-row justify-between items-center">
           <p className="text-ezgray text-sm">
-            &copy; {new Date().getFullYear()} EzEdit.co. All rights reserved.
+            &copy; 2025 Strickland Technology. All rights reserved.
           </p>
           <div className="flex space-x-4 mt-4 md:mt-0">
             <a href="#" className="text-ezgray hover:text-ezblue">
