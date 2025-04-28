@@ -3,9 +3,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import TipTapWrapper from './TipTapWrapper';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Wand } from 'lucide-react';
+import { Wand, Maximize, Minimize, Save, Code } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import grapesjs from 'grapesjs';
+import 'grapesjs-preset-webpage';
 
 interface WysiwygEditorProps {
   content: string;
@@ -24,10 +26,149 @@ export function WysiwygEditor({ content, onChange, editorRef }: WysiwygEditorPro
   const [isPending, setIsPending] = useState(false);
   const [recentCommands, setRecentCommands] = useState<AICommand[]>([]);
   const tiptapEditorRef = useRef<any>(null);
+  const gjsEditorRef = useRef<any>(null);
+  const [editorMode, setEditorMode] = useState<'rich' | 'visual'>('rich');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   
+  // Initialize GrapesJS editor for visual mode
+  useEffect(() => {
+    if (editorMode === 'visual' && !gjsEditorRef.current) {
+      const editor = grapesjs.init({
+        container: '#gjs-editor',
+        height: '100%',
+        width: '100%',
+        storageManager: false,
+        panels: { defaults: [] },
+        deviceManager: {
+          devices: [
+            {
+              name: 'Desktop',
+              width: '',
+            },
+            {
+              name: 'Tablet',
+              width: '768px',
+              widthMedia: '992px',
+            },
+            {
+              name: 'Mobile',
+              width: '320px',
+              widthMedia: '480px',
+            },
+          ]
+        },
+        blockManager: {
+          appendTo: '#blocks',
+          blocks: [
+            {
+              id: 'section',
+              label: 'Section',
+              attributes: { class: 'gjs-block-section' },
+              content: '<section class="p-4"><h2>Insert title here</h2><p>Insert content here</p></section>',
+            },
+            {
+              id: 'text',
+              label: 'Text',
+              content: '<p class="m-0">Insert text here</p>',
+            },
+            {
+              id: 'image',
+              label: 'Image',
+              content: { type: 'image' },
+              attributes: { class: 'gjs-block-image' }
+            },
+            {
+              id: 'button',
+              label: 'Button',
+              content: '<button class="px-4 py-2 text-white bg-blue-500 rounded">Click Me</button>',
+            },
+          ]
+        },
+        styleManager: {
+          appendTo: '#styles',
+          sectors: [
+            {
+              name: 'Dimension',
+              open: false,
+              properties: [
+                'width',
+                'height',
+                'min-width',
+                'min-height',
+                'padding',
+                'margin'
+              ]
+            },
+            {
+              name: 'Typography',
+              open: false,
+              properties: [
+                'font-family',
+                'font-size',
+                'font-weight',
+                'color',
+                'text-align',
+                'line-height'
+              ]
+            },
+            {
+              name: 'Decorations',
+              open: false,
+              properties: [
+                'background-color',
+                'border-radius',
+                'border',
+                'box-shadow'
+              ]
+            }
+          ]
+        }
+      });
+
+      editor.setComponents(content);
+      editor.on('component:update', () => {
+        const htmlContent = editor.getHtml();
+        onChange(htmlContent);
+      });
+
+      gjsEditorRef.current = editor;
+    }
+
+    return () => {
+      if (gjsEditorRef.current && editorMode !== 'visual') {
+        gjsEditorRef.current.destroy();
+        gjsEditorRef.current = null;
+      }
+    };
+  }, [editorMode, content]);
+
+  // Update GrapesJS content when the prop changes
+  useEffect(() => {
+    if (editorMode === 'visual' && gjsEditorRef.current) {
+      gjsEditorRef.current.setComponents(content);
+    }
+  }, [content, editorMode]);
+
   // Toggle AI assistant panel
   const toggleAIAssistant = () => {
     setShowAIAssistant(!showAIAssistant);
+  };
+
+  // Toggle fullscreen mode
+  const toggleFullscreen = () => {
+    if (containerRef.current) {
+      if (!isFullscreen) {
+        if (containerRef.current.requestFullscreen) {
+          containerRef.current.requestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+      setIsFullscreen(!isFullscreen);
+    }
   };
 
   // Process AI command
@@ -97,27 +238,68 @@ export function WysiwygEditor({ content, onChange, editorRef }: WysiwygEditorPro
   };
   
   return (
-    <div className="relative h-full">
-      <TipTapWrapper
-        html={content}
-        onChange={onChange}
-        editorRef={tiptapEditorRef}
-      />
-      
-      <div className="absolute bottom-4 right-4">
-        <Button
-          variant="outline"
-          size="icon"
-          className="rounded-full shadow-md bg-background"
-          onClick={toggleAIAssistant}
-          title="AI Assistant (Alt+A)"
-        >
-          <Wand className="h-4 w-4" />
-        </Button>
+    <div className="relative h-full" ref={containerRef}>
+      <div className="flex items-center justify-between p-1 bg-gray-100 dark:bg-gray-800 border-b">
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={editorMode === 'rich' ? 'bg-gray-200 dark:bg-gray-700' : ''}
+            onClick={() => setEditorMode('rich')}
+          >
+            Rich Text
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={editorMode === 'visual' ? 'bg-gray-200 dark:bg-gray-700' : ''}
+            onClick={() => setEditorMode('visual')}
+          >
+            Visual Builder
+          </Button>
+        </div>
+        
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleAIAssistant}
+            title="AI Assistant (Alt+A)"
+          >
+            <Wand size={16} />
+          </Button>
+        </div>
       </div>
+
+      {editorMode === 'rich' ? (
+        <TipTapWrapper
+          html={content}
+          onChange={onChange}
+          editorRef={tiptapEditorRef}
+        />
+      ) : (
+        <div className="h-[calc(100%-36px)] flex">
+          <div className="w-64 border-r overflow-y-auto">
+            <div className="p-2 bg-gray-50 dark:bg-gray-900 border-b font-medium text-sm">Blocks</div>
+            <div id="blocks" className="p-2"></div>
+            <div className="p-2 bg-gray-50 dark:bg-gray-900 border-b border-t font-medium text-sm mt-2">Styles</div>
+            <div id="styles" className="p-2"></div>
+          </div>
+          <div className="flex-1">
+            <div id="gjs-editor" className="h-full"></div>
+          </div>
+        </div>
+      )}
       
       {showAIAssistant && (
-        <div className="absolute bottom-16 right-4 w-80 bg-background border rounded-lg shadow-lg p-3">
+        <div className="absolute bottom-16 right-4 w-80 bg-background border rounded-lg shadow-lg p-3 z-10">
           <h3 className="text-sm font-semibold mb-2">AI Editor Assistant</h3>
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">

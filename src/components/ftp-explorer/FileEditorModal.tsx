@@ -30,6 +30,7 @@ export function FileEditorModal({
   const [error, setError] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const editorRef = useRef<any>(null);
+  const [draggingSplitter, setDraggingSplitter] = useState(false);
   
   const previewSrc = useLivePreview(code, filePath || "");
   
@@ -143,6 +144,21 @@ export function FileEditorModal({
     return langMap[extension || ""] || "plaintext";
   };
 
+  const handleSplitDragStart = () => {
+    setDraggingSplitter(true);
+  };
+
+  const handleSplitDragEnd = () => {
+    setDraggingSplitter(false);
+    
+    // Manually trigger a resize event to ensure Monaco Editor adjusts properly
+    if (editorRef.current) {
+      setTimeout(() => {
+        editorRef.current.layout();
+      }, 100);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-screen-xl w-[95vw] h-[90vh] p-0 flex flex-col">
@@ -179,9 +195,14 @@ export function FileEditorModal({
               sizes={[60, 40]}
               minSize={100}
               gutterSize={8}
-              gutter={() => {
+              onDragStart={handleSplitDragStart}
+              onDragEnd={handleSplitDragEnd}
+              gutter={index => {
                 const gutter = document.createElement('div');
-                gutter.className = 'split-gutter';
+                const handle = <SplitHandle 
+                  direction="vertical" 
+                  dragging={draggingSplitter}
+                />;
                 return gutter;
               }}
               className="h-full"

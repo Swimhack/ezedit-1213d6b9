@@ -19,6 +19,8 @@ const SplitHandle: React.FC<{
       aria-valuenow={50}
       aria-valuemin={10}
       aria-valuemax={90}
+      tabIndex={0}
+      aria-label={`Resize ${direction === "vertical" ? "height" : "width"}`}
     >
       <div className="gutter-handle flex items-center justify-center">
         {direction === "vertical" ? (
