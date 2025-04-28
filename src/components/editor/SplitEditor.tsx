@@ -71,7 +71,7 @@ export function SplitEditor({
       direction="vertical" 
       className="h-full rounded-lg border"
     >
-      <ResizablePanel defaultSize={55} minSize={30}>
+      <ResizablePanel defaultSize={40} minSize={30}>
         <div className="h-full flex flex-col">
           <div className="flex items-center justify-between border-b p-1 bg-muted/30">
             <EditorModeToggle
@@ -103,7 +103,7 @@ export function SplitEditor({
       
       <ResizableHandle withHandle />
       
-      <ResizablePanel minSize={30}>
+      <ResizablePanel defaultSize={60} minSize={40}>
         <div className="relative h-full bg-background">
           <div className="absolute top-0 left-0 w-full bg-muted/20 text-[10px] text-muted-foreground flex select-none border-b">
             {[400, 480, 600, 768, 860, 992, 1200].map(w => (
