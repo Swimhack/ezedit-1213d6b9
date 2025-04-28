@@ -46,6 +46,7 @@
     "@tiptap/react": "^2.11.7",
     "@tiptap/starter-kit": "^2.11.7",
     "@types/debounce": "^1.2.4",
+    "@types/react-tabs": "^5.0.5",
     "basic-ftp": "^5.0.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
