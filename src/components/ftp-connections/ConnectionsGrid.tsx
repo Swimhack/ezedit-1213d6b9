@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { FTPConnectionCard } from "@/components/FTPConnectionCard";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ConnectionsGridProps {
   connections: FtpConnection[];
@@ -23,6 +24,8 @@ export function ConnectionsGrid({
   onViewFiles,
   onEdit,
 }: ConnectionsGridProps) {
+  const isMobile = useIsMobile();
+  
   if (isLoadingConnections) {
     return (
       <div className="col-span-full text-center py-8">
@@ -33,10 +36,10 @@ export function ConnectionsGrid({
 
   if (connections.length === 0) {
     return (
-      <div className="col-span-full text-center py-8 border border-dashed border-ezgray-dark rounded-lg">
-        <h3 className="text-xl font-medium mb-2">No sites connected yet</h3>
-        <p className="text-ezgray mb-4">
-          Add your first FTP connection to start managing your sites
+      <div className="col-span-full text-center py-6 md:py-8 border border-dashed border-gray-300 rounded-lg">
+        <h3 className="text-lg md:text-xl font-medium mb-2">No sites connected yet</h3>
+        <p className="text-gray-500 mb-4 px-4">
+          {isMobile ? "Add your first connection" : "Add your first FTP connection to start managing your sites"}
         </p>
         <Button onClick={onConnect} variant="outline">
           <PlusCircle className="mr-2" size={16} /> Connect a Site

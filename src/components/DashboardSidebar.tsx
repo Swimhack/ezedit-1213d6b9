@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { Globe, Settings } from "lucide-react";
+import { LayoutDashboard, Globe, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -9,6 +9,7 @@ const DashboardSidebar = () => {
   const isMobile = useIsMobile();
   
   const menuItems = [
+    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Globe, label: "My Sites", path: "/dashboard/sites" },
     { icon: Settings, label: "Settings", path: "/dashboard/settings" },
   ];
@@ -32,7 +33,8 @@ const DashboardSidebar = () => {
                   )}
                 >
                   <item.icon size={18} />
-                  <span>{item.label}</span>
+                  <span>{isMobile ? null : item.label}</span>
+                  {isMobile && <span className="sr-only">{item.label}</span>}
                 </Link>
               </li>
             ))}

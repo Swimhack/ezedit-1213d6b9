@@ -61,7 +61,7 @@ const MySites = () => {
 
   return (
     <DashboardLayout>
-      <div className="container py-6 space-y-6">
+      <div className="container py-4 md:py-6 space-y-4 md:space-y-6">
         <FTPPageHeader onConnect={handleConnect} />
 
         <ConnectionsGrid
