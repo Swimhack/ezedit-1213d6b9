@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
@@ -40,7 +39,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="w-full border-b border-ezgray-dark bg-eznavy/80 backdrop-blur-md fixed top-0 z-50">
+    <header className="w-full border-b border-gray-200 bg-white fixed top-0 z-50">
       <div className="container mx-auto flex items-center justify-between h-16 px-4 md:px-6">
         <Link to="/" className="flex items-center">
           <Logo />

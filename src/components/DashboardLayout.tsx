@@ -29,7 +29,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Navbar />
-      <div className="flex-grow flex flex-col md:flex-row">
+      {/* Add mt-16 to account for fixed header height */}
+      <div className="flex-grow flex flex-col md:flex-row mt-16">
         {isMobile ? (
           <>
             <div className="px-4 py-2 bg-white border-b border-gray-200">
@@ -68,7 +69,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         ) : (
           <DashboardSidebar />
         )}
-        <main className="flex-1 p-4">
+        <main className="flex-1 p-4 md:p-6">
           {children}
         </main>
       </div>
