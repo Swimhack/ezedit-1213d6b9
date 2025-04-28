@@ -79,16 +79,14 @@ export function ConnectionModals({
             onSelectFile={onSelectFile}
           />
 
-          <FileEditorModal
-            isOpen={showFileEditor}
-            onClose={() => setShowFileEditor(false)}
-            fileName={currentFilePath}
-            content={fileContent}
-            onSave={onSaveContent}
-            isSaving={isSaving}
-            hasUnsavedChanges={hasUnsavedChanges}
-            onContentChange={onUpdateContent}
-          />
+          {showFileEditor && (
+            <FileEditorModal
+              isOpen={showFileEditor}
+              onClose={() => setShowFileEditor(false)}
+              connectionId={activeConnection.id}
+              filePath={currentFilePath}
+            />
+          )}
 
           <AIAssistantModal
             isOpen={showAIAssistant}

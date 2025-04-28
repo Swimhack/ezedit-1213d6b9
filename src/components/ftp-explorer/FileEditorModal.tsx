@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import Editor from "@monaco-editor/react";
-import { Split } from "@/components/ui/split";
+import Split from "react-split";
 import { ClineChatDrawer } from "./ClineChatDrawer";
 import { useLivePreview } from "@/hooks/useLivePreview";
 import { FileEditorToolbar } from "./FileEditorToolbar";
@@ -176,9 +176,15 @@ export function FileEditorModal({
           <div className="flex flex-col flex-1 overflow-hidden">
             <Split
               direction="vertical"
-              className="h-full"
               sizes={[60, 40]}
               minSize={100}
+              gutterSize={8}
+              gutter={() => {
+                const gutter = document.createElement('div');
+                gutter.className = 'split-gutter';
+                return gutter;
+              }}
+              className="h-full"
             >
               <div className="overflow-hidden">
                 <Editor
