@@ -1,5 +1,5 @@
 
-import { ExternalLink, Check, X, Settings } from "lucide-react";
+import { ExternalLink, Settings, TestTube } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,68 +22,69 @@ export function FTPConnectionCard({
 }: FTPConnectionCardProps) {
   return (
     <Card 
-      className="border-gray-200 bg-white hover:bg-gray-50 transition-colors cursor-pointer relative shadow-sm"
+      className="border-gray-200 bg-white hover:bg-gray-50 transition-colors cursor-pointer relative group"
       onClick={onViewFiles}
     >
-      <CardHeader className="pb-2">
-        <CardTitle className="flex justify-between items-center">
-          <span className="truncate text-gray-800">{connection.server_name}</span>
-          <div className="flex items-center space-x-1">
+      <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+        <Button 
+          onClick={(e) => {
+            e.stopPropagation();
+            onTest();
+          }} 
+          variant="outline" 
+          size="icon"
+          className="h-7 w-7"
+          title="Test connection"
+        >
+          <TestTube className="h-4 w-4 text-gray-600" />
+        </Button>
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          variant="outline"
+          size="icon"
+          className="h-7 w-7"
+          title="Edit connection"
+        >
+          <Settings className="h-4 w-4 text-gray-600" />
+        </Button>
+      </div>
+
+      <CardHeader className="pb-2 pt-2">
+        <CardTitle className="flex items-center">
+          <span className="truncate text-gray-800 pr-20">{connection.server_name}</span>
+          <div className="flex items-center ml-auto">
             {testResult === true && (
               <Badge className="bg-green-500">
-                <Check size={12} className="mr-1" /> Connected
+                Connected
               </Badge>
             )}
             {testResult === false && (
               <Badge variant="destructive">
-                <X size={12} className="mr-1" /> Failed
+                Failed
               </Badge>
             )}
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <p className="text-sm text-gray-600 mb-1">Host: {connection.host}</p>
-          {connection.web_url && (
-            <p className="text-sm flex items-center">
-              <ExternalLink size={14} className="mr-1 text-gray-500" />
-              <a 
-                href={connection.web_url.startsWith('http') ? connection.web_url : `https://${connection.web_url}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline truncate"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {connection.web_url}
-              </a>
-            </p>
-          )}
-        </div>
-        <div className="absolute top-2 right-2 flex gap-2">
-          <Button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onTest();
-            }} 
-            variant="outline" 
-            size="sm"
-            className="border-gray-200 hover:bg-gray-100 px-2 h-7"
-          >
-            Test
-          </Button>
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-            variant="outline"
-            size="sm"
-            className="border-gray-200 hover:bg-gray-100 px-2 h-7"
-          >
-            <Settings size={14} />
-          </Button>
-        </div>
+      <CardContent className="space-y-2">
+        <p className="text-sm text-gray-600">Host: {connection.host}</p>
+        {connection.web_url && (
+          <p className="text-sm flex items-center gap-1 truncate">
+            <ExternalLink size={14} className="shrink-0 text-gray-500" />
+            <a 
+              href={connection.web_url.startsWith('http') ? connection.web_url : `https://${connection.web_url}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline truncate"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {connection.web_url}
+            </a>
+          </p>
+        )}
       </CardContent>
     </Card>
   );
