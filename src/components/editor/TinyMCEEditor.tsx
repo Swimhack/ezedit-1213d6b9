@@ -13,10 +13,8 @@ export function TinyMCEEditor({ content, onChange, height = "100%" }: TinyMCEEdi
   const editorRef = useRef<any>(null);
   const { theme } = useTheme();
 
-  // Check if window.ENV exists and has the TinyMCE API key
-  const apiKey = typeof window !== "undefined" && window.ENV?.TINYMCE_API_KEY 
-    ? window.ENV.TINYMCE_API_KEY 
-    : "your-api-key"; // Fallback to a default or empty key
+  // Use the provided API key directly
+  const apiKey = "q8smw06bbgh2t6wcki98o8ja4l5bco8g7k6tgfapjboh81tv";
 
   return (
     <Editor
