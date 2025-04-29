@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import Logo from "@/components/Logo";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
@@ -126,11 +125,8 @@ const Register = () => {
       <Navbar />
       <div className="flex-grow flex items-center justify-center py-16 px-4">
         <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <Logo className="mx-auto" />
-            <h1 className="text-2xl font-bold mt-4">Create an account</h1>
-            <p className="text-muted-foreground mt-2">Start your 7-day free trial</p>
-          </div>
+          <h1 className="text-2xl font-bold text-center mb-2">Create an account</h1>
+          <p className="text-muted-foreground text-center mb-8">Start your 7-day free trial</p>
           
           <Card>
             <CardHeader>
