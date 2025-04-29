@@ -21,6 +21,7 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [isTrialSignup, setIsTrialSignup] = useState(false);
   const navigate = useNavigate();
 
   const sendWelcomeEmail = async (email: string, name: string) => {
@@ -48,8 +49,48 @@ const Register = () => {
     }
   };
 
+  const handleRegisterTrial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!agreedToTerms) {
+      toast.error("You must agree to the terms and conditions");
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // Register the trial user using our edge function
+      const { data, error } = await supabase.functions.invoke('register-trial', {
+        body: { email }
+      });
+      
+      if (error) throw new Error(error.message || 'Failed to register trial');
+      
+      setIsRegistered(true);
+      toast.success("Trial registration successful! Please check your email to access your 7-day trial.", {
+        duration: 5000
+      });
+      
+      // Redirect to login page after 5 seconds
+      setTimeout(() => {
+        navigate("/login");
+      }, 5000);
+      
+    } catch (error: any) {
+      toast.error(error.message || "Failed to register for trial. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isTrialSignup) {
+      handleRegisterTrial(e);
+      return;
+    }
     
     if (!agreedToTerms) {
       toast.error("You must agree to the terms and conditions");
@@ -138,24 +179,46 @@ const Register = () => {
           
           <Card className="bg-eznavy-light border-ezgray-dark">
             <CardHeader>
-              <CardTitle className="text-xl">Sign Up</CardTitle>
-              <CardDescription>Enter your information to create an account</CardDescription>
+              <div className="flex justify-center space-x-4 mb-4">
+                <Button 
+                  variant={isTrialSignup ? "outline" : "secondary"} 
+                  onClick={() => setIsTrialSignup(false)}
+                >
+                  Full Account
+                </Button>
+                <Button 
+                  variant={isTrialSignup ? "secondary" : "outline"} 
+                  onClick={() => setIsTrialSignup(true)}
+                >
+                  7-Day Trial
+                </Button>
+              </div>
+              <CardTitle className="text-xl">
+                {isTrialSignup ? "Start Your Free Trial" : "Sign Up"}
+              </CardTitle>
+              <CardDescription>
+                {isTrialSignup 
+                  ? "Enter your email to begin your 7-day free trial" 
+                  : "Enter your information to create an account"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit}>
                 <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      className="bg-eznavy border-ezgray-dark text-ezwhite"
-                    />
-                  </div>
+                  {!isTrialSignup && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="John Doe"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required={!isTrialSignup}
+                        className="bg-eznavy border-ezgray-dark text-ezwhite"
+                      />
+                    </div>
+                  )}
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -168,17 +231,19 @@ const Register = () => {
                       className="bg-eznavy border-ezgray-dark text-ezwhite"
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="bg-eznavy border-ezgray-dark text-ezwhite"
-                    />
-                  </div>
+                  {!isTrialSignup && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required={!isTrialSignup}
+                        className="bg-eznavy border-ezgray-dark text-ezwhite"
+                      />
+                    </div>
+                  )}
                   <div className="flex items-center space-x-2">
                     <Checkbox 
                       id="terms" 
@@ -207,10 +272,10 @@ const Register = () => {
                     {isLoading ? (
                       <>
                         <Loader className="mr-2 h-4 w-4 animate-spin" />
-                        Creating your account...
+                        {isTrialSignup ? "Starting your trial..." : "Creating your account..."}
                       </>
                     ) : (
-                      "Create account"
+                      isTrialSignup ? "Start Free Trial" : "Create account"
                     )}
                   </Button>
                 </div>

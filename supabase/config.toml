@@ -9,3 +9,13 @@ path = "supabase/functions/wysiwyg-ai"
 verify_jwt = false
 name = "wysiwyg-ai-logs"
 path = "supabase/functions/wysiwyg-ai-logs"
+
+[[functions]]
+verify_jwt = false
+name = "register-trial"
+path = "supabase/functions/register-trial"
+
+[[functions]]
+verify_jwt = false
+name = "expire-trials"
+path = "supabase/functions/expire-trials"

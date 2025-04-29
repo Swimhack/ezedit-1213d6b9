@@ -84,6 +84,30 @@ export type Database = {
         }
         Relationships: []
       }
+      trial_users: {
+        Row: {
+          active: boolean
+          email: string
+          expires_at: string
+          id: string
+          signup_at: string
+        }
+        Insert: {
+          active?: boolean
+          email: string
+          expires_at: string
+          id?: string
+          signup_at?: string
+        }
+        Update: {
+          active?: boolean
+          email?: string
+          expires_at?: string
+          id?: string
+          signup_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

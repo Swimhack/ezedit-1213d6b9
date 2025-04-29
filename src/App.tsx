@@ -24,6 +24,7 @@ import MySites from "@/pages/MySites";
 import CodeEditor from "@/pages/CodeEditor";
 import Demo from "./pages/Demo";
 import Logs from "./pages/Logs";
+import TrialProtection from "./components/TrialProtection";
 
 const queryClient = new QueryClient();
 
@@ -47,13 +48,16 @@ const App = () => (
           <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/support" element={<Support />} />
           <Route path="/logs" element={<Logs />} />
-          <Route path="/dashboard" element={<Navigate to="/dashboard/sites" replace />} />
-          <Route path="/dashboard/ftp" element={<FTPConnection />} />
-          <Route path="/dashboard/settings" element={<Settings />} />
-          <Route path="/dashboard/sites" element={<MySites />} />
-          <Route path="/dashboard/editor" element={<CodeEditor />} />
-          <Route path="/dashboard/logs" element={<Logs />} />
           <Route path="/demo" element={<Demo />} />
+          
+          {/* Protected Dashboard Routes */}
+          <Route path="/dashboard" element={<Navigate to="/dashboard/sites" replace />} />
+          <Route path="/dashboard/ftp" element={<TrialProtection><FTPConnection /></TrialProtection>} />
+          <Route path="/dashboard/settings" element={<TrialProtection><Settings /></TrialProtection>} />
+          <Route path="/dashboard/sites" element={<TrialProtection><MySites /></TrialProtection>} />
+          <Route path="/dashboard/editor" element={<TrialProtection><CodeEditor /></TrialProtection>} />
+          <Route path="/dashboard/logs" element={<TrialProtection><Logs /></TrialProtection>} />
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
