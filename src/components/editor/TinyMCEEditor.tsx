@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from "react";
 import { Editor } from "@tinymce/tinymce-react";
 import { useTheme } from "@/hooks/use-theme";
@@ -8,15 +7,18 @@ interface TinyMCEEditorProps {
   onChange: (content: string) => void;
   height?: string;
   previewSelector?: string; // Optional selector for preview iframe
+  editorRef?: React.MutableRefObject<any>;
 }
 
 export function TinyMCEEditor({ 
   content, 
   onChange, 
   height = "100%",
-  previewSelector 
+  previewSelector,
+  editorRef: externalEditorRef
 }: TinyMCEEditorProps) {
-  const editorRef = useRef<any>(null);
+  const internalEditorRef = useRef<any>(null);
+  const editorRef = externalEditorRef || internalEditorRef;
   const { theme } = useTheme();
 
   // Use the provided API key directly
@@ -27,7 +29,7 @@ export function TinyMCEEditor({
     if (editorRef.current && content !== editorRef.current.getContent()) {
       editorRef.current.setContent(content);
     }
-  }, [content]);
+  }, [content, editorRef]);
 
   // Effect to update preview iframe if selector is provided
   useEffect(() => {
