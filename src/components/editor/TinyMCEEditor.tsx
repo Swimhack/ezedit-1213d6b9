@@ -7,9 +7,15 @@ interface TinyMCEEditorProps {
   content: string;
   onChange: (content: string) => void;
   height?: string;
+  previewSelector?: string; // Optional selector for preview iframe
 }
 
-export function TinyMCEEditor({ content, onChange, height = "100%" }: TinyMCEEditorProps) {
+export function TinyMCEEditor({ 
+  content, 
+  onChange, 
+  height = "100%",
+  previewSelector 
+}: TinyMCEEditorProps) {
   const editorRef = useRef<any>(null);
   const { theme } = useTheme();
 
@@ -23,13 +29,38 @@ export function TinyMCEEditor({ content, onChange, height = "100%" }: TinyMCEEdi
     }
   }, [content]);
 
+  // Effect to update preview iframe if selector is provided
+  useEffect(() => {
+    if (previewSelector && content) {
+      const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
+      if (previewFrame) {
+        previewFrame.srcdoc = content;
+      }
+    }
+  }, [content, previewSelector]);
+
   return (
     <Editor
       apiKey={apiKey}
-      onInit={(evt, editor) => (editorRef.current = editor)}
+      onInit={(evt, editor) => {
+        editorRef.current = editor;
+        
+        // Ensure initial content is set correctly
+        if (content && editor.getContent() !== content) {
+          editor.setContent(content);
+        }
+      }}
       initialValue={content}
       onEditorChange={(newContent) => {
         onChange(newContent);
+        
+        // Update preview iframe if selector is provided
+        if (previewSelector) {
+          const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
+          if (previewFrame) {
+            previewFrame.srcdoc = newContent;
+          }
+        }
       }}
       init={{
         height,
