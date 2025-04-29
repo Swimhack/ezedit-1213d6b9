@@ -39,7 +39,13 @@ export function TinyMCEEditor({
       const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
       if (previewFrame) {
         console.log('[TinyMCE] Updating preview iframe');
-        previewFrame.srcdoc = content;
+        try {
+          previewFrame.srcdoc = content;
+        } catch (err) {
+          console.error('[TinyMCE] Error updating preview iframe:', err);
+        }
+      } else {
+        console.warn('[TinyMCE] Preview selector provided but element not found:', previewSelector);
       }
     }
   }, [content, previewSelector]);
@@ -56,16 +62,30 @@ export function TinyMCEEditor({
           console.log('[TinyMCE] Setting initial content, length:', content.length);
           editor.setContent(content);
         }
+        
+        // Log errors from TinyMCE
+        editor.on('LogError', function(e) {
+          console.error('[TinyMCE] Editor error:', e);
+        });
       }}
       initialValue={content}
-      onEditorChange={(newContent) => {
-        onChange(newContent);
-        
-        // Update preview iframe if selector is provided
-        if (previewSelector) {
-          const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
-          if (previewFrame) {
-            previewFrame.srcdoc = newContent;
+      onEditorChange={(newContent, editor) => {
+        // Only trigger onChange if content actually changed to prevent loops
+        if (newContent !== content) {
+          console.log('[TinyMCE] Content changed via onEditorChange, new length:', newContent.length);
+          onChange(newContent);
+          
+          // Update preview iframe if selector is provided
+          if (previewSelector) {
+            const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
+            if (previewFrame) {
+              try {
+                previewFrame.srcdoc = newContent;
+                console.log('[TinyMCE] Preview updated via onEditorChange');
+              } catch (err) {
+                console.error('[TinyMCE] Error updating preview in onEditorChange:', err);
+              }
+            }
           }
         }
       }}
@@ -89,17 +109,34 @@ export function TinyMCEEditor({
         icons: 'default',
         // Add setup function to sync with preview
         setup: function(editor) {
-          editor.on('Change KeyUp', function() {
+          editor.on('Change KeyUp', function(e) {
             // Log that content has changed
-            console.log('[TinyMCE] Content changed via editor event');
+            console.log('[TinyMCE] Content changed via editor event', e.type);
             
             // Update preview if selector provided
             if (previewSelector) {
               const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
               if (previewFrame) {
-                previewFrame.srcdoc = editor.getContent();
+                try {
+                  const content = editor.getContent();
+                  previewFrame.srcdoc = content;
+                  console.log('[TinyMCE] Preview updated via', e.type, 'event');
+                } catch (err) {
+                  console.error('[TinyMCE] Error updating preview in', e.type, 'event:', err);
+                }
+              } else {
+                console.warn('[TinyMCE] Preview selector provided but element not found in', e.type, 'event');
               }
             }
+          });
+          
+          // Log errors during initialization
+          editor.on('init', function() {
+            console.log('[TinyMCE] Editor init event fired');
+          });
+          
+          editor.on('error', function(e) {
+            console.error('[TinyMCE] Editor error event:', e);
           });
         }
       }}

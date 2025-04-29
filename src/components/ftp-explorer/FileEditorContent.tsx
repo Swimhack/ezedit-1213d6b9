@@ -25,10 +25,16 @@ export function FileEditorContent({
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(400);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const previewId = "preview-iframe-" + Math.random().toString(36).substring(2, 9);
 
   useEffect(() => {
     if (iframeRef.current) {
-      iframeRef.current.srcdoc = content;
+      console.log('[FileEditorContent] Updating iframe content, length:', content?.length || 0);
+      try {
+        iframeRef.current.srcdoc = content;
+      } catch (err) {
+        console.error('[FileEditorContent] Error updating iframe:', err);
+      }
     }
   }, [content]);
 
@@ -36,14 +42,22 @@ export function FileEditorContent({
     if (e.buttons !== 1) return;
     const startX = e.clientX;
     const startWidth = sidebarWidth;
+    
+    console.log('[FileEditorContent] Starting resize, initial width:', startWidth);
+    
     const onMove = (m: MouseEvent) => {
       const delta = m.clientX - startX;
-      setSidebarWidth(Math.max(300, Math.min(600, startWidth - delta)));
+      const newWidth = Math.max(300, Math.min(600, startWidth - delta));
+      console.log('[FileEditorContent] Resizing sidebar to:', newWidth);
+      setSidebarWidth(newWidth);
     };
+    
     const onUp = () => {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
+      console.log('[FileEditorContent] Resize complete, final width:', sidebarWidth);
     };
+    
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
   };
@@ -61,9 +75,15 @@ export function FileEditorContent({
             fileName={filePath.split("/").pop() || undefined}
             content={content}
             onChange={(newContent) => {
+              console.log('[FileEditorContent] Content changed via SplitEditor, length:', newContent?.length || 0);
               onContentChange(newContent);
               if (iframeRef.current) {
-                iframeRef.current.srcdoc = newContent;
+                console.log('[FileEditorContent] Updating preview iframe after content change');
+                try {
+                  iframeRef.current.srcdoc = newContent;
+                } catch (err) {
+                  console.error('[FileEditorContent] Error updating preview iframe after content change:', err);
+                }
               }
             }}
             error={error}
@@ -83,6 +103,7 @@ export function FileEditorContent({
             style={{ width: sidebarWidth }}
           >
             <iframe
+              id={previewId}
               ref={iframeRef}
               className="w-full h-full border-0"
               title="Live Preview"
@@ -95,7 +116,10 @@ export function FileEditorContent({
         variant="ghost"
         size="icon"
         className="absolute right-4 top-4 z-10 bg-eznavy-light/80 hover:bg-eznavy"
-        onClick={() => setSidebarVisible(!sidebarVisible)}
+        onClick={() => {
+          console.log('[FileEditorContent] Toggle sidebar visibility:', !sidebarVisible);
+          setSidebarVisible(!sidebarVisible);
+        }}
       >
         {sidebarVisible ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </Button>

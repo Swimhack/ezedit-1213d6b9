@@ -27,10 +27,12 @@ export function EditorPreviewSplit({
   const editorRef = useRef<any>(null);
   const previewSrc = useLivePreview(code, filePath || "");
   const { isLight } = useTheme();
+  const previewIframeId = "preview-iframe-" + Math.random().toString(36).substring(2, 9);
 
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
     editor.focus();
+    console.log('[EditorPreviewSplit] Monaco editor mounted');
   };
 
   const handleSplitDragStart = () => {
@@ -43,31 +45,42 @@ export function EditorPreviewSplit({
     // Manually trigger a resize event to ensure Monaco Editor adjusts properly
     if (editorRef.current && editorMode === 'code') {
       setTimeout(() => {
+        console.log('[EditorPreviewSplit] Triggering editor layout after split resize');
         editorRef.current.layout();
       }, 100);
     }
   };
 
+  console.log('[EditorPreviewSplit] Rendering with', editorMode, 'mode, filePath:', filePath);
+
   const renderEditor = () => {
     if (editorMode === 'wysiwyg' && /\.(html?|htm|php)$/i.test(filePath)) {
+      console.log('[EditorPreviewSplit] Rendering TinyMCE editor for', filePath);
       return (
         <TinyMCEEditor
           content={code}
-          onChange={(newContent) => onCodeChange(newContent)}
+          onChange={(newContent) => {
+            console.log('[EditorPreviewSplit] TinyMCE content changed, length:', newContent.length);
+            onCodeChange(newContent);
+          }}
           height="100%"
-          previewSelector=".preview iframe"
+          previewSelector={`#${previewIframeId}`}
           editorRef={editorRef}
         />
       );
     }
     
+    console.log('[EditorPreviewSplit] Rendering Monaco editor for', filePath);
     return (
       <Editor
         height="100%"
         language={detectLanguage()}
         theme={isLight ? "vs" : "vs-dark"}
         value={code}
-        onChange={onCodeChange}
+        onChange={(newCode) => {
+          console.log('[EditorPreviewSplit] Monaco content changed, length:', newCode?.length || 0);
+          onCodeChange(newCode);
+        }}
         onMount={handleEditorDidMount}
         options={{
           minimap: { enabled: false },
@@ -108,6 +121,7 @@ export function EditorPreviewSplit({
           Preview
         </div>
         <iframe
+          id={previewIframeId}
           srcDoc={previewSrc}
           className="w-full h-[calc(100%-28px)] border-none"
           sandbox="allow-scripts"
