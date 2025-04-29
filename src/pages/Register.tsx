@@ -13,6 +13,7 @@ import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader } from "lucide-react";
+import { useTheme } from "@/hooks/use-theme";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -22,6 +23,7 @@ const Register = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const navigate = useNavigate();
+  const { resolvedTheme } = useTheme();
 
   const handleRegisterTrial = async (email: string) => {
     try {
@@ -86,7 +88,7 @@ const Register = () => {
       <div className="flex flex-col min-h-screen">
         <Navbar />
         <div className="flex-grow flex items-center justify-center py-16 px-4">
-          <Card className="w-full max-w-md bg-eznavy-light border-ezgray-dark">
+          <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle className="text-xl text-center">Registration Successful! 🎉</CardTitle>
               <CardDescription className="text-center">
@@ -100,7 +102,7 @@ const Register = () => {
                   <br />Please check your inbox and click the verification link.
                 </AlertDescription>
               </Alert>
-              <p className="text-sm text-ezgray text-center">
+              <p className="text-sm text-muted-foreground text-center">
                 You'll be redirected to the login page in a few moments...
               </p>
             </CardContent>
@@ -108,7 +110,6 @@ const Register = () => {
               <Button
                 variant="outline"
                 onClick={() => navigate("/login")}
-                className="text-ezblue hover:text-ezblue-light"
               >
                 Go to Login Page
               </Button>
@@ -128,10 +129,10 @@ const Register = () => {
           <div className="text-center mb-8">
             <Logo className="mx-auto" />
             <h1 className="text-2xl font-bold mt-4">Create an account</h1>
-            <p className="text-ezgray mt-2">Start your 7-day free trial</p>
+            <p className="text-muted-foreground mt-2">Start your 7-day free trial</p>
           </div>
           
-          <Card className="bg-eznavy-light border-ezgray-dark">
+          <Card>
             <CardHeader>
               <CardTitle className="text-xl">Sign Up</CardTitle>
               <CardDescription>
@@ -150,7 +151,6 @@ const Register = () => {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
-                      className="bg-eznavy border-ezgray-dark text-ezwhite"
                     />
                   </div>
                   <div className="grid gap-2">
@@ -162,7 +162,6 @@ const Register = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="bg-eznavy border-ezgray-dark text-ezwhite"
                     />
                   </div>
                   <div className="grid gap-2">
@@ -173,7 +172,6 @@ const Register = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="bg-eznavy border-ezgray-dark text-ezwhite"
                     />
                   </div>
                   <div className="flex items-center space-x-2">
@@ -184,21 +182,21 @@ const Register = () => {
                     />
                     <label
                       htmlFor="terms"
-                      className="text-sm text-ezgray"
+                      className="text-sm text-muted-foreground"
                     >
                       I agree to the{" "}
-                      <Link to="/terms" className="text-ezblue hover:underline">
+                      <Link to="/terms" className="text-primary hover:underline">
                         terms of service
                       </Link>{" "}
                       and{" "}
-                      <Link to="/privacy" className="text-ezblue hover:underline">
+                      <Link to="/privacy" className="text-primary hover:underline">
                         privacy policy
                       </Link>
                     </label>
                   </div>
                   <Button 
                     type="submit" 
-                    className="bg-ezblue text-eznavy hover:bg-ezblue-light" 
+                    className="w-full" 
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -214,9 +212,9 @@ const Register = () => {
               </form>
             </CardContent>
             <CardFooter className="flex flex-col items-center">
-              <div className="text-sm text-ezgray">
+              <div className="text-sm text-muted-foreground">
                 Already have an account?{" "}
-                <Link to="/login" className="text-ezblue hover:underline">
+                <Link to="/login" className="text-primary hover:underline">
                   Sign in
                 </Link>
               </div>
