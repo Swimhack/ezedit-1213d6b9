@@ -1,5 +1,5 @@
 
-import { useRef, useState, ReactNode } from "react";
+import { useRef, useState } from "react";
 import Editor from "@monaco-editor/react";
 import Split from "react-split";
 import { Loader } from "lucide-react";
