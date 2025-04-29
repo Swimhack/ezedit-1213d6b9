@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Tabs, TabList, Tab, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
@@ -48,8 +49,20 @@ export function HybridEditor({
             remote: {
               urlStore: '/api/save',
               urlLoad: '/api/load',
-              params: { filename: fileName },
-              contentTypeJson: true
+              headers: { 
+                'Content-Type': 'application/json' 
+              },
+              onStore: (data: any) => {
+                // Add filename to the data before storing
+                return {
+                  ...data,
+                  filename: fileName
+                };
+              },
+              onLoad: (result: any) => {
+                // Process the loaded data if needed
+                return result;
+              }
             }
           }
         },
