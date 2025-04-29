@@ -15,6 +15,13 @@ export function TinyMCEEditor({ content, onChange, height = "100%" }: TinyMCEEdi
 
   // Use the provided API key directly
   const apiKey = "q8smw06bbgh2t6wcki98o8ja4l5bco8g7k6tgfapjboh81tv";
+  
+  // Effect to update editor content when prop changes from outside
+  useEffect(() => {
+    if (editorRef.current && content !== editorRef.current.getContent()) {
+      editorRef.current.setContent(content);
+    }
+  }, [content]);
 
   return (
     <Editor
