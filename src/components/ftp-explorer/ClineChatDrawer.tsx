@@ -31,9 +31,13 @@ export function ClineChatDrawer({ filePath, code, onInsert }: ClineChatDrawerPro
     try {
       const { data, error } = await supabase.functions.invoke("cline-chat", {
         body: {
-          question: userQuestion,
+          message: userQuestion,
           filePath: filePath,
-          fileContent: code
+          fileContent: code,
+          previousMessages: messages.map(m => ({
+            role: m.role === "user" ? "user" : "assistant",
+            content: m.text
+          }))
         },
       });
       
@@ -41,14 +45,18 @@ export function ClineChatDrawer({ filePath, code, onInsert }: ClineChatDrawerPro
         throw new Error(error.message);
       }
       
-      if (data && data.answer) {
-        setMessages(prev => [...prev, { role: "ai", text: data.answer }]);
-      } else {
-        toast.error("Failed to get a response from Cline");
-      }
-    } catch (error) {
+      setMessages(prev => [...prev, { 
+        role: "ai", 
+        text: data?.response || "No response received from AI" 
+      }]);
+      
+    } catch (error: any) {
       console.error("Cline chat error:", error);
       toast.error("Error communicating with Cline");
+      setMessages(prev => [...prev, { 
+        role: "ai", 
+        text: `⚠️ Error: ${error.message || "Something went wrong. Please try again."}` 
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +95,7 @@ export function ClineChatDrawer({ filePath, code, onInsert }: ClineChatDrawerPro
                       : "bg-ezblue/10 mr-6"
                   }`}
                 >
-                  <p className="text-sm">
+                  <p className="text-sm whitespace-pre-wrap">
                     {msg.text}
                   </p>
                   {msg.role === "ai" && (
@@ -115,7 +123,7 @@ export function ClineChatDrawer({ filePath, code, onInsert }: ClineChatDrawerPro
               placeholder="Ask about this code..."
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
               className="flex-1"
             />
             <Button 

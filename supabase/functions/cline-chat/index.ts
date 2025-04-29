@@ -46,11 +46,16 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    return new Response(
-      JSON.stringify({ response: data.choices[0].message.content }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
 
+    // Safe access to response data with error handling
+    if (data && data.choices && data.choices.length > 0 && data.choices[0].message) {
+      return new Response(
+        JSON.stringify({ response: data.choices[0].message.content }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      throw new Error('Invalid response format from OpenRouter API');
+    }
   } catch (error) {
     console.error('Cline chat error:', error);
     return new Response(

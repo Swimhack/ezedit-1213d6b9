@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { SendIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -51,31 +52,21 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
     setIsLoading(true);
 
     try {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) {
-        throw new Error('Authentication required');
-      }
-
-      const response = await fetch('https://natjhcqynqziccssnwim.supabase.co/functions/v1/cline-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.data.session.access_token}`,
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke("cline-chat", {
+        body: {
           message: userMessage,
           filePath,
           fileContent,
           previousMessages: messages
-        }),
+        },
       });
 
-      const data = await response.json();
-      
-      // Always add the response to messages, even if it's an error message
+      if (error) throw new Error(error.message);
+
+      // Add the response to messages
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: data.response || '🤖 No response received' 
+        content: data?.response || '🤖 No response received' 
       }]);
       
     } catch (error: any) {
@@ -139,7 +130,7 @@ export default function ClinePane({ filePath, fileContent, onApplyResponse }: Cl
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onApplyResponse(message.content)}
+                    onClick={() => handleApplyResponse(message.content)}
                     className="mt-2"
                   >
                     ↩ Apply to editor
