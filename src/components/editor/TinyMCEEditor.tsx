@@ -28,6 +28,7 @@ export function TinyMCEEditor({
   // Effect to update editor content when prop changes from outside
   useEffect(() => {
     if (editorRef.current && content !== editorRef.current.getContent()) {
+      console.log('[TinyMCE] Updating content from props, length:', content?.length || 0);
       editorRef.current.setContent(content);
     }
   }, [content, editorRef]);
@@ -37,6 +38,7 @@ export function TinyMCEEditor({
     if (previewSelector && content) {
       const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
       if (previewFrame) {
+        console.log('[TinyMCE] Updating preview iframe');
         previewFrame.srcdoc = content;
       }
     }
@@ -47,9 +49,11 @@ export function TinyMCEEditor({
       apiKey={apiKey}
       onInit={(evt, editor) => {
         editorRef.current = editor;
+        console.log('[TinyMCE] Editor initialized');
         
         // Ensure initial content is set correctly
         if (content && editor.getContent() !== content) {
+          console.log('[TinyMCE] Setting initial content, length:', content.length);
           editor.setContent(content);
         }
       }}
@@ -83,6 +87,21 @@ export function TinyMCEEditor({
         // Always use the light skin
         skin: 'oxide',
         icons: 'default',
+        // Add setup function to sync with preview
+        setup: function(editor) {
+          editor.on('Change KeyUp', function() {
+            // Log that content has changed
+            console.log('[TinyMCE] Content changed via editor event');
+            
+            // Update preview if selector provided
+            if (previewSelector) {
+              const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
+              if (previewFrame) {
+                previewFrame.srcdoc = editor.getContent();
+              }
+            }
+          });
+        }
       }}
     />
   );
