@@ -1,12 +1,14 @@
 
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { X, Code, Edit3 } from "lucide-react";
 import { ClineChatDrawer } from "./ClineChatDrawer";
 import { FileEditorToolbar } from "./FileEditorToolbar";
 import { EditorPreviewSplit } from "./EditorPreviewSplit";
 import { EditorStateDisplay } from "./EditorStateDisplay";
 import { useFileEditor } from "@/hooks/useFileEditor";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface FileEditorModalProps {
   isOpen: boolean;
@@ -22,6 +24,7 @@ export function FileEditorModal({
   filePath,
 }: FileEditorModalProps) {
   const [draggingSplitter, setDraggingSplitter] = useState(false);
+  const [editorMode, setEditorMode] = useState<'code' | 'wysiwyg'>('code');
   
   const {
     code,
@@ -41,6 +44,9 @@ export function FileEditorModal({
     }
   }, [isOpen, connectionId, filePath]);
 
+  // Check if file can be edited in WYSIWYG mode
+  const supportsWysiwyg = /\.(html?|htm|php)$/i.test(filePath);
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-screen-xl w-[95vw] h-[90vh] p-0 flex flex-col">
@@ -53,6 +59,31 @@ export function FileEditorModal({
           >
             <X />
           </button>
+        </div>
+        
+        <div className="editor-mode-tabs px-4 py-1">
+          {supportsWysiwyg && (
+            <div className="flex items-center space-x-2">
+              <Button 
+                size="sm" 
+                variant={editorMode === 'code' ? 'default' : 'outline'}
+                onClick={() => setEditorMode('code')}
+                className="flex items-center gap-1"
+              >
+                <Code className="w-4 h-4" />
+                Code
+              </Button>
+              <Button 
+                size="sm" 
+                variant={editorMode === 'wysiwyg' ? 'default' : 'outline'}
+                onClick={() => setEditorMode('wysiwyg')}
+                className="flex items-center gap-1"
+              >
+                <Edit3 className="w-4 h-4" />
+                Visual
+              </Button>
+            </div>
+          )}
         </div>
         
         <FileEditorToolbar
@@ -75,6 +106,7 @@ export function FileEditorModal({
               filePath={filePath}
               onCodeChange={handleCodeChange}
               detectLanguage={detectLanguage}
+              editorMode={editorMode}
             />
             
             <ClineChatDrawer
