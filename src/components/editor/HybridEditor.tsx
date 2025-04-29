@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Tabs, TabList, Tab, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
@@ -45,10 +44,14 @@ export function HybridEditor({
           type: 'remote',
           autosave: false,
           autoload: true,
-          urlStore: '/api/save',
-          urlLoad: '/api/load',
-          params: { filename: fileName },
-          contentTypeJson: true
+          options: {
+            remote: {
+              urlStore: '/api/save',
+              urlLoad: '/api/load',
+              params: { filename: fileName },
+              contentTypeJson: true
+            }
+          }
         },
         plugins: [gjsPreset],
         pluginsOpts: {
