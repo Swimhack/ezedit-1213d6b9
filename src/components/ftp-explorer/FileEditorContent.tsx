@@ -1,5 +1,5 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { SplitEditor } from "../editor/SplitEditor";
 import { Button } from "../ui/button";
 import { ChevronLeft, ChevronRight, Loader } from "lucide-react";
@@ -24,7 +24,13 @@ export function FileEditorContent({
 }: FileEditorContentProps) {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(400);
-  const editorRef = useRef(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    if (iframeRef.current) {
+      iframeRef.current.srcdoc = content;
+    }
+  }, [content]);
 
   const handleResize = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.buttons !== 1) return;
@@ -44,7 +50,7 @@ export function FileEditorContent({
 
   return (
     <div className="flex flex-1 h-full overflow-hidden relative">
-      <div className={`flex-1 h-full overflow-hidden ${showKlein ? 'md:w-1/2' : 'w-full'}`}>
+      <div className={`flex-1 h-full overflow-hidden ${showKlein ? "md:w-1/2" : "w-full"}`}>
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <Loader className="w-8 h-8 animate-spin text-ezblue mr-2" />
@@ -54,9 +60,14 @@ export function FileEditorContent({
           <SplitEditor
             fileName={filePath.split("/").pop() || undefined}
             content={content}
-            onChange={onContentChange}
+            onChange={(newContent) => {
+              onContentChange(newContent);
+              if (iframeRef.current) {
+                iframeRef.current.srcdoc = newContent;
+              }
+            }}
             error={error}
-            editorRef={editorRef}
+            editorRef={null}
           />
         )}
       </div>
@@ -70,7 +81,13 @@ export function FileEditorContent({
           <div
             className="md:flex-shrink-0 overflow-hidden transition-width"
             style={{ width: sidebarWidth }}
-          />
+          >
+            <iframe
+              ref={iframeRef}
+              className="w-full h-full border-0"
+              title="Live Preview"
+            />
+          </div>
         </>
       )}
 
