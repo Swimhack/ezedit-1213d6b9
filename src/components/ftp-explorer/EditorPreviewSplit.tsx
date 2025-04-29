@@ -55,6 +55,8 @@ export function EditorPreviewSplit({
           content={code}
           onChange={(newContent) => onCodeChange(newContent)}
           height="100%"
+          previewSelector=".preview iframe"
+          editorRef={editorRef}
         />
       );
     }
