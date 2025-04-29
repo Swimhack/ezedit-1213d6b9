@@ -121,9 +121,9 @@ const Register = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
       <Navbar />
-      <div className="flex-grow flex items-center justify-center py-16 px-4">
+      <div className="flex-grow flex items-center justify-center py-16 px-4 w-full">
         <div className="w-full max-w-md">
           <h1 className="text-2xl font-bold text-center mb-2">Create an account</h1>
           <p className="text-muted-foreground text-center mb-8">Start your 7-day free trial</p>

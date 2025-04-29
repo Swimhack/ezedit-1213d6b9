@@ -54,9 +54,9 @@ const Login = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
       <Navbar />
-      <div className="flex-grow flex items-center justify-center py-16 px-4">
+      <div className="flex-grow flex items-center justify-center py-16 px-4 w-full">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Logo className="mx-auto h-12" />
