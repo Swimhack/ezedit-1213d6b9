@@ -7,8 +7,9 @@ import gjsPreset from 'grapesjs-preset-webpage';
 import { CodeEditor } from './CodeEditor';
 import { WysiwygEditor } from './WysiwygEditor';
 import { Button } from '@/components/ui/button';
-import { Eye, Code, Columns } from 'lucide-react';
+import { Eye, Code, Columns, Paintbrush } from 'lucide-react';
 import { useLivePreview } from '@/hooks/useLivePreview';
+import './grapesjs-styles.css';
 
 interface HybridEditorProps {
   content: string;
@@ -27,6 +28,7 @@ export function HybridEditor({
   const [htmlContent, setHtmlContent] = useState(content);
   const grapesjsEditorRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [gjsView, setGjsView] = useState<'design' | 'code'>('design');
 
   const previewSrc = useLivePreview(content, fileName || '');
   const isHtmlFile = fileName ? /\.(html?|htm)$/i.test(fileName) : false;
@@ -39,12 +41,44 @@ export function HybridEditor({
         height: '100%',
         width: 'auto',
         fromElement: false,
-        storageManager: false,
+        storageManager: {
+          type: 'remote',
+          autosave: false,
+          autoload: true,
+          urlStore: '/api/save',
+          urlLoad: '/api/load',
+          params: { filename: fileName },
+          contentTypeJson: true
+        },
         plugins: [gjsPreset],
         pluginsOpts: {
           gjsPreset: {}
         },
-        panels: { defaults: [] },
+        panels: { 
+          defaults: [
+            {
+              id: 'views',
+              buttons: [
+                {
+                  id: 'design-btn',
+                  label: 'Design',
+                  className: 'gjs-pn-btn',
+                  command: 'show-design',
+                  active: gjsView === 'design',
+                  attributes: { title: 'Switch to Design View' },
+                },
+                {
+                  id: 'code-btn',
+                  label: 'Code',
+                  className: 'gjs-pn-btn',
+                  command: 'show-code',
+                  active: gjsView === 'code',
+                  attributes: { title: 'Switch to Code View' },
+                }
+              ]
+            }
+          ] 
+        },
         deviceManager: { devices: [
           { name: 'Desktop', width: '' },
           { name: 'Tablet', width: '768px' },
@@ -52,6 +86,25 @@ export function HybridEditor({
         ]},
         styleManager: { sectors: [] },
         blockManager: { appendTo: '#blocks' }
+      });
+      
+      // Add the toggle commands
+      editor.Commands.add('show-design', {
+        run: (editor) => {
+          editor.runCommand('core:open-blocks');
+          editor.runCommand('core:open-layers');
+          editor.stopCommand('core:open-code');
+          setGjsView('design');
+        }
+      });
+
+      editor.Commands.add('show-code', {
+        run: (editor) => {
+          editor.stopCommand('core:open-blocks');
+          editor.stopCommand('core:open-layers');
+          editor.runCommand('core:open-code');
+          setGjsView('code');
+        }
       });
       
       // Set content
@@ -126,6 +179,34 @@ export function HybridEditor({
         
         {tabIndex === 1 && (
           <div className="h-full">
+            <div className="flex gap-2 p-2 border-b">
+              <Button 
+                size="sm" 
+                variant={gjsView === 'design' ? 'default' : 'outline'}
+                onClick={() => {
+                  if (grapesjsEditorRef.current) {
+                    grapesjsEditorRef.current.runCommand('show-design');
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <Paintbrush size={14} />
+                Design
+              </Button>
+              <Button 
+                size="sm" 
+                variant={gjsView === 'code' ? 'default' : 'outline'}
+                onClick={() => {
+                  if (grapesjsEditorRef.current) {
+                    grapesjsEditorRef.current.runCommand('show-code');
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <Code size={14} />
+                Code
+              </Button>
+            </div>
             <div id="blocks" className="hidden"></div>
             <div ref={containerRef} className="h-full"></div>
           </div>
