@@ -49,7 +49,7 @@ const RegisterForm = ({ onRegisterSuccess }: RegisterFormProps) => {
     setIsLoading(true);
     
     try {
-      // Create the user account
+      // Create the user account - no password validation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
