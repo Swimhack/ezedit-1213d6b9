@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef } from "react";
 import { Editor } from "@tinymce/tinymce-react";
+import { useTheme } from "@/hooks/use-theme";
 
 interface TinyMCEEditorProps {
   content: string;
@@ -10,6 +11,7 @@ interface TinyMCEEditorProps {
 
 export function TinyMCEEditor({ content, onChange, height = "100%" }: TinyMCEEditorProps) {
   const editorRef = useRef<any>(null);
+  const { theme } = useTheme();
 
   return (
     <Editor
@@ -34,6 +36,7 @@ export function TinyMCEEditor({ content, onChange, height = "100%" }: TinyMCEEdi
         content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
         statusbar: false,
         resize: false,
+        // Always use the light skin
         skin: 'oxide',
         icons: 'default',
       }}

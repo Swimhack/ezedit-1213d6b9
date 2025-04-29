@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,6 +36,7 @@
     --radius: 0.5rem;
   }
 
+  /* Only apply dark mode styles when explicitly set */
   .dark {
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;

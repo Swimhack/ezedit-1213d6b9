@@ -6,6 +6,7 @@ import { Loader } from "lucide-react";
 import SplitHandle from "./SplitHandle";
 import { useLivePreview } from "@/hooks/useLivePreview";
 import { TinyMCEEditor } from "@/components/editor/TinyMCEEditor";
+import { useTheme } from "@/hooks/use-theme";
 
 interface EditorPreviewSplitProps {
   code: string;
@@ -25,6 +26,7 @@ export function EditorPreviewSplit({
   const [draggingSplitter, setDraggingSplitter] = useState(false);
   const editorRef = useRef<any>(null);
   const previewSrc = useLivePreview(code, filePath || "");
+  const { isLight } = useTheme();
 
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
@@ -61,7 +63,7 @@ export function EditorPreviewSplit({
       <Editor
         height="100%"
         language={detectLanguage()}
-        theme="vs-dark"
+        theme={isLight ? "vs" : "vs-dark"}
         value={code}
         onChange={onCodeChange}
         onMount={handleEditorDidMount}
@@ -99,8 +101,8 @@ export function EditorPreviewSplit({
       <div className="editor-pane overflow-hidden">
         {renderEditor()}
       </div>
-      <div className="preview flex-1 min-h-0 overflow-auto bg-white dark:bg-gray-900">
-        <div className="p-2 bg-gray-100 dark:bg-gray-800 text-xs font-mono border-t border-b dark:border-gray-700 flex-none">
+      <div className="preview flex-1 min-h-0 overflow-auto bg-white">
+        <div className="p-2 bg-gray-100 text-xs font-mono border-t border-b flex-none">
           Preview
         </div>
         <iframe
