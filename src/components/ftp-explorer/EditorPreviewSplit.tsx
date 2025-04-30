@@ -32,14 +32,15 @@ export function EditorPreviewSplit({
   const [editorLoading, setEditorLoading] = useState(true);
   const [contentReady, setContentReady] = useState(false);
 
-  // Add additional logging for debugging
+  // Effect to track when content is ready to display
   useEffect(() => {
     console.log(`[EditorPreviewSplit] Code received, length: ${code?.length || 0}, filePath: ${filePath}`);
     
-    if (code) {
+    if (code !== undefined && code !== null) {
       setContentReady(true);
     } else {
       console.warn(`[EditorPreviewSplit] Code is empty for file: ${filePath}`);
+      setContentReady(false);
     }
   }, [code, filePath]);
 
@@ -157,7 +158,12 @@ export function EditorPreviewSplit({
         <div className="p-2 bg-gray-100 text-xs font-mono border-t border-b flex-none">
           Preview
         </div>
-        {contentReady && (
+        {!contentReady ? (
+          <div className="flex items-center justify-center h-[calc(100%-28px)]">
+            <Loader className="h-6 w-6 animate-spin text-gray-400" />
+            <span className="ml-2">Loading file...</span>
+          </div>
+        ) : (
           <iframe
             id={previewIframeId}
             srcDoc={previewSrc}

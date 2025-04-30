@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useFileEditor(connectionId: string, filePath: string) {
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -14,7 +14,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
   
   // Reset state when file path changes
   useEffect(() => {
-    setCode("");
+    setCode(undefined);
     setError(null);
     setIsLoading(true);
     setHasUnsavedChanges(false);

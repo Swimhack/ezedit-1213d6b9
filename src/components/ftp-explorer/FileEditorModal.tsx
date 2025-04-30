@@ -49,7 +49,9 @@ export function FileEditorModal({
         
         // Detect if this is an HTML file and set editor mode appropriately
         if (content && /\.(html?|htm|php)$/i.test(filePath)) {
-          if (/<!DOCTYPE html|<html/i.test(content)) {
+          // Check for HTML content signatures
+          if (/<!DOCTYPE html|<html|<body|<head|<div|<p|<script|<style/i.test(content)) {
+            console.log('[FileEditorModal] HTML content detected, switching to WYSIWYG mode');
             setEditorMode('wysiwyg');
           }
         }
@@ -63,7 +65,10 @@ export function FileEditorModal({
   // Load file when modal opens or when connection/path/attempts change
   useEffect(() => {
     if (isOpen) {
+      console.log(`[FileEditorModal] Modal opened, triggering file load for ${filePath}`);
       fetchFileContent();
+    } else {
+      console.log('[FileEditorModal] Modal closed');
     }
   }, [fetchFileContent, isOpen, loadAttempts]);
 
@@ -127,7 +132,7 @@ export function FileEditorModal({
           onRetry={handleRetry}
         />
         
-        {!isLoading && !error && code && (
+        {!isLoading && !error && code !== undefined && (
           <div className="modal-body h-full flex flex-col">
             <EditorPreviewSplit
               code={code}
