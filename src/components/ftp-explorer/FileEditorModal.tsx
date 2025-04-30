@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X, Code, Edit3 } from "lucide-react";
 import { ClineChatDrawer } from "./ClineChatDrawer";
@@ -8,7 +8,6 @@ import { EditorPreviewSplit } from "./EditorPreviewSplit";
 import { EditorStateDisplay } from "./EditorStateDisplay";
 import { useFileEditor } from "@/hooks/useFileEditor";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 interface FileEditorModalProps {
@@ -40,13 +39,23 @@ export function FileEditorModal({
     detectLanguage
   } = useFileEditor(connectionId, filePath);
   
-  useEffect(() => {
+  // Use a callback for loading file to prevent dependency issues
+  const fetchFileContent = useCallback(() => {
     if (isOpen && connectionId && filePath) {
-      loadFile().catch(err => {
-        console.error("Failed to load file:", err);
+      console.log(`[FileEditorModal] Loading file: ${filePath}`);
+      loadFile().then(content => {
+        console.log(`[FileEditorModal] File loaded successfully, length: ${content?.length || 0}`);
+      }).catch(err => {
+        console.error(`[FileEditorModal] Failed to load file: ${filePath}`, err);
+        toast.error(`Failed to load file: ${err.message || "Unknown error"}`);
       });
     }
-  }, [isOpen, connectionId, filePath, loadAttempts]);
+  }, [isOpen, connectionId, filePath, loadFile, loadAttempts]);
+
+  // Load file when modal opens or when connection/path/attempts change
+  useEffect(() => {
+    fetchFileContent();
+  }, [fetchFileContent]);
 
   const handleRetry = () => {
     toast.info("Retrying file load...");
@@ -55,6 +64,15 @@ export function FileEditorModal({
 
   // Check if file can be edited in WYSIWYG mode
   const supportsWysiwyg = /\.(html?|htm|php)$/i.test(filePath);
+  
+  // Automatically switch to WYSIWYG mode if supported
+  useEffect(() => {
+    if (supportsWysiwyg && !error && !isLoading && code) {
+      if (/<!DOCTYPE html|<html/i.test(code)) {
+        setEditorMode('wysiwyg');
+      }
+    }
+  }, [supportsWysiwyg, code, error, isLoading]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

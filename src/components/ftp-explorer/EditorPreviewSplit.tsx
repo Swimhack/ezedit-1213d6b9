@@ -1,5 +1,5 @@
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import Split from "react-split";
 import { Loader } from "lucide-react";
@@ -7,6 +7,7 @@ import SplitHandle from "./SplitHandle";
 import { useLivePreview } from "@/hooks/useLivePreview";
 import { TinyMCEEditor } from "@/components/editor/TinyMCEEditor";
 import { useTheme } from "@/hooks/use-theme";
+import { toast } from "sonner";
 
 interface EditorPreviewSplitProps {
   code: string;
@@ -28,10 +29,31 @@ export function EditorPreviewSplit({
   const previewSrc = useLivePreview(code, filePath || "");
   const { isLight } = useTheme();
   const previewIframeId = "preview-iframe-" + Math.random().toString(36).substring(2, 9);
+  const [editorLoading, setEditorLoading] = useState(true);
+
+  // Add additional logging for debugging
+  useEffect(() => {
+    console.log(`[EditorPreviewSplit] Code received, length: ${code?.length || 0}, filePath: ${filePath}`);
+    if (!code) {
+      console.warn(`[EditorPreviewSplit] Code is empty for file: ${filePath}`);
+    }
+  }, [code, filePath]);
 
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
     editor.focus();
+    setEditorLoading(false);
+    
+    // Set content explicitly after mount
+    if (code) {
+      try {
+        editor.setValue(code);
+        console.log('[EditorPreviewSplit] Content set in Monaco editor after mount');
+      } catch (err) {
+        console.error('[EditorPreviewSplit] Error setting Monaco editor content:', err);
+      }
+    }
+    
     console.log('[EditorPreviewSplit] Monaco editor mounted');
   };
 

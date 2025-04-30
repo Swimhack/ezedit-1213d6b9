@@ -1,7 +1,8 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { getFile, saveFile } from "@/lib/ftp";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export function useFileEditor(connectionId: string, filePath: string) {
   const [code, setCode] = useState("");
@@ -11,39 +12,104 @@ export function useFileEditor(connectionId: string, filePath: string) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const editorRef = useRef<any>(null);
   
+  // Reset state when file path changes
+  useEffect(() => {
+    setCode("");
+    setError(null);
+    setIsLoading(true);
+    setHasUnsavedChanges(false);
+  }, [filePath]);
+  
   const loadFile = async () => {
-    if (!connectionId || !filePath) return;
+    if (!connectionId || !filePath) {
+      setError("Missing connection ID or file path");
+      setIsLoading(false);
+      return "";
+    }
     
     setIsLoading(true);
     setError(null);
     
     try {
-      const res = await fetch(`/api/ftp/get-file?path=${encodeURIComponent(filePath)}`);
-      if (!res.ok) throw new Error(`Failed to load (${res.status})`);
-      const fileData = await res.text();
+      console.log(`[useFileEditor] Loading file: ${filePath} for connection: ${connectionId}`);
       
-      if (fileData) {
-        setCode(fileData);
-        setHasUnsavedChanges(false);
-        
-        // Update Monaco editor if it exists
-        if (editorRef.current) {
-          editorRef.current.setValue(fileData);
+      // First try using the SFTP function
+      const response = await supabase.functions.invoke('sftp-file', {
+        body: {
+          siteId: connectionId,
+          path: filePath
         }
-      } else {
-        throw new Error("Failed to load file content");
+      });
+      
+      console.log('[useFileEditor] SFTP response:', response);
+      
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to load file via SFTP");
       }
-    } catch (error: any) {
-      console.error("Error loading file:", error);
-      setError(error.message || "Failed to load file");
-      toast.error(`Error loading file: ${error.message}`);
-    } finally {
-      setIsLoading(false);
+      
+      if (response.data && response.data.success) {
+        const fileContent = response.data.content || "";
+        console.log(`[useFileEditor] File loaded successfully via SFTP, size: ${fileContent.length} bytes`);
+        setCode(fileContent);
+        setHasUnsavedChanges(false);
+        setIsLoading(false);
+        return fileContent;
+      } else {
+        throw new Error(response.data?.message || "Failed to load file content");
+      }
+    } catch (sftpError: any) {
+      console.error("[useFileEditor] SFTP Error:", sftpError);
+      
+      // Fallback to the FTP get-file function
+      try {
+        console.log('[useFileEditor] Attempting fallback to ftp-get-file');
+        
+        const fallbackResponse = await supabase.functions.invoke('ftp-get-file', {
+          body: {
+            siteId: connectionId,
+            path: filePath
+          }
+        });
+        
+        console.log('[useFileEditor] FTP fallback response:', fallbackResponse);
+        
+        if (fallbackResponse.error) {
+          throw new Error(fallbackResponse.error.message || "Failed to load file (fallback failed)");
+        }
+        
+        const { data } = fallbackResponse;
+        
+        if (data && data.success) {
+          // For ftp-get-file, content might be base64 encoded
+          let decodedContent = data.content;
+          if (typeof data.content === 'string' && data.content.match(/^[A-Za-z0-9+/=]+$/)) {
+            try {
+              decodedContent = atob(data.content);
+              console.log('[useFileEditor] Successfully decoded base64 content');
+            } catch (e) {
+              console.warn("[useFileEditor] Content doesn't appear to be valid base64, using as-is");
+            }
+          }
+          
+          console.log(`[useFileEditor] File loaded successfully via FTP fallback, size: ${decodedContent?.length || 0} bytes`);
+          setCode(decodedContent || "");
+          setHasUnsavedChanges(false);
+          setIsLoading(false);
+          return decodedContent || "";
+        } else {
+          throw new Error(data?.message || "Failed to load file content");
+        }
+      } catch (ftpError: any) {
+        console.error("[useFileEditor] FTP Fallback Error:", ftpError);
+        setError(ftpError.message || "Failed to load file after multiple attempts");
+        setIsLoading(false);
+        return "";
+      }
     }
   };
   
   const handleSave = async () => {
-    if (!connectionId || !filePath || !code) {
+    if (!connectionId || !filePath || code === undefined) {
       toast.error("Missing data for saving");
       return;
     }
@@ -74,6 +140,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
   
   const handleCodeChange = (newCode: string | undefined) => {
     if (newCode !== undefined && newCode !== code) {
+      console.log(`[useFileEditor] Code changed, new length: ${newCode.length}`);
       setCode(newCode);
       setHasUnsavedChanges(true);
     }
