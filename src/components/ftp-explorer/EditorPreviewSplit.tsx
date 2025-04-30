@@ -30,11 +30,15 @@ export function EditorPreviewSplit({
   const { isLight } = useTheme();
   const previewIframeId = "preview-iframe-" + Math.random().toString(36).substring(2, 9);
   const [editorLoading, setEditorLoading] = useState(true);
+  const [contentReady, setContentReady] = useState(false);
 
   // Add additional logging for debugging
   useEffect(() => {
     console.log(`[EditorPreviewSplit] Code received, length: ${code?.length || 0}, filePath: ${filePath}`);
-    if (!code) {
+    
+    if (code) {
+      setContentReady(true);
+    } else {
       console.warn(`[EditorPreviewSplit] Code is empty for file: ${filePath}`);
     }
   }, [code, filePath]);
@@ -44,7 +48,7 @@ export function EditorPreviewSplit({
     editor.focus();
     setEditorLoading(false);
     
-    // Set content explicitly after mount
+    // Set content explicitly after mount if we have code
     if (code) {
       try {
         editor.setValue(code);
@@ -73,9 +77,18 @@ export function EditorPreviewSplit({
     }
   };
 
-  console.log('[EditorPreviewSplit] Rendering with', editorMode, 'mode, filePath:', filePath);
+  console.log('[EditorPreviewSplit] Rendering with', editorMode, 'mode, filePath:', filePath, 'content ready:', contentReady);
 
   const renderEditor = () => {
+    if (!contentReady) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <Loader className="h-6 w-6 animate-spin text-gray-400" />
+          <span className="ml-2">Waiting for content...</span>
+        </div>
+      );
+    }
+    
     if (editorMode === 'wysiwyg' && /\.(html?|htm|php)$/i.test(filePath)) {
       console.log('[EditorPreviewSplit] Rendering TinyMCE editor for', filePath);
       return (
@@ -144,13 +157,15 @@ export function EditorPreviewSplit({
         <div className="p-2 bg-gray-100 text-xs font-mono border-t border-b flex-none">
           Preview
         </div>
-        <iframe
-          id={previewIframeId}
-          srcDoc={previewSrc}
-          className="w-full h-[calc(100%-28px)] border-none"
-          sandbox="allow-scripts"
-          title="Preview"
-        />
+        {contentReady && (
+          <iframe
+            id={previewIframeId}
+            srcDoc={previewSrc}
+            className="w-full h-[calc(100%-28px)] border-none"
+            sandbox="allow-scripts"
+            title="Preview"
+          />
+        )}
       </div>
     </Split>
   );

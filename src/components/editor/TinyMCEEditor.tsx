@@ -32,12 +32,12 @@ export function TinyMCEEditor({
     if (editorRef.current && editorInitialized) {
       try {
         // Safely check if the editor is ready and has the methods we need
-        if (editorRef.current.editor && typeof editorRef.current.editor.getContent === 'function') {
+        if (editorRef.current.editor && typeof editorRef.current.editor.setContent === 'function') {
           const currentContent = editorRef.current.editor.getContent();
           if (content !== currentContent) {
             console.log('[TinyMCE] Updating content from props, length:', content?.length || 0);
-            editorRef.current.editor.setContent(content);
-            setInternalContent(content);
+            editorRef.current.editor.setContent(content || "");
+            setInternalContent(content || "");
           }
         }
       } catch (err) {

@@ -40,22 +40,32 @@ export function FileEditorModal({
   } = useFileEditor(connectionId, filePath);
   
   // Use a callback for loading file to prevent dependency issues
-  const fetchFileContent = useCallback(() => {
+  const fetchFileContent = useCallback(async () => {
     if (isOpen && connectionId && filePath) {
-      console.log(`[FileEditorModal] Loading file: ${filePath}`);
-      loadFile().then(content => {
+      console.log(`[FileEditorModal] Loading file: ${filePath}, connectionId: ${connectionId}`);
+      try {
+        const content = await loadFile();
         console.log(`[FileEditorModal] File loaded successfully, length: ${content?.length || 0}`);
-      }).catch(err => {
+        
+        // Detect if this is an HTML file and set editor mode appropriately
+        if (content && /\.(html?|htm|php)$/i.test(filePath)) {
+          if (/<!DOCTYPE html|<html/i.test(content)) {
+            setEditorMode('wysiwyg');
+          }
+        }
+      } catch (err) {
         console.error(`[FileEditorModal] Failed to load file: ${filePath}`, err);
         toast.error(`Failed to load file: ${err.message || "Unknown error"}`);
-      });
+      }
     }
-  }, [isOpen, connectionId, filePath, loadFile, loadAttempts]);
+  }, [isOpen, connectionId, filePath, loadFile]);
 
   // Load file when modal opens or when connection/path/attempts change
   useEffect(() => {
-    fetchFileContent();
-  }, [fetchFileContent]);
+    if (isOpen) {
+      fetchFileContent();
+    }
+  }, [fetchFileContent, isOpen, loadAttempts]);
 
   const handleRetry = () => {
     toast.info("Retrying file load...");
@@ -64,15 +74,6 @@ export function FileEditorModal({
 
   // Check if file can be edited in WYSIWYG mode
   const supportsWysiwyg = /\.(html?|htm|php)$/i.test(filePath);
-  
-  // Automatically switch to WYSIWYG mode if supported
-  useEffect(() => {
-    if (supportsWysiwyg && !error && !isLoading && code) {
-      if (/<!DOCTYPE html|<html/i.test(code)) {
-        setEditorMode('wysiwyg');
-      }
-    }
-  }, [supportsWysiwyg, code, error, isLoading]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -126,7 +127,7 @@ export function FileEditorModal({
           onRetry={handleRetry}
         />
         
-        {!isLoading && !error && (
+        {!isLoading && !error && code && (
           <div className="modal-body h-full flex flex-col">
             <EditorPreviewSplit
               code={code}
