@@ -57,16 +57,18 @@ export function EditorPreviewSplit({
     if (editorMode === 'wysiwyg' && /\.(html?|htm|php)$/i.test(filePath)) {
       console.log('[EditorPreviewSplit] Rendering TinyMCE editor for', filePath);
       return (
-        <TinyMCEEditor
-          content={code}
-          onChange={(newContent) => {
-            console.log('[EditorPreviewSplit] TinyMCE content changed, length:', newContent.length);
-            onCodeChange(newContent);
-          }}
-          height="100%"
-          previewSelector={`#${previewIframeId}`}
-          editorRef={editorRef}
-        />
+        <div className="h-full">
+          <TinyMCEEditor
+            content={code}
+            onChange={(newContent) => {
+              console.log('[EditorPreviewSplit] TinyMCE content changed, length:', newContent.length);
+              onCodeChange(newContent);
+            }}
+            height="100%"
+            previewSelector={`#${previewIframeId}`}
+            editorRef={editorRef}
+          />
+        </div>
       );
     }
     
