@@ -63,6 +63,17 @@ export function useFileEditor(connectionId: string, filePath: string) {
       setCode(content);
       setHasUnsavedChanges(false);
       setIsLoading(false);
+      
+      // Force editor update if using WYSIWYG
+      if (editorRef.current && typeof editorRef.current.setContent === 'function') {
+        try {
+          console.log("[useFileEditor] Forcing WYSIWYG editor update after load");
+          editorRef.current.setContent(content);
+        } catch (err) {
+          console.error("[useFileEditor] Error updating WYSIWYG editor after load:", err);
+        }
+      }
+      
       return content;
     } catch (error: any) {
       console.error(`[useFileEditor] Error loading file: ${filePath}`, error);
@@ -195,6 +206,17 @@ export function useFileEditor(connectionId: string, filePath: string) {
       setCode(content);
       setHasUnsavedChanges(false);
       setIsLoading(false);
+      
+      // Force editor update if using WYSIWYG
+      if (editorRef.current && typeof editorRef.current.setContent === 'function') {
+        console.log("[useFileEditor] Forcing WYSIWYG editor update after refresh");
+        try {
+          editorRef.current.setContent(content);
+        } catch (err) {
+          console.error("[useFileEditor] Error updating WYSIWYG editor after refresh:", err);
+        }
+      }
+      
       return content;
     } catch (error: any) {
       console.error(`[useFileEditor] Error refreshing file: ${filePath}`, error);

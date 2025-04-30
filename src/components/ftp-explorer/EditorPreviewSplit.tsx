@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import Split from "react-split";
 import SplitHandle from "./SplitHandle";
@@ -31,13 +32,27 @@ export function EditorPreviewSplit({
   const previewIframeId = "preview-iframe-" + Math.random().toString(36).substring(2, 9);
   const [editorLoading, setEditorLoading] = useState(true);
   const [contentReady, setContentReady] = useState(false);
+  const [editorContent, setEditorContent] = useState<string>(code || '');
 
-  // Effect to track when content is ready to display
+  // Effect to track when content is ready to display and update internal state
   useEffect(() => {
     console.log(`[EditorPreviewSplit] Code received, length: ${code?.length || 0}, filePath: ${filePath}`);
     
     if (code !== undefined) {
       setContentReady(true);
+      setEditorContent(code);
+      
+      // Force content update to editor if it's already mounted
+      if (editorRef.current) {
+        try {
+          if (editorMode === 'wysiwyg' && typeof editorRef.current.setContent === 'function') {
+            console.log('[EditorPreviewSplit] Forcing WYSIWYG content update after code change');
+            editorRef.current.setContent(code);
+          }
+        } catch (err) {
+          console.error('[EditorPreviewSplit] Error updating editor content:', err);
+        }
+      }
     } else {
       console.warn(`[EditorPreviewSplit] Code is undefined for file: ${filePath}`);
       setContentReady(false);
@@ -45,7 +60,7 @@ export function EditorPreviewSplit({
     
     // Refresh preview when code changes
     setPreviewKey(prev => prev + 1);
-  }, [code, filePath]);
+  }, [code, filePath, editorMode]);
 
   // Force refresh preview when forceRefresh prop changes
   useEffect(() => {
@@ -71,6 +86,14 @@ export function EditorPreviewSplit({
     }
     
     console.log('[EditorPreviewSplit] Monaco editor mounted');
+  };
+
+  const handleEditorContentChange = (newContent: string | undefined) => {
+    if (newContent !== undefined) {
+      console.log('[EditorPreviewSplit] Editor content changed, length:', newContent.length);
+      setEditorContent(newContent);
+      onCodeChange(newContent);
+    }
   };
 
   const handleSplitDragStart = () => {
@@ -121,7 +144,7 @@ export function EditorPreviewSplit({
           <WysiwygWrapper
             code={code}
             filePath={filePath}
-            onCodeChange={newContent => onCodeChange(newContent)}
+            onCodeChange={handleEditorContentChange}
             editorRef={editorRef}
             previewIframeId={previewIframeId}
           />
@@ -130,7 +153,7 @@ export function EditorPreviewSplit({
             code={code}
             contentReady={contentReady}
             language={detectLanguage()}
-            onCodeChange={onCodeChange}
+            onCodeChange={handleEditorContentChange}
             editorRef={editorRef}
             onEditorDidMount={handleEditorDidMount}
           />
@@ -144,7 +167,7 @@ export function EditorPreviewSplit({
           previewIframeId={previewIframeId}
           contentReady={contentReady}
           isLoading={previewLoading}
-          code={code}
+          code={editorContent} // Use the internal editor content for preview
         />
       </div>
     </Split>

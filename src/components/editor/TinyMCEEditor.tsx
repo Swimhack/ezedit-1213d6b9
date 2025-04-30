@@ -24,25 +24,32 @@ export function TinyMCEEditor({
   const [editorInitialized, setEditorInitialized] = useState<boolean>(false);
   const [internalContent, setInternalContent] = useState<string>(content || "");
   const [lastExternalContent, setLastExternalContent] = useState<string>(content || "");
+  const contentRef = useRef<string>(content || "");
 
   // Use the provided API key directly
   const apiKey = "q8smw06bbgh2t6wcki98o8ja4l5bco8g7k6tgfapjboh81tv";
   
+  // Update contentRef when content prop changes
+  useEffect(() => {
+    contentRef.current = content || "";
+  }, [content]);
+  
   // Effect to update editor content when prop changes from outside
   useEffect(() => {
     // Only update if the external content has actually changed
-    if (editorRef.current && editorInitialized && content !== lastExternalContent) {
+    if (editorRef.current && editorInitialized && content !== undefined && content !== lastExternalContent) {
       try {
         console.log('[TinyMCE] External content updated, length:', content?.length || 0);
-        setLastExternalContent(content || "");
+        setLastExternalContent(content);
+        setInternalContent(content);
         
         // Safely check if the editor is ready
         if (editorRef.current.setContent) {
-          editorRef.current.setContent(content || "");
-          setInternalContent(content || "");
+          console.log('[TinyMCE] Applying new content to editor');
+          editorRef.current.setContent(content);
         } else if (editorRef.current.editor && typeof editorRef.current.editor.setContent === 'function') {
-          editorRef.current.editor.setContent(content || "");
-          setInternalContent(content || "");
+          console.log('[TinyMCE] Applying new content to editor.editor');
+          editorRef.current.editor.setContent(content);
         } else {
           console.warn('[TinyMCE] Editor reference exists but setContent method not found');
         }
@@ -66,20 +73,6 @@ export function TinyMCEEditor({
     }
   }, [internalContent, previewSelector]);
 
-  // Forcibly update the editor content when it changes externally
-  const forceContentUpdate = () => {
-    if (editorRef.current && editorInitialized && content) {
-      try {
-        console.log('[TinyMCE] Force updating content, length:', content.length);
-        editorRef.current.setContent(content);
-        setInternalContent(content);
-        setLastExternalContent(content);
-      } catch (err) {
-        console.error('[TinyMCE] Error force updating content:', err);
-      }
-    }
-  };
-
   return (
     <Editor
       apiKey={apiKey}
@@ -89,19 +82,20 @@ export function TinyMCEEditor({
         console.log('[TinyMCE] Editor initialized');
         
         // Ensure initial content is set correctly after editor is fully initialized
-        if (content) {
+        if (contentRef.current) {
           setTimeout(() => {
             try {
-              console.log('[TinyMCE] Setting initial content, length:', content.length);
-              editor.setContent(content);
-              setInternalContent(content);
-              setLastExternalContent(content);
+              console.log('[TinyMCE] Setting initial content, length:', contentRef.current.length);
+              editor.setContent(contentRef.current);
+              setInternalContent(contentRef.current);
+              setLastExternalContent(contentRef.current);
             } catch (err) {
               console.error('[TinyMCE] Error setting initial content:', err);
             }
           }, 100);
         }
       }}
+      initialValue={content} // Set initial value directly
       value={content}
       onEditorChange={(newContent, editor) => {
         // Only trigger onChange if content actually changed to prevent loops
@@ -132,7 +126,7 @@ export function TinyMCEEditor({
         branding: false,
         // Add setup function to sync with preview
         setup: function(editor) {
-          editor.on('Change KeyUp', function() {
+          editor.on('Change KeyUp Paste', function() {
             if (editorInitialized) {
               // Get current content
               const currentContent = editor.getContent();
@@ -142,6 +136,7 @@ export function TinyMCEEditor({
                 console.log('[TinyMCE] Content changed via editor event');
                 setInternalContent(currentContent);
                 onChange(currentContent);
+                setLastExternalContent(currentContent);
                 
                 // Update preview if selector provided
                 if (previewSelector) {
