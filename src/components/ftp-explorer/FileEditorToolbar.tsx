@@ -1,8 +1,10 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Save, RefreshCw } from "lucide-react";
+import { Save, RefreshCw, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface FileEditorToolbarProps {
   fileName: string;
@@ -10,6 +12,9 @@ interface FileEditorToolbarProps {
   isSaving: boolean;
   onSave: () => void;
   onRefresh?: () => void;
+  autoSaveEnabled?: boolean;
+  isAutoSaving?: boolean; 
+  onToggleAutoSave?: () => void;
 }
 
 export function FileEditorToolbar({
@@ -17,7 +22,10 @@ export function FileEditorToolbar({
   hasUnsavedChanges,
   isSaving,
   onSave,
-  onRefresh
+  onRefresh,
+  autoSaveEnabled = false,
+  isAutoSaving = false,
+  onToggleAutoSave
 }: FileEditorToolbarProps) {
   return (
     <div className="p-2 flex gap-2 items-center border-b bg-gray-50">
@@ -33,7 +41,7 @@ export function FileEditorToolbar({
         {isSaving ? (
           <>
             <div className="w-4 h-4 animate-spin rounded-full border-2 border-b-transparent border-white" />
-            Saving...
+            {isAutoSaving ? "Autosaving..." : "Saving..."}
           </>
         ) : (
           <>
@@ -54,6 +62,20 @@ export function FileEditorToolbar({
           <RefreshCw className="w-4 h-4" />
           Refresh
         </Button>
+      )}
+      
+      {onToggleAutoSave && (
+        <div className="flex items-center gap-2">
+          <Switch 
+            id="autosave" 
+            checked={autoSaveEnabled}
+            onCheckedChange={onToggleAutoSave}
+          />
+          <Label htmlFor="autosave" className="text-xs text-gray-600 cursor-pointer flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            Autosave
+          </Label>
+        </div>
       )}
       
       <div className="flex-1"></div>

@@ -29,10 +29,13 @@ export function EzEditor({ connectionId, filePath, username = "editor-user" }: E
     isSaving,
     error,
     hasUnsavedChanges,
+    autoSaveEnabled,
+    isAutoSaving,
     handleCodeChange,
     handleSave,
     loadFile,
     refreshFile,
+    toggleAutoSave,
     detectLanguage
   } = useFileEditor(connectionId, filePath);
 
@@ -114,8 +117,11 @@ export function EzEditor({ connectionId, filePath, username = "editor-user" }: E
         fileName={filePath}
         hasUnsavedChanges={hasUnsavedChanges}
         isSaving={isSaving}
+        isAutoSaving={isAutoSaving}
         onSave={handleSave}
         onRefresh={refreshFile}
+        autoSaveEnabled={autoSaveEnabled}
+        onToggleAutoSave={toggleAutoSave}
       />
       
       <div className="flex p-2 border-b">

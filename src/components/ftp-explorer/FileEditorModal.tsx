@@ -34,10 +34,13 @@ export function FileEditorModal({
     isSaving,
     error,
     hasUnsavedChanges,
+    autoSaveEnabled,
+    isAutoSaving,
     handleCodeChange,
     handleSave,
     loadFile,
     refreshFile,
+    toggleAutoSave,
     detectLanguage
   } = useFileEditor(connectionId, filePath);
   
@@ -62,6 +65,17 @@ export function FileEditorModal({
     });
   };
 
+  // Handle close with unsaved changes warning
+  const handleEditorClose = () => {
+    if (hasUnsavedChanges) {
+      if (confirm("You have unsaved changes. Are you sure you want to close?")) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
+
   const handleRetry = () => {
     toast.info("Retrying file load...");
     setLoadAttempts(prev => prev + 1);
@@ -71,9 +85,9 @@ export function FileEditorModal({
   const supportsWysiwyg = /\.(html?|htm|php)$/i.test(filePath);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleEditorClose()}>
       <DialogContent className="max-w-screen-xl w-[95vw] h-[90vh] p-0 flex flex-col">
-        <FileEditorHeader filePath={filePath} onClose={onClose} />
+        <FileEditorHeader filePath={filePath} onClose={handleEditorClose} />
         
         <EditorModeTabs 
           editorMode={editorMode}
@@ -86,8 +100,11 @@ export function FileEditorModal({
           fileName={filePath}
           onSave={handleSave}
           isSaving={isSaving}
+          isAutoSaving={isAutoSaving} 
           hasUnsavedChanges={hasUnsavedChanges}
           onRefresh={handleRefresh}
+          autoSaveEnabled={autoSaveEnabled}
+          onToggleAutoSave={toggleAutoSave}
         />
         
         <EditorStateDisplay 
