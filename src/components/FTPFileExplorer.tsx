@@ -1,9 +1,9 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -13,33 +13,16 @@ import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { listDir, getFile, saveFile } from "@/lib/ftp";
 import { useSearchParams } from 'react-router-dom';
+import { FolderOpen, File } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { FolderOpen, File, MoreHorizontal, Copy, Download, Edit, Trash2, Upload } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { FileEditorContent } from "@/components/ftp-explorer/FileEditorContent";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
+import { FTPConnectionForm } from "@/components/ftp-explorer/FTPConnectionForm";
+import { FTPFileExplorerHeader } from "@/components/ftp-explorer/FTPFileExplorerHeader";
+import { FTPFileListToolbar } from "@/components/ftp-explorer/FTPFileListToolbar";
+import { FTPFileActions } from "@/components/ftp-explorer/FTPFileActions";
+import { FTPNewFileDialog } from "@/components/ftp-explorer/FTPNewFileDialog";
 
 interface FileInfo {
   name: string;
@@ -57,7 +40,7 @@ const FTPFileExplorer: React.FC = () => {
   const [ftpPassword, setFtpPassword] = useState('');
   const [currentPath, setCurrentPath] = useState('');
   const [selectedFileContent, setSelectedFileContent] = useState('');
-	const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isNewFileModalOpen, setIsNewFileModalOpen] = useState(false);
@@ -83,12 +66,6 @@ const FTPFileExplorer: React.FC = () => {
   }, []);
   
   const trialStatus = useTrialStatus(user?.email);
-
-  const [connectionDetailsVisible, setConnectionDetailsVisible] = useState(false);
-
-  const toggleConnectionDetailsVisibility = () => {
-    setConnectionDetailsVisible(!connectionDetailsVisible);
-  };
 
   const handleEditorContentChange = (content: string) => {
     setSelectedFileContent(content);
@@ -249,17 +226,6 @@ const FTPFileExplorer: React.FC = () => {
 
   const handleDownloadFile = async (fileName: string) => {
     try {
-      // const fileContent = await fetchFiles(ftpHost, ftpPort, ftpUser, ftpPassword, currentPath + '/' + fileName, 'fileContent');
-      // const blob = new Blob([fileContent as string], { type: 'text/plain' });
-      // const url = window.URL.createObjectURL(blob);
-      // const a = document.createElement('a');
-      // a.href = url;
-      // a.download = fileName;
-      // document.body.appendChild(a);
-      // a.click();
-      // document.body.removeChild(a);
-      // window.URL.revokeObjectURL(url);
-
       toast({
         title: "Success",
         description: `${fileName} downloaded successfully!`,
@@ -278,158 +244,60 @@ const FTPFileExplorer: React.FC = () => {
     setIsEditorReadOnly(false);
   };
 
-  const handleUploadComplete = useCallback(() => {
-    refetch();
-  }, [refetch]);
+  const handleRenameFile = (fileName: string) => {
+    setFileToRename(fileName);
+    setNewFileNameRename(fileName);
+    setIsRenameModalOpen(true);
+  };
 
-  const renderFileActions = (file: FileInfo) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0">
-          <span className="sr-only">Open menu</span>
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(ftpHost)}>
-          <Copy className="mr-2 h-4 w-4" />
-          Copy FTP Host
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => handleDownloadFile(file.name)}>
-          <Download className="mr-2 h-4 w-4" />
-          Download
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleEditFile()}>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => {
-          setFileToRename(file.name);
-          setNewFileNameRename(file.name);
-          setIsRenameModalOpen(true);
-        }}>
-          Rename
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => {
-          setFileToDelete(file.name);
-          setIsDeleteModalOpen(true);
-        }}>
-          <Trash2 className="mr-2 h-4 w-4" />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+  const handleDeleteFile = (fileName: string) => {
+    setFileToDelete(fileName);
+    setIsDeleteModalOpen(true);
+  };
 
-  // Commented out placeholder dialog components
-  // These components are missing and need to be created, but for now
-  // we'll remove them to fix the build errors
-  
   return (
     <Card className="w-full">
       <div className="md:grid md:grid-cols-4 md:gap-6">
         <div className="md:col-span-1">
-          <div className="px-4 sm:px-0">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">FTP Connection</h3>
-            <p className="mt-1 text-sm text-gray-600">
-              Manage your FTP connection details here.
-            </p>
-          </div>
+          <FTPFileExplorerHeader 
+            title="FTP Connection" 
+            description="Manage your FTP connection details here." 
+          />
         </div>
         <div className="mt-5 md:col-span-3 md:mt-0">
-          <div className="shadow sm:overflow-hidden sm:rounded-md">
-            <div className="bg-white px-4 py-5 sm:p-6">
-              <div className="grid grid-cols-6 gap-6">
-                <div className="col-span-6 sm:col-span-3">
-                  <Label htmlFor="ftp-host">FTP Host</Label>
-                  <Input
-                    type="text"
-                    name="ftp-host"
-                    id="ftp-host"
-                    value={ftpHost}
-                    onChange={(e) => setFtpHost(e.target.value)}
-                    className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                  />
-                </div>
-
-                <div className="col-span-6 sm:col-span-3">
-                  <Label htmlFor="ftp-port">FTP Port</Label>
-                  <Input
-                    type="number"
-                    name="ftp-port"
-                    id="ftp-port"
-                    value={ftpPort}
-                    onChange={(e) => setFtpPort(parseInt(e.target.value, 10))}
-                    className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                  />
-                </div>
-
-                <div className="col-span-6 sm:col-span-3">
-                  <Label htmlFor="ftp-user">FTP User</Label>
-                  <Input
-                    type="text"
-                    name="ftp-user"
-                    id="ftp-user"
-                    value={ftpUser}
-                    onChange={(e) => setFtpUser(e.target.value)}
-                    className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                  />
-                </div>
-
-                <div className="col-span-6 sm:col-span-3">
-                  <Label htmlFor="ftp-password">FTP Password</Label>
-                  <Input
-                    type="password"
-                    name="ftp-password"
-                    id="ftp-password"
-                    value={ftpPassword}
-                    onChange={(e) => setFtpPassword(e.target.value)}
-                    className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                  />
-                </div>
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Button onClick={handleConnect} disabled={isConnecting}>
-                  {isConnecting ? "Connecting..." : "Connect"}
-                </Button>
-              </div>
-            </div>
-          </div>
+          <FTPConnectionForm
+            ftpHost={ftpHost}
+            ftpPort={ftpPort}
+            ftpUser={ftpUser}
+            ftpPassword={ftpPassword}
+            isConnecting={isConnecting}
+            onHostChange={setFtpHost}
+            onPortChange={setFtpPort}
+            onUserChange={setFtpUser}
+            onPasswordChange={setFtpPassword}
+            onConnect={handleConnect}
+          />
         </div>
       </div>
 
       <div className="mt-8">
         <div className="md:grid md:grid-cols-4 md:gap-6">
           <div className="md:col-span-1">
-            <div className="px-4 sm:px-0">
-              <h3 className="text-lg font-medium leading-6 text-gray-900">File Explorer</h3>
-              <p className="mt-1 text-sm text-gray-600">
-                Browse and manage your files on the FTP server.
-              </p>
-            </div>
+            <FTPFileExplorerHeader 
+              title="File Explorer" 
+              description="Browse and manage your files on the FTP server." 
+            />
           </div>
           <div className="mt-5 md:col-span-3 md:mt-0">
             <div className="shadow overflow-hidden sm:rounded-md">
               <div className="px-4 py-5 bg-white sm:p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-md font-semibold text-gray-700">Current Path: {currentPath || '/'}</h4>
-                  <div className="space-x-2">
-                    <Button variant="outline" size="sm">
-                      <FolderOpen className="mr-2 h-4 w-4" />
-                      Create Folder
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setIsNewFileModalOpen(true)}>
-                      <File className="mr-2 h-4 w-4" />
-                      New File
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload File
-                    </Button>
-                  </div>
-                </div>
+                <FTPFileListToolbar
+                  currentPath={currentPath}
+                  onCreateFolder={() => setIsCreateFolderModalOpen(true)}
+                  onCreateFile={handleCreateNewFile}
+                  onUploadFile={() => setIsUploadModalOpen(true)}
+                />
+                
                 {isLoading ? (
                   <div className="text-center">Loading files...</div>
                 ) : files && Array.isArray(files) ? (
@@ -477,7 +345,16 @@ const FTPFileExplorer: React.FC = () => {
                           <TableCell>{file.type}</TableCell>
                           <TableCell>{file.size}</TableCell>
                           <TableCell>{file.modified}</TableCell>
-                          <TableCell className="text-right">{renderFileActions(file)}</TableCell>
+                          <TableCell className="text-right">
+                            <FTPFileActions
+                              ftpHost={ftpHost}
+                              file={file}
+                              onDownload={handleDownloadFile}
+                              onEdit={handleEditFile}
+                              onRename={handleRenameFile}
+                              onDelete={handleDeleteFile}
+                            />
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -495,12 +372,10 @@ const FTPFileExplorer: React.FC = () => {
         <div className="mt-8">
           <div className="md:grid md:grid-cols-4 md:gap-6">
             <div className="md:col-span-1">
-              <div className="px-4 sm:px-0">
-                <h3 className="text-lg font-medium leading-6 text-gray-900">File Editor</h3>
-                <p className="mt-1 text-sm text-gray-600">
-                  Edit the selected file content here.
-                </p>
-              </div>
+              <FTPFileExplorerHeader 
+                title="File Editor" 
+                description="Edit the selected file content here." 
+              />
             </div>
             <div className="mt-5 md:col-span-3 md:mt-0">
               <div className="shadow sm:rounded-md">
@@ -530,34 +405,15 @@ const FTPFileExplorer: React.FC = () => {
         </div>
       )}
 
-      <AlertDialog open={isNewFileModalOpen} onOpenChange={setIsNewFileModalOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Create New File</AlertDialogTitle>
-            <AlertDialogDescription>
-              Enter the name and content for the new file.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                File Name
-              </Label>
-              <Input id="name" value={newFileName} onChange={(e) => setNewFileName(e.target.value)} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="content" className="text-right">
-                Content
-              </Label>
-              <Textarea id="content" value={newFileContent} onChange={(e) => setNewFileContent(e.target.value)} className="col-span-3" />
-            </div>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelNewFile}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmNewFile}>Create</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <FTPNewFileDialog
+        isOpen={isNewFileModalOpen}
+        newFileName={newFileName}
+        newFileContent={newFileContent}
+        onNewFileNameChange={setNewFileName}
+        onNewFileContentChange={setNewFileContent}
+        onCancel={handleCancelNewFile}
+        onConfirm={handleConfirmNewFile}
+      />
     </Card>
   );
 };
