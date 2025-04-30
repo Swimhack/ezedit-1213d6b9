@@ -30,10 +30,11 @@ export function EmailSubmissionForm() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch(`${supabase.functions.url}/send-email`, {
+      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/send-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabase.auth.session()?.access_token}`
         },
         body: JSON.stringify({
           to: data.email,
