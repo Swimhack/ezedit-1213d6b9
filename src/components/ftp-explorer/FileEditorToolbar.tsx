@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { FloppyDisk, Clock, RefreshCw } from "lucide-react";
+import { Save, Clock, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FileEditorToolbarProps {
@@ -37,7 +37,7 @@ export function FileEditorToolbar({
           </>
         ) : (
           <>
-            <FloppyDisk className="w-4 h-4" />
+            <Save className="w-4 h-4" />
             Save
           </>
         )}
