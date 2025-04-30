@@ -1,24 +1,30 @@
 
 import { useEffect, useState } from "react";
 
-export function useLivePreview(code: string, path: string) {
+export function useLivePreview(code: string | undefined, path: string) {
   const [src, setSrc] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     const id = setTimeout(() => {
+      // Handle undefined code as loading state
       if (code === undefined) {
         console.log('[useLivePreview] Code is undefined, setting loading state');
         setSrc("");
+        setIsLoading(true);
         return;
       }
       
-      if (!code) {
-        console.log('[useLivePreview] No content available');
-        setSrc(`<div style="padding:2rem;font-family:system-ui">No content available</div>`);
+      // When code is available but empty
+      if (code === "") {
+        console.log('[useLivePreview] Empty file content');
+        setSrc(`<div style="padding:2rem;font-family:system-ui">Empty file – nothing to preview</div>`);
+        setIsLoading(false);
         return;
       }
       
       console.log(`[useLivePreview] Generating preview for ${path}, content length: ${code.length}`);
+      setIsLoading(false);
       
       if (/\.(html?|htm|php|md|txt|css|js)$/i.test(path)) {
         // For HTML content, wrap it in a proper HTML structure if it's just a fragment
@@ -58,5 +64,5 @@ ${code}
     return () => clearTimeout(id);
   }, [code, path]);
   
-  return src;
+  return { src, isLoading };
 }

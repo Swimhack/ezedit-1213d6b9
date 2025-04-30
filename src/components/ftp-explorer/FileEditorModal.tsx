@@ -132,10 +132,10 @@ export function FileEditorModal({
           onRetry={handleRetry}
         />
         
-        {!isLoading && !error && code !== undefined && (
+        {!isLoading && !error && (
           <div className="modal-body h-full flex flex-col">
             <EditorPreviewSplit
-              code={code}
+              code={code || ""}  {/* Ensure we pass empty string instead of undefined */}
               filePath={filePath}
               onCodeChange={handleCodeChange}
               detectLanguage={detectLanguage}
@@ -144,7 +144,7 @@ export function FileEditorModal({
             
             <ClineChatDrawer
               filePath={filePath}
-              code={code}
+              code={code || ""}
               onInsert={handleCodeChange}
             />
           </div>

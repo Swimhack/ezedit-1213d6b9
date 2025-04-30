@@ -16,6 +16,7 @@ export function PreviewPane({
   refreshKey 
 }: PreviewPaneProps) {
   const [srcDoc, setSrcDoc] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (error) {
@@ -26,16 +27,38 @@ export function PreviewPane({
           <pre style="white-space:pre-wrap;">${error}</pre>
           <p style="margin-top:1rem;font-size:13px;">Check Dashboard ▸ Functions ▸ Logs</p>
         </body>`);
+      setIsLoading(false);
       return;
     }
     
-    if (!content) return;
+    // Mark as not loading once we have content (even if empty)
+    if (content !== undefined) {
+      setIsLoading(false);
+    }
+    
+    if (!content && content !== "") {
+      // Keep loading state if content is undefined/null
+      setIsLoading(true);
+      return;
+    }
+    
+    // Handle empty content case
+    if (content === "") {
+      setSrcDoc(`
+        <body style="font:16px/1.5 system-ui;padding:2rem;
+                     color:#64748b;background:#f8fafc">
+          <p>Empty file – nothing to preview</p>
+        </body>`);
+      setIsLoading(false);
+      return;
+    }
     
     const isPreviewableFile = fileName && /\.(html?|htm|php)$/i.test(fileName);
     
     if (isPreviewableFile) {
       if (baseUrl) {
         setSrcDoc('');
+        setIsLoading(false);
       } else {
         let previewContent = content;
         
@@ -59,14 +82,25 @@ ${content}
         }
         
         setSrcDoc(previewContent);
+        setIsLoading(false);
       }
     } else {
       const previewContent = `<pre style="white-space:pre-wrap;font-family:monospace;padding:1rem;">${
         content.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]!))
       }</pre>`;
       setSrcDoc(previewContent);
+      setIsLoading(false);
     }
   }, [content, fileName, error, baseUrl]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+        <span>Loading preview...</span>
+      </div>
+    );
+  }
 
   if (fileName || error) {
     if (fileName && /\.(html?|htm|php)$/i.test(fileName) && baseUrl) {

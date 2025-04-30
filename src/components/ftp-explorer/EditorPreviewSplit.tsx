@@ -26,7 +26,7 @@ export function EditorPreviewSplit({
 }: EditorPreviewSplitProps) {
   const [draggingSplitter, setDraggingSplitter] = useState(false);
   const editorRef = useRef<any>(null);
-  const previewSrc = useLivePreview(code, filePath || "");
+  const { src: previewSrc, isLoading: previewLoading } = useLivePreview(code, filePath || "");
   const { isLight } = useTheme();
   const previewIframeId = "preview-iframe-" + Math.random().toString(36).substring(2, 9);
   const [editorLoading, setEditorLoading] = useState(true);
@@ -36,10 +36,10 @@ export function EditorPreviewSplit({
   useEffect(() => {
     console.log(`[EditorPreviewSplit] Code received, length: ${code?.length || 0}, filePath: ${filePath}`);
     
-    if (code !== undefined && code !== null) {
+    if (code !== undefined) {
       setContentReady(true);
     } else {
-      console.warn(`[EditorPreviewSplit] Code is empty for file: ${filePath}`);
+      console.warn(`[EditorPreviewSplit] Code is undefined for file: ${filePath}`);
       setContentReady(false);
     }
   }, [code, filePath]);
@@ -162,6 +162,15 @@ export function EditorPreviewSplit({
           <div className="flex items-center justify-center h-[calc(100%-28px)]">
             <Loader className="h-6 w-6 animate-spin text-gray-400" />
             <span className="ml-2">Loading file...</span>
+          </div>
+        ) : code === "" ? (
+          <div className="flex items-center justify-center h-[calc(100%-28px)] text-gray-500">
+            Empty file – nothing to preview
+          </div>
+        ) : previewLoading ? (
+          <div className="flex items-center justify-center h-[calc(100%-28px)]">
+            <Loader className="h-6 w-6 animate-spin text-gray-400" />
+            <span className="ml-2">Generating preview...</span>
           </div>
         ) : (
           <iframe
