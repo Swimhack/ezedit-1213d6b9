@@ -43,6 +43,8 @@ export function useFileSaver() {
       
       console.log('[useFileSaver] Save successful');
       toast.success("File saved successfully");
+      
+      // Return the content that was saved to ensure consistency
       return { success: true, content: content };
     } catch (error: any) {
       console.error("[useFileSaver] Error saving file:", error);

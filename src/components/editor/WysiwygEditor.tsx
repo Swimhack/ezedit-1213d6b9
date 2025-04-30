@@ -14,24 +14,13 @@ export function WysiwygEditor({ content, onChange, previewSelector, editorRef }:
   
   // Update internal state when content prop changes
   useEffect(() => {
-    if (content !== undefined && content !== editorContent) {
+    if (content !== undefined) {
       console.log('[WysiwygEditor] Content prop updated, length:', content?.length || 0);
       setEditorContent(content);
     }
   }, [content]);
   
-  // Force the editor content update when editor ref changes
-  useEffect(() => {
-    if (editorRef?.current && editorRef.current.setContent && editorContent) {
-      try {
-        console.log('[WysiwygEditor] Forcing content update after editorRef change');
-        editorRef.current.setContent(editorContent);
-      } catch (err) {
-        console.error('[WysiwygEditor] Error forcing content update:', err);
-      }
-    }
-  }, [editorRef]);
-  
+  // Handle editor content changes
   const handleChange = useCallback((newContent: string) => {
     console.log('[WysiwygEditor] Content changed, length:', newContent?.length || 0);
     setEditorContent(newContent);

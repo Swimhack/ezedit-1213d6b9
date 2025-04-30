@@ -21,23 +21,11 @@ export function WysiwygWrapper({
 
   // Update internal state when code prop changes
   useEffect(() => {
-    if (code !== undefined && code !== editorContent) {
+    if (code !== undefined) {
       console.log('[WysiwygWrapper] Code prop updated, length:', code?.length || 0);
       setEditorContent(code);
     }
   }, [code]);
-
-  // Force editor update when ref changes
-  useEffect(() => {
-    if (editorRef.current && editorRef.current.setContent && editorContent) {
-      try {
-        console.log('[WysiwygWrapper] Forcing content update after editorRef change');
-        editorRef.current.setContent(editorContent);
-      } catch (err) {
-        console.error('[WysiwygWrapper] Error forcing content update:', err);
-      }
-    }
-  }, [editorRef]);
 
   const handleEditorChange = useCallback((newContent: string) => {
     console.log('[WysiwygWrapper] TinyMCE content changed, length:', newContent?.length || 0);

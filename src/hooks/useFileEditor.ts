@@ -30,7 +30,12 @@ export function useFileEditor(connectionId: string, filePath: string) {
       clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = null;
     }
-  }, [filePath]);
+
+    // Load new file content when path changes
+    if (connectionId && filePath) {
+      loadFileContent();
+    }
+  }, [filePath, connectionId]);
   
   /**
    * Load file content from FTP/SFTP connection with cache busting
@@ -43,14 +48,15 @@ export function useFileEditor(connectionId: string, filePath: string) {
     
     try {
       setIsLoading(true);
-      // Use cache busting
-      const timestamp = Date.now();
-      console.log(`[useFileEditor] Loading file with cache busting: ${filePath}?t=${timestamp}`);
       
-      // Using recommended fetch logic
-      const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${timestamp}`, {
+      // Use the exact loading logic as specified
+      const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${Date.now()}`, {
+        method: "GET",
         cache: "no-store",
-        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+        headers: {
+          "Pragma": "no-cache", 
+          "Cache-Control": "no-cache" 
+        }
       });
       
       if (!response.ok) {
@@ -62,7 +68,6 @@ export function useFileEditor(connectionId: string, filePath: string) {
       console.log(`[useFileEditor] Content loaded successfully, length: ${content?.length || 0}`);
       setCode(content);
       setHasUnsavedChanges(false);
-      setIsLoading(false);
       
       // Force editor update if using WYSIWYG
       if (editorRef.current && typeof editorRef.current.setContent === 'function') {
@@ -78,8 +83,9 @@ export function useFileEditor(connectionId: string, filePath: string) {
     } catch (error: any) {
       console.error(`[useFileEditor] Error loading file: ${filePath}`, error);
       setError(error.message || "Failed to load file");
-      setIsLoading(false);
       return "";
+    } finally {
+      setIsLoading(false);
     }
   }, [connectionId, filePath, setError, setIsLoading]);
   
@@ -98,9 +104,11 @@ export function useFileEditor(connectionId: string, filePath: string) {
     if (result.success) {
       console.log("[useFileEditor] Save successful");
       setHasUnsavedChanges(false);
-      // Ensure we're using the latest content without reloading
+      
+      // Always use the saved content to ensure consistency
       if (result.content) {
         setCode(result.content);
+        
         // Force editor update if using WYSIWYG
         if (editorRef.current && typeof editorRef.current.setContent === 'function') {
           console.log("[useFileEditor] Forcing WYSIWYG editor update after save");
@@ -141,9 +149,11 @@ export function useFileEditor(connectionId: string, filePath: string) {
             
             if (result.success) {
               setHasUnsavedChanges(false);
-              // Ensure we use the content we just saved
+              
+              // Ensure we use the saved content
               if (result.content) {
                 setCode(result.content);
+                
                 // Force editor update if using WYSIWYG
                 if (editorRef.current && typeof editorRef.current.setContent === 'function') {
                   console.log("[useFileEditor] Forcing WYSIWYG editor update after autosave");
@@ -154,6 +164,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
                   }
                 }
               }
+              
               toast.success("File autosaved", {
                 duration: 2000,
                 position: "bottom-right",
@@ -183,18 +194,19 @@ export function useFileEditor(connectionId: string, filePath: string) {
    * Force refresh file content with cache busting
    */
   const refreshFile = async () => {
-    console.log("[useFileEditor] Force refreshing file content with cache busting");
+    console.log("[useFileEditor] Force refreshing file content");
     
-    // Clear the current code to force a complete refresh
-    // but only temporarily to avoid flickering
     setIsLoading(true);
     
     try {
-      // Use the recommended fetch logic with cache busting
-      const timestamp = Date.now();
-      const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${timestamp}`, {
+      // Use the exact loading logic as specified
+      const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${Date.now()}`, {
+        method: "GET",
         cache: "no-store",
-        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+        headers: {
+          "Pragma": "no-cache",
+          "Cache-Control": "no-cache"
+        }
       });
       
       if (!response.ok) {
@@ -205,7 +217,6 @@ export function useFileEditor(connectionId: string, filePath: string) {
       console.log(`[useFileEditor] Content refreshed successfully, length: ${content.length}`);
       setCode(content);
       setHasUnsavedChanges(false);
-      setIsLoading(false);
       
       // Force editor update if using WYSIWYG
       if (editorRef.current && typeof editorRef.current.setContent === 'function') {
@@ -221,8 +232,9 @@ export function useFileEditor(connectionId: string, filePath: string) {
     } catch (error: any) {
       console.error(`[useFileEditor] Error refreshing file: ${filePath}`, error);
       setError(error.message || "Failed to refresh file");
-      setIsLoading(false);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -234,13 +246,6 @@ export function useFileEditor(connectionId: string, filePath: string) {
       }
     };
   }, []);
-
-  // Initial load
-  useEffect(() => {
-    if (connectionId && filePath) {
-      loadFileContent();
-    }
-  }, [connectionId, filePath, loadFileContent]);
 
   return {
     code,

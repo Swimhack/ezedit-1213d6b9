@@ -22,8 +22,6 @@ export function TinyMCEEditor({
   const editorRef = externalEditorRef || internalEditorRef;
   const { theme } = useTheme();
   const [editorInitialized, setEditorInitialized] = useState<boolean>(false);
-  const [internalContent, setInternalContent] = useState<string>(content || "");
-  const [lastExternalContent, setLastExternalContent] = useState<string>(content || "");
   const contentRef = useRef<string>(content || "");
 
   // Use the provided API key directly
@@ -32,16 +30,11 @@ export function TinyMCEEditor({
   // Update contentRef when content prop changes
   useEffect(() => {
     contentRef.current = content || "";
-  }, [content]);
-  
-  // Effect to update editor content when prop changes from outside
-  useEffect(() => {
-    // Only update if the external content has actually changed
-    if (editorRef.current && editorInitialized && content !== undefined && content !== lastExternalContent) {
+    
+    // Update editor content if editor is initialized and content has changed
+    if (editorRef.current && editorInitialized && content !== undefined) {
       try {
         console.log('[TinyMCE] External content updated, length:', content?.length || 0);
-        setLastExternalContent(content);
-        setInternalContent(content);
         
         // Safely check if the editor is ready
         if (editorRef.current.setContent) {
@@ -57,21 +50,21 @@ export function TinyMCEEditor({
         console.error('[TinyMCE] Error accessing editor methods:', err);
       }
     }
-  }, [content, editorRef, editorInitialized, lastExternalContent]);
+  }, [content, editorRef, editorInitialized]);
 
   // Effect to update preview iframe if selector is provided
   useEffect(() => {
-    if (previewSelector && internalContent) {
+    if (previewSelector && content) {
       const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
       if (previewFrame) {
         try {
-          previewFrame.srcdoc = internalContent;
+          previewFrame.srcdoc = content;
         } catch (err) {
           console.error('[TinyMCE] Error updating preview iframe:', err);
         }
       }
     }
-  }, [internalContent, previewSelector]);
+  }, [content, previewSelector]);
 
   return (
     <Editor
@@ -87,8 +80,6 @@ export function TinyMCEEditor({
             try {
               console.log('[TinyMCE] Setting initial content, length:', contentRef.current.length);
               editor.setContent(contentRef.current);
-              setInternalContent(contentRef.current);
-              setLastExternalContent(contentRef.current);
             } catch (err) {
               console.error('[TinyMCE] Error setting initial content:', err);
             }
@@ -96,14 +87,10 @@ export function TinyMCEEditor({
         }
       }}
       initialValue={content} // Set initial value directly
-      value={content}
+      value={content} // Control the editor with value prop
       onEditorChange={(newContent, editor) => {
-        // Only trigger onChange if content actually changed to prevent loops
-        if (newContent !== internalContent) {
-          console.log('[TinyMCE] Content changed via onEditorChange, new length:', newContent.length);
-          setInternalContent(newContent);
-          onChange(newContent);
-        }
+        console.log('[TinyMCE] Content changed via onEditorChange, new length:', newContent.length);
+        onChange(newContent);
       }}
       init={{
         height,
@@ -131,25 +118,20 @@ export function TinyMCEEditor({
               // Get current content
               const currentContent = editor.getContent();
               
-              // Only update if content has changed
-              if (currentContent !== internalContent) {
-                console.log('[TinyMCE] Content changed via editor event');
-                setInternalContent(currentContent);
-                onChange(currentContent);
-                setLastExternalContent(currentContent);
-                
-                // Update preview if selector provided
-                if (previewSelector) {
-                  const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
-                  if (previewFrame) {
-                    try {
-                      previewFrame.srcdoc = currentContent;
-                    } catch (err) {
-                      console.error('[TinyMCE] Error updating preview in editor event:', err);
-                    }
+              // Update preview if selector provided
+              if (previewSelector) {
+                const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
+                if (previewFrame) {
+                  try {
+                    previewFrame.srcdoc = currentContent;
+                  } catch (err) {
+                    console.error('[TinyMCE] Error updating preview in editor event:', err);
                   }
                 }
               }
+              
+              // Notify parent component
+              onChange(currentContent);
             }
           });
         }

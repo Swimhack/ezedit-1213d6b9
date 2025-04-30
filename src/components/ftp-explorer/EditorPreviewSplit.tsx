@@ -33,6 +33,17 @@ export function EditorPreviewSplit({
   const [editorLoading, setEditorLoading] = useState(true);
   const [contentReady, setContentReady] = useState(false);
   const [editorContent, setEditorContent] = useState<string>(code || '');
+  const [lastFilePath, setLastFilePath] = useState<string>(filePath);
+  const [lastForceRefresh, setLastForceRefresh] = useState<number>(forceRefresh);
+
+  // Effect to load file content when path changes
+  useEffect(() => {
+    if (filePath && filePath !== lastFilePath) {
+      console.log(`[EditorPreviewSplit] File path changed: ${filePath}`);
+      setLastFilePath(filePath);
+      loadFileContent(filePath);
+    }
+  }, [filePath]);
 
   // Effect to track when content is ready to display and update internal state
   useEffect(() => {
@@ -41,18 +52,6 @@ export function EditorPreviewSplit({
     if (code !== undefined) {
       setContentReady(true);
       setEditorContent(code);
-      
-      // Force content update to editor if it's already mounted
-      if (editorRef.current) {
-        try {
-          if (editorMode === 'wysiwyg' && typeof editorRef.current.setContent === 'function') {
-            console.log('[EditorPreviewSplit] Forcing WYSIWYG content update after code change');
-            editorRef.current.setContent(code);
-          }
-        } catch (err) {
-          console.error('[EditorPreviewSplit] Error updating editor content:', err);
-        }
-      }
     } else {
       console.warn(`[EditorPreviewSplit] Code is undefined for file: ${filePath}`);
       setContentReady(false);
@@ -60,15 +59,59 @@ export function EditorPreviewSplit({
     
     // Refresh preview when code changes
     setPreviewKey(prev => prev + 1);
-  }, [code, filePath, editorMode]);
+  }, [code, filePath]);
 
   // Force refresh preview when forceRefresh prop changes
   useEffect(() => {
-    if (forceRefresh > 0) {
-      console.log('[EditorPreviewSplit] Force refreshing preview');
-      setPreviewKey(prev => prev + 1);
+    if (forceRefresh > 0 && forceRefresh !== lastForceRefresh) {
+      console.log('[EditorPreviewSplit] Force refreshing content');
+      setLastForceRefresh(forceRefresh);
+      loadFileContent(filePath);
     }
   }, [forceRefresh]);
+
+  // Implement the exact file loading logic specified
+  const loadFileContent = async (path: string) => {
+    setEditorLoading(true);
+    
+    try {
+      console.log(`[EditorPreviewSplit] Loading file content: ${path}`);
+      const res = await fetch(`/api/readFile?path=${encodeURIComponent(path)}&t=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Pragma": "no-cache",
+          "Cache-Control": "no-cache"
+        }
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
+      }
+      
+      const content = await res.text();
+      console.log(`[EditorPreviewSplit] File content loaded, length: ${content.length}`);
+      
+      setEditorContent(content);
+      onCodeChange(content);
+      
+      // Force editor update if WYSIWYG mode
+      if (editorMode === 'wysiwyg' && editorRef.current) {
+        try {
+          console.log('[EditorPreviewSplit] Applying content to WYSIWYG editor');
+          editorRef.current.setContent(content);
+        } catch (err) {
+          console.error('[EditorPreviewSplit] Error updating editor content:', err);
+        }
+      }
+      
+      setPreviewKey(prev => prev + 1);
+    } catch (err) {
+      console.error(`[EditorPreviewSplit] Error loading file: ${path}`, err);
+    } finally {
+      setEditorLoading(false);
+    }
+  };
 
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
@@ -114,7 +157,7 @@ export function EditorPreviewSplit({
 
   const handleManualRefresh = () => {
     console.log('[EditorPreviewSplit] Manual refresh triggered');
-    setPreviewKey(prev => prev + 1);
+    loadFileContent(filePath);
   };
 
   // Determine if we should show WYSIWYG editor
@@ -140,9 +183,14 @@ export function EditorPreviewSplit({
       className="h-full"
     >
       <div className="editor-pane overflow-hidden">
-        {showWysiwyg ? (
+        {editorLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
+            <span>Loading editor...</span>
+          </div>
+        ) : showWysiwyg ? (
           <WysiwygWrapper
-            code={code}
+            code={editorContent}
             filePath={filePath}
             onCodeChange={handleEditorContentChange}
             editorRef={editorRef}
@@ -150,7 +198,7 @@ export function EditorPreviewSplit({
           />
         ) : (
           <CodeEditorPane
-            code={code}
+            code={editorContent}
             contentReady={contentReady}
             language={detectLanguage()}
             onCodeChange={handleEditorContentChange}
@@ -167,7 +215,7 @@ export function EditorPreviewSplit({
           previewIframeId={previewIframeId}
           contentReady={contentReady}
           isLoading={previewLoading}
-          code={editorContent} // Use the internal editor content for preview
+          code={editorContent}
         />
       </div>
     </Split>
