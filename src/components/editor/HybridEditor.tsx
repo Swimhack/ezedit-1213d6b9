@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Tabs, TabList, Tab, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
@@ -16,13 +15,15 @@ interface HybridEditorProps {
   fileName: string | null;
   onChange: (content: string) => void;
   editorRef?: React.MutableRefObject<any>;
+  readOnly?: boolean;
 }
 
 export function HybridEditor({ 
   content, 
   fileName, 
   onChange,
-  editorRef
+  editorRef,
+  readOnly = false
 }: HybridEditorProps) {
   const [tabIndex, setTabIndex] = useState(0);
   const [htmlContent, setHtmlContent] = useState(content);
@@ -158,6 +159,7 @@ export function HybridEditor({
         language={fileName ? fileName.split('.').pop() || 'plaintext' : 'plaintext'}
         onChange={onChange}
         editorRef={editorRef}
+        readOnly={readOnly}
       />
     );
   }
@@ -171,10 +173,14 @@ export function HybridEditor({
               <Code size={16} />
               <span>Code</span>
             </Tab>
-            <Tab className="flex items-center gap-1 px-3 py-2 rounded-t cursor-pointer border-b-2 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800">
-              <Columns size={16} />
-              <span>Visual</span>
-            </Tab>
+            {!readOnly && (
+              <>
+                <Tab className="flex items-center gap-1 px-3 py-2 rounded-t cursor-pointer border-b-2 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800">
+                  <Columns size={16} />
+                  <span>Visual</span>
+                </Tab>
+              </>
+            )}
             <Tab className="flex items-center gap-1 px-3 py-2 rounded-t cursor-pointer border-b-2 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800">
               <Eye size={16} />
               <span>Preview</span>
@@ -190,10 +196,11 @@ export function HybridEditor({
             language="html" 
             onChange={onChange} 
             editorRef={editorRef} 
+            readOnly={readOnly}
           />
         )}
         
-        {tabIndex === 1 && (
+        {tabIndex === 1 && !readOnly && (
           <div className="h-full">
             <div className="flex gap-2 p-2 border-b">
               <Button 
@@ -205,6 +212,7 @@ export function HybridEditor({
                   }
                 }}
                 className="flex items-center gap-1"
+                disabled={readOnly}
               >
                 <Paintbrush size={14} />
                 Design
@@ -218,6 +226,7 @@ export function HybridEditor({
                   }
                 }}
                 className="flex items-center gap-1"
+                disabled={readOnly}
               >
                 <Code size={14} />
                 Code
@@ -228,7 +237,7 @@ export function HybridEditor({
           </div>
         )}
         
-        {tabIndex === 2 && (
+        {(tabIndex === 2 || (tabIndex === 1 && readOnly)) && (
           <div className="h-full w-full bg-white">
             <iframe 
               srcDoc={previewSrc} 

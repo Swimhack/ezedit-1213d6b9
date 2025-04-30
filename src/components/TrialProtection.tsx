@@ -10,9 +10,10 @@ import { Loader } from "lucide-react";
 
 interface TrialProtectionProps {
   children: React.ReactNode;
+  requiresSubscription?: boolean;
 }
 
-const TrialProtection = ({ children }: TrialProtectionProps) => {
+const TrialProtection = ({ children, requiresSubscription = false }: TrialProtectionProps) => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -70,6 +71,13 @@ const TrialProtection = ({ children }: TrialProtectionProps) => {
         return;
       }
 
+      // If this feature requires a subscription and user doesn't have one
+      if (requiresSubscription && !subscribed) {
+        toast.warning("This feature requires a paid subscription. Please upgrade your account.");
+        navigate("/pricing");
+        return;
+      }
+
       // Regular trial status check for users who are not super admins or paid subscribers
       if (!trialStatus.isActive) {
         toast.warning("Your trial has expired. Please upgrade your account.");
@@ -86,7 +94,7 @@ const TrialProtection = ({ children }: TrialProtectionProps) => {
       // Just to make sure super admin is always allowed even if trial status is still loading
       setLoading(false);
     }
-  }, [trialStatus, user, navigate, isSuperAdmin, superAdminLoading, subscribed, subLoading]);
+  }, [trialStatus, user, navigate, isSuperAdmin, superAdminLoading, subscribed, subLoading, requiresSubscription]);
 
   if (loading || trialStatus.loading || superAdminLoading || subLoading) {
     return (

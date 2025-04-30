@@ -7,13 +7,15 @@ interface CodeEditorProps {
   language: string;
   onChange: (value: string | undefined) => void;
   editorRef?: React.MutableRefObject<any>;
+  readOnly?: boolean;
 }
 
 export const CodeEditor: React.FC<CodeEditorProps> = ({ 
   content, 
   language, 
   onChange, 
-  editorRef 
+  editorRef,
+  readOnly = false
 }) => {
   // Force editor refresh when content changes
   useEffect(() => {
@@ -60,6 +62,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           automaticLayout: true,
           tabSize: 2,
           fixedOverflowWidgets: true,
+          readOnly: readOnly,
         }}
         onMount={handleEditorDidMount}
       />

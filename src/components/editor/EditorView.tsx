@@ -11,6 +11,7 @@ interface EditorViewProps {
   onChange: (content: string) => void;
   editorRef?: React.MutableRefObject<any>;
   isLoading?: boolean;
+  readOnly?: boolean;
 }
 
 export function EditorView({
@@ -19,7 +20,8 @@ export function EditorView({
   fileName,
   onChange,
   editorRef,
-  isLoading = false
+  isLoading = false,
+  readOnly = false
 }: EditorViewProps) {
   const [contentLoaded, setContentLoaded] = useState(false);
 
@@ -62,12 +64,14 @@ export function EditorView({
       language={getFileLanguage()}
       onChange={onChange}
       editorRef={editorRef}
+      readOnly={readOnly}
     />
   ) : (
     <WysiwygEditor 
       content={content}
       onChange={onChange}
       editorRef={editorRef}
+      readOnly={readOnly}
     />
   );
 }

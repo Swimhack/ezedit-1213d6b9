@@ -11,6 +11,8 @@ import FileUploader from "@/components/FileUploader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import TrialProtection from "@/components/TrialProtection";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -65,50 +67,52 @@ const Upload = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <div className="flex-grow flex flex-col md:flex-row">
-        {/* Mobile sidebar with sheet */}
-        {isMobile ? (
-          <div className="px-4 py-2 bg-eznavy-light border-b border-ezgray-dark">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="mr-2">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Toggle Menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-64 bg-eznavy-light border-r border-ezgray-dark">
-                <DashboardSidebar />
-              </SheetContent>
-            </Sheet>
-            <span className="text-lg font-semibold text-ezwhite inline-flex items-center">
-              Upload Files
-            </span>
-          </div>
-        ) : (
-          <DashboardSidebar />
-        )}
-        <main className={`flex-grow p-4 md:p-6 ${isMobile ? 'w-full' : ''}`}>
-          <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-ezwhite">Upload Files</h1>
-          
-          <div className="bg-eznavy-light rounded-lg p-4 md:p-6 max-w-sm md:max-w-md mx-auto">
-            <FileUploader currentFolder="" onUploadComplete={handleUploadComplete} />
-            
-            <div className="mt-4 md:mt-6 text-xs md:text-sm text-ezgray">
-              <h3 className="font-medium text-ezwhite mb-2">Upload Guidelines:</h3>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Maximum file size: 50MB</li>
-                <li>Supported formats: Images, Documents, PDFs</li>
-                <li>Files are stored securely in your account</li>
-                <li>You can organize files into folders later</li>
-              </ul>
+    <TrialProtection requiresSubscription={true}>
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex-grow flex flex-col md:flex-row">
+          {/* Mobile sidebar with sheet */}
+          {isMobile ? (
+            <div className="px-4 py-2 bg-eznavy-light border-b border-ezgray-dark">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="mr-2">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Toggle Menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-64 bg-eznavy-light border-r border-ezgray-dark">
+                  <DashboardSidebar />
+                </SheetContent>
+              </Sheet>
+              <span className="text-lg font-semibold text-ezwhite inline-flex items-center">
+                Upload Files
+              </span>
             </div>
-          </div>
-        </main>
+          ) : (
+            <DashboardSidebar />
+          )}
+          <main className={`flex-grow p-4 md:p-6 ${isMobile ? 'w-full' : ''}`}>
+            <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-ezwhite">Upload Files</h1>
+            
+            <div className="bg-eznavy-light rounded-lg p-4 md:p-6 max-w-sm md:max-w-md mx-auto">
+              <FileUploader currentFolder="" onUploadComplete={handleUploadComplete} />
+              
+              <div className="mt-4 md:mt-6 text-xs md:text-sm text-ezgray">
+                <h3 className="font-medium text-ezwhite mb-2">Upload Guidelines:</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Maximum file size: 50MB</li>
+                  <li>Supported formats: Images, Documents, PDFs</li>
+                  <li>Files are stored securely in your account</li>
+                  <li>You can organize files into folders later</li>
+                </ul>
+              </div>
+            </div>
+          </main>
+        </div>
+        <Footer />
       </div>
-      <Footer />
-    </div>
+    </TrialProtection>
   );
 };
 

@@ -12,10 +12,12 @@ export interface SubscriptionStatus {
   checkStatus: () => Promise<void>;
   handleCustomerPortal: () => Promise<void>;
   handleCheckout: (priceId: string) => Promise<void>;
+  canUploadFiles: boolean;
+  canEditFiles: boolean;
 }
 
 export function useSubscription(email?: string | null): SubscriptionStatus {
-  const [status, setStatus] = useState<Omit<SubscriptionStatus, 'checkStatus' | 'handleCustomerPortal' | 'handleCheckout'>>({
+  const [status, setStatus] = useState<Omit<SubscriptionStatus, 'checkStatus' | 'handleCustomerPortal' | 'handleCheckout' | 'canUploadFiles' | 'canEditFiles'>>({
     subscribed: false,
     subscriptionTier: null,
     subscriptionEnd: null,
@@ -116,10 +118,16 @@ export function useSubscription(email?: string | null): SubscriptionStatus {
     checkStatus();
   }, [email]);
 
+  // Determine user capabilities based on subscription tier
+  const canUploadFiles = status.subscribed || status.subscriptionTier === 'business_pro';
+  const canEditFiles = status.subscribed || status.subscriptionTier === 'business_pro';
+
   return {
     ...status,
     checkStatus,
     handleCustomerPortal,
-    handleCheckout
+    handleCheckout,
+    canUploadFiles,
+    canEditFiles
   };
 }

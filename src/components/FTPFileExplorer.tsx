@@ -8,6 +8,11 @@ import { toast } from "sonner";
 import { normalizePath } from "@/utils/path";
 import { FTPFileList } from "./FTPFileList";
 import { useFileContent } from "@/hooks/use-file-content";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { AlertCircle, Lock } from "lucide-react";
+import { Button } from "./ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface FTPFileExplorerProps {
   connection: {
@@ -30,6 +35,7 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   const [files, setFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showKlein, setShowKlein] = useState(true);
+  const navigate = useNavigate();
 
   const { 
     content: fileContent, 
@@ -39,6 +45,21 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
     isSaving,
     hasUnsavedChanges,
   } = useFileContent({ connection, filePath: currentFilePath });
+
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  useEffect(() => {
+    const getUserEmail = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUserEmail(data.session?.user?.email || null);
+    };
+    getUserEmail();
+  }, []);
+
+  const { subscribed, subscriptionTier, isLoading: subLoading } = useSubscription(userEmail);
+  const { isSuperAdmin } = useSuperAdmin(userEmail);
+  
+  // Check if user can edit files
+  const canEditFiles = isSuperAdmin || subscribed || subscriptionTier === 'business_pro';
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -88,6 +109,11 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
   };
 
   const handleApplyResponse = (text: string) => {
+    if (!canEditFiles) {
+      toast.error("Editing requires a paid subscription");
+      return;
+    }
+    
     if (fileContent) {
       const newContent = fileContent + '\n' + text;
       updateContent(newContent);
@@ -120,22 +146,40 @@ const FTPFileExplorer = ({ connection, onClose }: FTPFileExplorerProps) => {
         <div className="w-full md:w-2/3 flex-1 flex flex-col">
           <FileEditorToolbar
             fileName={currentFilePath}
-            onSave={saveContent}
+            onSave={canEditFiles ? saveContent : () => toast.error("Editing requires a paid subscription")}
             isSaving={isSaving}
             hasUnsavedChanges={hasUnsavedChanges}
+            disabled={!canEditFiles}
           />
           
           {isFileLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ezblue"></div>
             </div>
+          ) : !canEditFiles && currentFilePath ? (
+            <div className="flex flex-col items-center justify-center h-full p-6">
+              <div className="bg-eznavy-light rounded-lg p-6 max-w-md text-center">
+                <Lock size={48} className="mx-auto text-ezblue mb-4" />
+                <h3 className="text-xl font-semibold text-ezwhite mb-2">Editing Requires Subscription</h3>
+                <p className="text-ezgray mb-4">
+                  The free trial only allows viewing files. Upgrade to our Business Pro plan to edit files.
+                </p>
+                <Button 
+                  className="bg-ezblue hover:bg-ezblue-light text-ezwhite"
+                  onClick={() => navigate('/pricing')}
+                >
+                  View Pricing Plans
+                </Button>
+              </div>
+            </div>
           ) : (
             <FileEditorContent
               filePath={currentFilePath}
               content={fileContent || ''}
               showKlein={showKlein}
-              onContentChange={updateContent}
+              onContentChange={canEditFiles ? updateContent : () => {}}
               onApplyResponse={handleApplyResponse}
+              readOnly={!canEditFiles}
             />
           )}
         </div>

@@ -18,6 +18,7 @@ interface SplitEditorProps {
   onChange: (content: string) => void;
   editorRef?: React.MutableRefObject<any>;
   error?: string;
+  readOnly?: boolean;
 }
 
 export function SplitEditor({ 
@@ -25,7 +26,8 @@ export function SplitEditor({
   content, 
   onChange, 
   editorRef, 
-  error 
+  error,
+  readOnly = false
 }: SplitEditorProps) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [frameKey, setFrameKey] = useState(0);
@@ -77,7 +79,7 @@ export function SplitEditor({
   };
 
   const handleContentChange = debounce((value: string | undefined) => {
-    if (value !== undefined) {
+    if (value !== undefined && !readOnly) {
       onChange(value);
       setRefreshKey(k => k + 1);
     }
@@ -85,7 +87,9 @@ export function SplitEditor({
 
   const handleHybridContentChange = (value: string) => {
     setHybridContent(value);
-    handleContentChange(value);
+    if (!readOnly) {
+      handleContentChange(value);
+    }
   };
 
   if (!fileName || !content && !isLoading) {
@@ -134,6 +138,7 @@ export function SplitEditor({
               size="sm"
               onClick={syncContent}
               className="mr-2 gap-2"
+              disabled={readOnly}
             >
               <RefreshCw className="h-4 w-4" />
               Sync Preview
@@ -146,6 +151,7 @@ export function SplitEditor({
                 fileName={fileName}
                 onChange={handleHybridContentChange}
                 editorRef={editorRef}
+                readOnly={readOnly}
               />
             ) : (
               <EditorView
@@ -155,6 +161,7 @@ export function SplitEditor({
                 onChange={editMode === 'code' ? handleContentChange : setWysiwygContent}
                 editorRef={editorRef}
                 isLoading={isLoading}
+                readOnly={readOnly}
               />
             )}
           </div>
