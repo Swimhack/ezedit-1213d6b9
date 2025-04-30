@@ -21,29 +21,38 @@ export const useSuperAdmin = (email?: string | null) => {
           return;
         }
 
-        // Check if the user exists in the user_roles table with super_admin role
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('*')
-          .eq('user_id', userData.user.id)
-          .eq('role', 'super_admin')
-          .single();
+        // Method 1: Use the has_role function we created in the SQL migration
+        const { data: hasRole, error: hasRoleError } = await supabase.rpc(
+          'has_role', 
+          { target_role: 'super_admin' }
+        );
 
-        if (error) {
-          // If error (table might not exist yet), fallback to hardcoded email check
-          if (email === 'james@ekaty.com') {
-            setIsSuperAdmin(true);
+        if (hasRoleError) {
+          console.error('Error checking super_admin role:', hasRoleError);
+          
+          // Method 2: Direct query as fallback if RPC fails
+          const { data: roleData, error: roleError } = await supabase
+            .from('user_roles')
+            .select('*')
+            .eq('user_id', userData.user.id)
+            .eq('role', 'super_admin')
+            .maybeSingle();
+            
+          if (roleError) {
+            console.error('Error checking user_roles table:', roleError);
+            // Method 3: Ultimate fallback to hardcoded email
+            setIsSuperAdmin(email === 'james@ekaty.com');
+          } else {
+            setIsSuperAdmin(roleData !== null);
           }
         } else {
-          // If we have data (user found in user_roles as super_admin)
-          setIsSuperAdmin(data !== null);
+          // Use result from RPC function
+          setIsSuperAdmin(!!hasRole);
         }
       } catch (err) {
         console.error('Error in useSuperAdmin hook:', err);
-        // Fallback to email check for reliability
-        if (email === 'james@ekaty.com') {
-          setIsSuperAdmin(true);
-        }
+        // Final fallback to hardcoded email for reliability
+        setIsSuperAdmin(email === 'james@ekaty.com');
       } finally {
         setLoading(false);
       }

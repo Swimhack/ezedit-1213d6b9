@@ -5,11 +5,13 @@ import Logo from "@/components/Logo";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { LayoutDashboard, LogOut } from "lucide-react";
+import { LayoutDashboard, LogOut, Shield } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 
 const Navbar = () => {
   const [user, setUser] = useState<any>(null);
+  const { isSuperAdmin } = useSuperAdmin(user?.email);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -67,6 +69,12 @@ const Navbar = () => {
                   Dashboard
                 </Button>
               </Link>
+              {isSuperAdmin && (
+                <div className="flex items-center gap-1 text-amber-500 px-2 py-1 rounded-md bg-amber-100 dark:bg-amber-900/30">
+                  <Shield className="w-4 h-4" />
+                  <span className="text-xs font-medium">Admin</span>
+                </div>
+              )}
               <Button 
                 variant="ghost" 
                 className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
