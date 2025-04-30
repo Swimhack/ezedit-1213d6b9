@@ -47,30 +47,34 @@ const TrialProtection = ({ children }: TrialProtectionProps) => {
   useEffect(() => {
     if (!loading && !user) {
       toast.info("Please login or start a trial to access this feature");
-      navigate("/register");
+      navigate("/login");
     }
   }, [loading, user, navigate]);
 
   useEffect(() => {
+    // If user exists and we've finished loading both trial status and super admin status
     if (user && !trialStatus.loading && !superAdminLoading) {
-      // If user is a super admin, don't check trial status
+      // Super admin check - immediately allow access if super admin
       if (isSuperAdmin) {
+        console.log("Super admin access granted to:", user.email);
         setLoading(false);
         return;
       }
 
+      // Regular trial status check for non-super admin users
       if (!trialStatus.isActive) {
         toast.warning("Your trial has expired or isn't active. Please upgrade your account.");
         navigate("/pricing");
       } else if (trialStatus.daysRemaining !== null && trialStatus.daysRemaining <= 2) {
         // Show warning for trials with 2 or fewer days left
         toast.warning(`Your trial expires in ${trialStatus.daysRemaining} days. Consider upgrading.`);
+        setLoading(false);
       } else {
         // Trial is valid and not about to expire
         setLoading(false);
       }
-    } else if (!superAdminLoading && isSuperAdmin) {
-      // Super admin is always allowed
+    } else if (!superAdminLoading && isSuperAdmin && user) {
+      // Just to make sure super admin is always allowed even if trial status is still loading
       setLoading(false);
     }
   }, [trialStatus, user, navigate, isSuperAdmin, superAdminLoading]);

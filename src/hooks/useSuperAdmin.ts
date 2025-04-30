@@ -21,19 +21,22 @@ export const useSuperAdmin = (email?: string | null) => {
           return;
         }
 
-        // Check if the user exists in the user_roles table
-        // This will be handled by RLS policies and will return null if the table doesn't exist
-        const { data, error } = await supabase.rpc('has_super_admin_role', {
-          user_id: userData.user.id
-        }).single();
+        // Check if the user exists in the user_roles table with super_admin role
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('user_id', userData.user.id)
+          .eq('role', 'super_admin')
+          .single();
 
         if (error) {
-          // If the function doesn't exist, fallback to hardcoded email check
+          // If error (table might not exist yet), fallback to hardcoded email check
           if (email === 'james@ekaty.com') {
             setIsSuperAdmin(true);
           }
         } else {
-          setIsSuperAdmin(!!data?.is_super_admin);
+          // If we have data (user found in user_roles as super_admin)
+          setIsSuperAdmin(data !== null);
         }
       } catch (err) {
         console.error('Error in useSuperAdmin hook:', err);
