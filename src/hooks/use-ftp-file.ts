@@ -23,7 +23,7 @@ export function useFtpFile() {
       console.log(`[useFtpFile] Loading file content from: ${filePath}`);
       console.time(`[SFTP] ${filePath}`);
       
-      // Use sftp-file function with improved error handling
+      // Try the sftp-file function first for better reliability
       const response = await supabase.functions.invoke('sftp-file', {
         body: {
           siteId: connection.id,
@@ -38,12 +38,40 @@ export function useFtpFile() {
 
       if (response.error) {
         console.error("[useFtpFile] Error from edge function:", response.error);
-        const errorMessage = response.error.message || "Failed to load file";
-        console.log('→ status:', 'error', 'bytes:', 0, 'error:', errorMessage);
-        setError(errorMessage);
-        toast.error(`Error loading file: ${errorMessage}`);
-        setContent("");
-        return "";
+        
+        // Try fallback to standard ftp-get-file function
+        console.log("[useFtpFile] Attempting fallback to ftp-get-file");
+        
+        const fallbackResponse = await supabase.functions.invoke('ftp-get-file', {
+          body: {
+            siteId: connection.id,
+            path: filePath
+          }
+        });
+        
+        if (fallbackResponse.error) {
+          throw new Error(fallbackResponse.error.message || "Failed to load file (fallback failed)");
+        }
+        
+        const { data: fallbackData } = fallbackResponse;
+        
+        if (fallbackData && fallbackData.success) {
+          // For ftp-get-file, content might be base64 encoded
+          let decodedContent = fallbackData.content;
+          if (typeof fallbackData.content === 'string' && fallbackData.content.match(/^[A-Za-z0-9+/=]+$/)) {
+            try {
+              decodedContent = atob(fallbackData.content);
+            } catch (e) {
+              console.warn("[useFtpFile] Content doesn't appear to be valid base64, using as-is");
+            }
+          }
+          
+          setContent(decodedContent || "");
+          setError(null);
+          return decodedContent || "";
+        } else {
+          throw new Error(fallbackData?.message || "Failed to load file content");
+        }
       }
       
       const { data } = response;

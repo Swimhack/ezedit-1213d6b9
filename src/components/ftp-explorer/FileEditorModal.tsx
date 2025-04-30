@@ -9,6 +9,7 @@ import { EditorStateDisplay } from "./EditorStateDisplay";
 import { useFileEditor } from "@/hooks/useFileEditor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 interface FileEditorModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export function FileEditorModal({
 }: FileEditorModalProps) {
   const [draggingSplitter, setDraggingSplitter] = useState(false);
   const [editorMode, setEditorMode] = useState<'code' | 'wysiwyg'>('code');
+  const [loadAttempts, setLoadAttempts] = useState(0);
   
   const {
     code,
@@ -40,9 +42,16 @@ export function FileEditorModal({
   
   useEffect(() => {
     if (isOpen && connectionId && filePath) {
-      loadFile();
+      loadFile().catch(err => {
+        console.error("Failed to load file:", err);
+      });
     }
-  }, [isOpen, connectionId, filePath]);
+  }, [isOpen, connectionId, filePath, loadAttempts]);
+
+  const handleRetry = () => {
+    toast.info("Retrying file load...");
+    setLoadAttempts(prev => prev + 1);
+  };
 
   // Check if file can be edited in WYSIWYG mode
   const supportsWysiwyg = /\.(html?|htm|php)$/i.test(filePath);
@@ -50,7 +59,7 @@ export function FileEditorModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-screen-xl w-[95vw] h-[90vh] p-0 flex flex-col">
-        <div className="modal-header flex items-center justify-between px-4 py-2">
+        <div className="modal-header flex items-center justify-between px-4 py-2 border-b">
           <h2 className="text-lg font-semibold truncate">{filePath}</h2>
           <button 
             onClick={onClose} 
@@ -96,7 +105,7 @@ export function FileEditorModal({
         <EditorStateDisplay 
           isLoading={isLoading}
           error={error}
-          onRetry={loadFile}
+          onRetry={handleRetry}
         />
         
         {!isLoading && !error && (
