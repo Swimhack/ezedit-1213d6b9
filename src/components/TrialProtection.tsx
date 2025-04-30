@@ -55,24 +55,24 @@ const TrialProtection = ({ children, requiresSubscription = false }: TrialProtec
   }, [loading, user, navigate]);
 
   useEffect(() => {
+    // First check if super admin status is loaded - if they are a super admin, allow immediate access
+    if (!superAdminLoading && isSuperAdmin && user) {
+      console.log("Super admin access granted to:", user.email);
+      setLoading(false);
+      return; // Early return for super admins
+    }
+    
+    // Then check if subscription status is loaded - if they are subscribed, allow immediate access
+    if (!subLoading && subscribed && user) {
+      console.log("Paid subscriber access granted to:", user.email);
+      setLoading(false);
+      return; // Early return for paid subscribers
+    }
+    
     // If user exists and we've finished loading both trial status, subscription status and super admin status
     if (user && !trialStatus.loading && !superAdminLoading && !subLoading) {
-      // Super admin check - immediately allow access if super admin
-      if (isSuperAdmin) {
-        console.log("Super admin access granted to:", user.email);
-        setLoading(false);
-        return;
-      }
-
-      // Paid subscription check - allow access if subscribed
-      if (subscribed) {
-        console.log("Paid subscriber access granted to:", user.email);
-        setLoading(false);
-        return;
-      }
-
       // If this feature requires a subscription and user doesn't have one
-      if (requiresSubscription && !subscribed) {
+      if (requiresSubscription && !subscribed && !isSuperAdmin) {
         toast.warning("This feature requires a paid subscription. Please upgrade your account.");
         navigate("/pricing");
         return;
@@ -90,9 +90,6 @@ const TrialProtection = ({ children, requiresSubscription = false }: TrialProtec
         // Trial is valid and not about to expire
         setLoading(false);
       }
-    } else if (!superAdminLoading && isSuperAdmin && user) {
-      // Just to make sure super admin is always allowed even if trial status is still loading
-      setLoading(false);
     }
   }, [trialStatus, user, navigate, isSuperAdmin, superAdminLoading, subscribed, subLoading, requiresSubscription]);
 
