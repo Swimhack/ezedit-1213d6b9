@@ -3,16 +3,18 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link } from "react-router-dom";
-import { CheckCircle } from "lucide-react";
+import { Loader } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader } from "lucide-react";
+
+// Import the new components
+import { PricingHero } from "@/components/pricing/HeroSection";
+import { PricingPlans } from "@/components/pricing/PricingPlans";
+import { EnterpriseSection } from "@/components/pricing/EnterpriseSection";
+import { FaqSection } from "@/components/pricing/FaqSection";
+import { CallToAction } from "@/components/pricing/CallToAction";
+import { SubscriptionDialogs } from "@/components/pricing/SubscriptionDialogs";
 
 const Pricing = () => {
   const navigate = useNavigate();
@@ -149,10 +151,6 @@ const Pricing = () => {
     await handleCheckout(priceId);
   };
 
-  const isCurrentPlan = (planTier: 'free_trial' | 'business_pro') => {
-    return subscriptionTier === planTier;
-  };
-
   if (isLoading || subLoading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -172,278 +170,26 @@ const Pricing = () => {
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="flex-grow">
-        {/* Success Dialog */}
-        <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Subscription Successful!</DialogTitle>
-              <DialogDescription>
-                Thank you for subscribing to EzEdit Business Pro. Your payment was successful and your subscription is now active.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end">
-              <Button onClick={() => setShowSuccess(false)}>Close</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Canceled Dialog */}
-        <Dialog open={showCanceled} onOpenChange={setShowCanceled}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Subscription Canceled</DialogTitle>
-              <DialogDescription>
-                Your subscription process was canceled. If you have any questions or need assistance, feel free to contact our support team.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end">
-              <Button onClick={() => setShowCanceled(false)}>Close</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Hero Section */}
-        <section className="py-16 px-4 bg-eznavy">
-          <div className="container mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6 text-ezwhite">
-              Simple, Transparent Pricing
-            </h1>
-            <p className="text-xl text-ezgray max-w-3xl mx-auto mb-6">
-              Choose the plan that fits your needs. All plans include core features with no hidden costs.
-            </p>
-          </div>
-        </section>
-
-        {/* Pricing Plans */}
-        <section className="py-16 px-4">
-          <div className="container mx-auto">
-            <Tabs defaultValue="monthly" className="w-full">
-              <div className="flex justify-center mb-8">
-                <TabsList>
-                  <TabsTrigger value="monthly">Monthly Billing</TabsTrigger>
-                  <TabsTrigger value="yearly">Yearly Billing (Save 20%)</TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="monthly" className="w-full">
-                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  {plans.map((plan, index) => (
-                    <Card 
-                      key={index} 
-                      className={`${
-                        plan.popular ? 'border-ezblue ring-2 ring-ezblue' : 'border-ezgray-dark'
-                      } relative ${isCurrentPlan(plan.tier) ? 'bg-eznavy-light/30' : ''}`}
-                    >
-                      {plan.popular && (
-                        <div className="absolute -top-4 left-0 right-0 flex justify-center">
-                          <span className="bg-ezblue px-3 py-1 text-eznavy text-sm font-semibold rounded-full">
-                            Most Popular
-                          </span>
-                        </div>
-                      )}
-                      {isCurrentPlan(plan.tier) && (
-                        <div className="absolute -top-4 right-4">
-                          <span className="bg-green-500 px-3 py-1 text-white text-sm font-semibold rounded-full">
-                            Your Plan
-                          </span>
-                        </div>
-                      )}
-                      <CardHeader className={plan.popular ? 'pt-8' : ''}>
-                        <CardTitle>{plan.name}</CardTitle>
-                        <CardDescription>{plan.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="mb-6">
-                          <span className="text-4xl font-bold">${plan.monthlyPrice}</span>
-                          <span className="text-ezgray">/month</span>
-                        </div>
-
-                        <div className="space-y-3">
-                          {plan.features.map((feature, featureIndex) => (
-                            <div key={featureIndex} className="flex items-center gap-2">
-                              <CheckCircle className="text-ezblue h-5 w-5 shrink-0" />
-                              <span className="text-sm">{feature}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex flex-col">
-                        <Button 
-                          className={`w-full ${
-                            plan.popular 
-                              ? 'bg-ezblue text-eznavy hover:bg-ezblue-light' 
-                              : ''
-                          }`}
-                          onClick={() => handleSubscribe(plan, 'monthly')}
-                          disabled={isCurrentPlan(plan.tier)}
-                        >
-                          {isCurrentPlan(plan.tier) ? 'Current Plan' : plan.cta}
-                        </Button>
-                        <p className="text-xs text-ezgray mt-3">
-                          {plan.disclaimer}
-                        </p>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="yearly" className="w-full">
-                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  {plans.map((plan, index) => (
-                    <Card 
-                      key={index} 
-                      className={`${
-                        plan.popular ? 'border-ezblue ring-2 ring-ezblue' : 'border-ezgray-dark'
-                      } relative ${isCurrentPlan(plan.tier) ? 'bg-eznavy-light/30' : ''}`}
-                    >
-                      {plan.popular && (
-                        <div className="absolute -top-4 left-0 right-0 flex justify-center">
-                          <span className="bg-ezblue px-3 py-1 text-eznavy text-sm font-semibold rounded-full">
-                            Most Popular
-                          </span>
-                        </div>
-                      )}
-                      {isCurrentPlan(plan.tier) && (
-                        <div className="absolute -top-4 right-4">
-                          <span className="bg-green-500 px-3 py-1 text-white text-sm font-semibold rounded-full">
-                            Your Plan
-                          </span>
-                        </div>
-                      )}
-                      <CardHeader className={plan.popular ? 'pt-8' : ''}>
-                        <CardTitle>{plan.name}</CardTitle>
-                        <CardDescription>{plan.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="mb-6">
-                          <span className="text-4xl font-bold">${plan.yearlyPrice}</span>
-                          <span className="text-ezgray">/year</span>
-                          {plan.yearlyPrice > 0 && (
-                            <p className="text-xs text-green-500 mt-1">
-                              Save ${plan.monthlyPrice * 12 - plan.yearlyPrice} annually
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="space-y-3">
-                          {plan.features.map((feature, featureIndex) => (
-                            <div key={featureIndex} className="flex items-center gap-2">
-                              <CheckCircle className="text-ezblue h-5 w-5 shrink-0" />
-                              <span className="text-sm">{feature}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex flex-col">
-                        <Button 
-                          className={`w-full ${
-                            plan.popular 
-                              ? 'bg-ezblue text-eznavy hover:bg-ezblue-light' 
-                              : ''
-                          }`}
-                          onClick={() => handleSubscribe(plan, 'yearly')}
-                          disabled={isCurrentPlan(plan.tier)}
-                        >
-                          {isCurrentPlan(plan.tier) ? 'Current Plan' : plan.cta}
-                        </Button>
-                        <p className="text-xs text-ezgray mt-3">
-                          {plan.tier === 'business_pro' ? 'Billed annually' : plan.disclaimer}
-                        </p>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </section>
-
-        {/* Enterprise */}
-        <section className="py-16 px-4 bg-eznavy-light">
-          <div className="container mx-auto">
-            <div className="bg-eznavy border border-ezgray-dark rounded-lg p-8 md:p-12">
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-bold mb-4 text-ezwhite">Need a custom solution?</h2>
-                  <p className="text-ezgray mb-6">
-                    Our enterprise plans are tailored to your organization's specific needs. Get in touch with our sales team to discuss custom integrations, advanced security features, and dedicated support.
-                  </p>
-                  <Button className="bg-ezblue text-eznavy hover:bg-ezblue-light">
-                    Contact Sales
-                  </Button>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="text-ezblue h-5 w-5 shrink-0" />
-                    <span className="text-ezgray">Custom service level agreements (SLAs)</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="text-ezblue h-5 w-5 shrink-0" />
-                    <span className="text-ezgray">Dedicated account manager</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="text-ezblue h-5 w-5 shrink-0" />
-                    <span className="text-ezgray">Priority feature development</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="text-ezblue h-5 w-5 shrink-0" />
-                    <span className="text-ezgray">Custom training and onboarding</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="text-ezblue h-5 w-5 shrink-0" />
-                    <span className="text-ezgray">Advanced security compliance options</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* FAQ Section */}
-        <section className="py-16 px-4">
-          <div className="container mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
-              <p className="text-ezgray max-w-2xl mx-auto">
-                Have more questions? Contact our support team.
-              </p>
-            </div>
-
-            <div className="max-w-3xl mx-auto space-y-6">
-              {faqItems.map((item, index) => (
-                <div key={index} className="border border-ezgray-dark rounded-lg p-6">
-                  <h3 className="font-semibold text-lg mb-2">{item.question}</h3>
-                  <p className="text-ezgray">{item.answer}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Call to Action */}
-        <section className="py-16 px-4 bg-gradient-to-tr from-eznavy-dark via-eznavy to-eznavy-light">
-          <div className="container mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-ezwhite">
-              Ready to Get Started?
-            </h2>
-            <p className="text-ezgray max-w-2xl mx-auto mb-8">
-              Try EzEdit risk-free with our free trial or subscribe to our Business Pro plan.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/register">
-                <Button size="lg" className="bg-ezblue text-eznavy hover:bg-ezblue-light">
-                  Start Free Trial
-                </Button>
-              </Link>
-              <Link to="/docs">
-                <Button size="lg" variant="outline" className="border-ezgray text-ezgray hover:bg-eznavy-light hover:text-ezwhite">
-                  Read the Docs
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
+        <SubscriptionDialogs 
+          showSuccess={showSuccess}
+          setShowSuccess={setShowSuccess}
+          showCanceled={showCanceled}
+          setShowCanceled={setShowCanceled}
+        />
+        
+        <PricingHero />
+        
+        <PricingPlans 
+          plans={plans}
+          subscriptionTier={subscriptionTier}
+          handleSubscribe={handleSubscribe}
+        />
+        
+        <EnterpriseSection />
+        
+        <FaqSection faqItems={faqItems} />
+        
+        <CallToAction />
       </main>
       <Footer />
     </div>
