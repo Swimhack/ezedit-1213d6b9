@@ -1,16 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useFileEditor } from "@/hooks/useFileEditor";
 import { useFtpLock } from "@/hooks/useFtpLock";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { FileEditorToolbar } from './ftp-explorer/FileEditorToolbar';
-import { Loader, Code, Edit3 } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import Editor from "@monaco-editor/react";
-import { PreviewTab } from './editor/PreviewTab';
+import { EditorTabNavigation } from './editor/EditorTabNavigation';
+import { EditorContent } from './editor/EditorContent';
+import { AiPromptSection } from './editor/AiPromptSection';
+import { EditorErrorState } from './editor/EditorErrorState';
 
 interface EzEditorProps {
   connectionId: string;
@@ -101,12 +100,7 @@ export function EzEditor({ connectionId, filePath, username = "editor-user" }: E
   }
 
   if (error || lockError) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center text-red-500">
-        <p className="mb-4">Error: {error || lockError}</p>
-        <Button onClick={() => window.location.reload()}>Reload</Button>
-      </div>
-    );
+    return <EditorErrorState error={error} lockError={lockError} onReload={() => window.location.reload()} />;
   }
 
   const isHtmlFile = /\.(html?|htm|php)$/i.test(filePath);
@@ -125,85 +119,37 @@ export function EzEditor({ connectionId, filePath, username = "editor-user" }: E
       />
       
       <div className="flex p-2 border-b">
-        <TabsList>
-          <TabsTrigger 
-            value="code" 
-            onClick={() => setActiveTab("code")}
-            className="flex items-center gap-1"
-            data-state={activeTab === 'code' ? 'active' : ''}
-          >
-            <Code className="w-4 h-4" />
-            Code
-          </TabsTrigger>
-          {isHtmlFile && (
-            <TabsTrigger 
-              value="visual" 
-              onClick={() => setActiveTab("visual")}
-              className="flex items-center gap-1"
-              data-state={activeTab === 'visual' ? 'active' : ''}
-            >
-              <Edit3 className="w-4 h-4" />
-              Visual
-            </TabsTrigger>
-          )}
-        </TabsList>
+        <EditorTabNavigation 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          isHtmlFile={isHtmlFile} 
+        />
       </div>
       
       <div className="flex-1 flex flex-col h-[calc(100%-88px)] overflow-hidden">
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
-            <Loader className="h-6 w-6 animate-spin mr-2" />
+            <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary" />
             <span>Loading file...</span>
           </div>
         ) : (
-          <div className="flex-1 grid grid-rows-[1fr_auto]">
-            <div className="flex flex-col md:flex-row h-full">
-              {/* Editor Section */}
-              <div className={`${activeTab === 'visual' ? 'hidden md:block' : ''} flex-1 h-full border-r`}>
-                <Editor
-                  height="100%"
-                  language={detectLanguage()}
-                  theme="vs-dark"
-                  value={code}
-                  onChange={handleCodeChange}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    wordWrap: 'on',
-                    automaticLayout: true,
-                  }}
-                />
-              </div>
-              
-              {/* Preview Section */}
-              <div className={`${activeTab === 'code' ? 'hidden md:block' : ''} flex-1 h-full bg-white`}>
-                <PreviewTab content={code || ''} fileName={filePath} />
-              </div>
-            </div>
+          <>
+            <EditorContent 
+              isLoading={isLoading}
+              activeTab={activeTab}
+              content={code}
+              filePath={filePath}
+              handleContentChange={handleCodeChange}
+              detectLanguage={detectLanguage}
+            />
             
-            {/* AI Prompt Section */}
-            <div className="p-2 border-t flex gap-2">
-              <Textarea
-                placeholder="Describe the changes you want to make..."
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="flex-1 h-16 resize-none"
-                disabled={isAiProcessing}
-              />
-              <Button 
-                onClick={handleApplyAiChanges} 
-                disabled={!prompt.trim() || isAiProcessing}
-                className="shrink-0 self-end"
-              >
-                {isAiProcessing ? (
-                  <>
-                    <Loader className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : "Apply Changes"}
-              </Button>
-            </div>
-          </div>
+            <AiPromptSection 
+              prompt={prompt}
+              setPrompt={setPrompt}
+              isAiProcessing={isAiProcessing}
+              onApplyAiChanges={handleApplyAiChanges}
+            />
+          </>
         )}
       </div>
     </div>
