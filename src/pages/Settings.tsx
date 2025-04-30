@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,13 +11,42 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import FTPSettingsModal from "@/components/FTPSettingsModal";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Loader, Calendar } from "lucide-react";
+import { format } from "date-fns";
 
 const Settings = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user || null);
+    };
+    
+    getUser();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const { 
+    subscribed, 
+    subscriptionTier, 
+    subscriptionEnd, 
+    isLoading: subLoading, 
+    handleCustomerPortal 
+  } = useSubscription(user?.email);
 
   const handleSaveSettings = async () => {
     setLoading(true);
@@ -61,6 +91,65 @@ const Settings = () => {
           <h1 className="text-3xl font-bold">Settings</h1>
           <p className="text-ezgray mt-2">Manage your account settings and preferences</p>
         </div>
+        
+        {/* Subscription Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Subscription</CardTitle>
+            <CardDescription>Manage your subscription plan and payment details</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {subLoading ? (
+              <div className="flex items-center justify-center p-4">
+                <Loader className="h-5 w-5 animate-spin mr-2" />
+                <span>Loading subscription information...</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-eznavy-light/20 p-4 rounded-lg">
+                  <div>
+                    <h3 className="font-medium mb-1">Current Plan</h3>
+                    <p className="font-bold text-xl">
+                      {subscribed ? 'Business Pro' : 'Free Trial'}
+                    </p>
+                    {subscriptionEnd && (
+                      <div className="flex items-center mt-2 text-sm">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        <span>
+                          {subscribed 
+                            ? `Renews on ${format(new Date(subscriptionEnd), 'MMMM d, yyyy')}`
+                            : `Expires on ${format(new Date(subscriptionEnd), 'MMMM d, yyyy')}`
+                          }
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <Button 
+                    onClick={handleCustomerPortal}
+                    className="bg-ezblue text-eznavy hover:bg-ezblue-light"
+                  >
+                    {subscribed ? 'Manage Subscription' : 'Upgrade Plan'}
+                  </Button>
+                </div>
+
+                {!subscribed && (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-md">
+                    <p className="text-amber-800 dark:text-amber-200">
+                      Your free trial will expire soon. Upgrade to our Business Pro plan to continue using all features.
+                    </p>
+                    <Button 
+                      variant="link" 
+                      className="text-amber-800 dark:text-amber-200 p-0 h-auto font-normal underline"
+                      onClick={() => navigate('/pricing')}
+                    >
+                      View pricing options
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
         
         <Card>
           <CardHeader>

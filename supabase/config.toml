@@ -19,3 +19,18 @@ path = "supabase/functions/register-trial"
 verify_jwt = false
 name = "expire-trials"
 path = "supabase/functions/expire-trials"
+
+[[functions]]
+verify_jwt = true
+name = "create-checkout"
+path = "supabase/functions/create-checkout"
+
+[[functions]]
+verify_jwt = true
+name = "check-subscription"
+path = "supabase/functions/check-subscription"
+
+[[functions]]
+verify_jwt = true
+name = "customer-portal"
+path = "supabase/functions/customer-portal"

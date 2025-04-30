@@ -1,4 +1,5 @@
-
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -6,11 +7,67 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { Loader } from "lucide-react";
 
 const Pricing = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showCanceled, setShowCanceled] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Business Pro Monthly and Yearly price IDs (replace with your actual Stripe price IDs)
+  const BUSINESS_PRO_MONTHLY_PRICE_ID = "price_monthly_id";
+  const BUSINESS_PRO_YEARLY_PRICE_ID = "price_yearly_id";
+
+  // Check for success or canceled URL parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('success') === 'true') {
+      setShowSuccess(true);
+      // Clear the URL parameter
+      navigate('/pricing', { replace: true });
+    } else if (searchParams.get('canceled') === 'true') {
+      setShowCanceled(true);
+      // Clear the URL parameter
+      navigate('/pricing', { replace: true });
+    }
+  }, [navigate]);
+
+  // Check for authenticated user
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user || null);
+      setIsLoading(false);
+    };
+    
+    checkUser();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Get subscription status
+  const { 
+    subscribed,
+    subscriptionTier,
+    isLoading: subLoading,
+    handleCheckout
+  } = useSubscription(user?.email);
+
   const plans = [
     {
-      name: "Free",
+      name: "Free Trial",
       description: "Essential tools for personal websites",
       monthlyPrice: 0,
       yearlyPrice: 0,
@@ -23,15 +80,17 @@ const Pricing = () => {
       ],
       popular: false,
       cta: "Get Started",
-      disclaimer: "No credit card required"
+      priceId: null,
+      tier: "free_trial" as const,
+      disclaimer: "7-day trial period"
     },
     {
-      name: "Professional",
+      name: "Business Pro",
       description: "Enhanced tools for growing websites",
-      monthlyPrice: 15,
-      yearlyPrice: 144,
+      monthlyPrice: 50,
+      yearlyPrice: 480, // $40/month billed yearly
       features: [
-        "250 AI-powered edits per month",
+        "Unlimited AI-powered edits",
         "5 FTP connections",
         "Extended version history (90 days)",
         "Priority support",
@@ -41,30 +100,10 @@ const Pricing = () => {
         "Security scanning"
       ],
       popular: true,
-      cta: "Start Free Trial",
-      disclaimer: "14-day free trial"
-    },
-    {
-      name: "Enterprise",
-      description: "Advanced tools for large organizations",
-      monthlyPrice: 39,
-      yearlyPrice: 396,
-      features: [
-        "Unlimited AI-powered edits",
-        "Unlimited FTP connections",
-        "Complete version history",
-        "24/7 priority support",
-        "100 GB storage",
-        "Custom domain support",
-        "Team collaboration (unlimited seats)",
-        "Security scanning & monitoring",
-        "Advanced analytics",
-        "Custom integrations",
-        "Dedicated account manager"
-      ],
-      popular: false,
-      cta: "Contact Sales",
-      disclaimer: "Custom solutions available"
+      cta: "Subscribe",
+      priceId: { monthly: BUSINESS_PRO_MONTHLY_PRICE_ID, yearly: BUSINESS_PRO_YEARLY_PRICE_ID },
+      tier: "business_pro" as const,
+      disclaimer: "Billed monthly"
     }
   ];
 
@@ -91,10 +130,77 @@ const Pricing = () => {
     }
   ];
 
+  const handleSubscribe = async (plan: any, billingPeriod: 'monthly' | 'yearly') => {
+    if (!user) {
+      toast.info("Please login first to subscribe");
+      navigate("/login", { state: { from: "/pricing" } });
+      return;
+    }
+
+    if (!plan.priceId) {
+      if (plan.tier === "free_trial") {
+        navigate("/register");
+      }
+      return;
+    }
+
+    const priceId = billingPeriod === 'monthly' ? plan.priceId.monthly : plan.priceId.yearly;
+    await handleCheckout(priceId);
+  };
+
+  const isCurrentPlan = (planTier: 'free_trial' | 'business_pro') => {
+    return subscriptionTier === planTier;
+  };
+
+  if (isLoading || subLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <Loader className="h-8 w-8 animate-spin text-ezblue mb-4" />
+            <p className="text-ezgray">Loading plans...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="flex-grow">
+        {/* Success Dialog */}
+        <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Subscription Successful!</DialogTitle>
+              <DialogDescription>
+                Thank you for subscribing to EzEdit Business Pro. Your payment was successful and your subscription is now active.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end">
+              <Button onClick={() => setShowSuccess(false)}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Canceled Dialog */}
+        <Dialog open={showCanceled} onOpenChange={setShowCanceled}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Subscription Canceled</DialogTitle>
+              <DialogDescription>
+                Your subscription process was canceled. If you have any questions or need assistance, feel free to contact our support team.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end">
+              <Button onClick={() => setShowCanceled(false)}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Hero Section */}
         <section className="py-16 px-4 bg-eznavy">
           <div className="container mx-auto text-center">
@@ -119,18 +225,25 @@ const Pricing = () => {
               </div>
 
               <TabsContent value="monthly" className="w-full">
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                   {plans.map((plan, index) => (
                     <Card 
                       key={index} 
                       className={`${
                         plan.popular ? 'border-ezblue ring-2 ring-ezblue' : 'border-ezgray-dark'
-                      } relative`}
+                      } relative ${isCurrentPlan(plan.tier) ? 'bg-eznavy-light/30' : ''}`}
                     >
                       {plan.popular && (
                         <div className="absolute -top-4 left-0 right-0 flex justify-center">
                           <span className="bg-ezblue px-3 py-1 text-eznavy text-sm font-semibold rounded-full">
                             Most Popular
+                          </span>
+                        </div>
+                      )}
+                      {isCurrentPlan(plan.tier) && (
+                        <div className="absolute -top-4 right-4">
+                          <span className="bg-green-500 px-3 py-1 text-white text-sm font-semibold rounded-full">
+                            Your Plan
                           </span>
                         </div>
                       )}
@@ -160,8 +273,10 @@ const Pricing = () => {
                               ? 'bg-ezblue text-eznavy hover:bg-ezblue-light' 
                               : ''
                           }`}
+                          onClick={() => handleSubscribe(plan, 'monthly')}
+                          disabled={isCurrentPlan(plan.tier)}
                         >
-                          {plan.cta}
+                          {isCurrentPlan(plan.tier) ? 'Current Plan' : plan.cta}
                         </Button>
                         <p className="text-xs text-ezgray mt-3">
                           {plan.disclaimer}
@@ -173,18 +288,25 @@ const Pricing = () => {
               </TabsContent>
 
               <TabsContent value="yearly" className="w-full">
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                   {plans.map((plan, index) => (
                     <Card 
                       key={index} 
                       className={`${
                         plan.popular ? 'border-ezblue ring-2 ring-ezblue' : 'border-ezgray-dark'
-                      } relative`}
+                      } relative ${isCurrentPlan(plan.tier) ? 'bg-eznavy-light/30' : ''}`}
                     >
                       {plan.popular && (
                         <div className="absolute -top-4 left-0 right-0 flex justify-center">
                           <span className="bg-ezblue px-3 py-1 text-eznavy text-sm font-semibold rounded-full">
                             Most Popular
+                          </span>
+                        </div>
+                      )}
+                      {isCurrentPlan(plan.tier) && (
+                        <div className="absolute -top-4 right-4">
+                          <span className="bg-green-500 px-3 py-1 text-white text-sm font-semibold rounded-full">
+                            Your Plan
                           </span>
                         </div>
                       )}
@@ -196,6 +318,11 @@ const Pricing = () => {
                         <div className="mb-6">
                           <span className="text-4xl font-bold">${plan.yearlyPrice}</span>
                           <span className="text-ezgray">/year</span>
+                          {plan.yearlyPrice > 0 && (
+                            <p className="text-xs text-green-500 mt-1">
+                              Save ${plan.monthlyPrice * 12 - plan.yearlyPrice} annually
+                            </p>
+                          )}
                         </div>
 
                         <div className="space-y-3">
@@ -214,11 +341,13 @@ const Pricing = () => {
                               ? 'bg-ezblue text-eznavy hover:bg-ezblue-light' 
                               : ''
                           }`}
+                          onClick={() => handleSubscribe(plan, 'yearly')}
+                          disabled={isCurrentPlan(plan.tier)}
                         >
-                          {plan.cta}
+                          {isCurrentPlan(plan.tier) ? 'Current Plan' : plan.cta}
                         </Button>
                         <p className="text-xs text-ezgray mt-3">
-                          {plan.disclaimer}
+                          {plan.tier === 'business_pro' ? 'Billed annually' : plan.disclaimer}
                         </p>
                       </CardFooter>
                     </Card>
@@ -298,12 +427,12 @@ const Pricing = () => {
               Ready to Get Started?
             </h2>
             <p className="text-ezgray max-w-2xl mx-auto mb-8">
-              Try EzEdit risk-free with our free plan or 14-day trial on any paid plan.
+              Try EzEdit risk-free with our free trial or subscribe to our Business Pro plan.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/register">
                 <Button size="lg" className="bg-ezblue text-eznavy hover:bg-ezblue-light">
-                  Start Free
+                  Start Free Trial
                 </Button>
               </Link>
               <Link to="/docs">

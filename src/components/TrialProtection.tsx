@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
 import { Loader } from "lucide-react";
 
@@ -17,6 +18,7 @@ const TrialProtection = ({ children }: TrialProtectionProps) => {
   const [loading, setLoading] = useState(true);
   const trialStatus = useTrialStatus(user?.email);
   const { isSuperAdmin, loading: superAdminLoading } = useSuperAdmin(user?.email);
+  const { subscribed, isLoading: subLoading } = useSubscription(user?.email);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -52,8 +54,8 @@ const TrialProtection = ({ children }: TrialProtectionProps) => {
   }, [loading, user, navigate]);
 
   useEffect(() => {
-    // If user exists and we've finished loading both trial status and super admin status
-    if (user && !trialStatus.loading && !superAdminLoading) {
+    // If user exists and we've finished loading both trial status, subscription status and super admin status
+    if (user && !trialStatus.loading && !superAdminLoading && !subLoading) {
       // Super admin check - immediately allow access if super admin
       if (isSuperAdmin) {
         console.log("Super admin access granted to:", user.email);
@@ -61,9 +63,16 @@ const TrialProtection = ({ children }: TrialProtectionProps) => {
         return;
       }
 
-      // Regular trial status check for non-super admin users
+      // Paid subscription check - allow access if subscribed
+      if (subscribed) {
+        console.log("Paid subscriber access granted to:", user.email);
+        setLoading(false);
+        return;
+      }
+
+      // Regular trial status check for users who are not super admins or paid subscribers
       if (!trialStatus.isActive) {
-        toast.warning("Your trial has expired or isn't active. Please upgrade your account.");
+        toast.warning("Your trial has expired. Please upgrade your account.");
         navigate("/pricing");
       } else if (trialStatus.daysRemaining !== null && trialStatus.daysRemaining <= 2) {
         // Show warning for trials with 2 or fewer days left
@@ -77,9 +86,9 @@ const TrialProtection = ({ children }: TrialProtectionProps) => {
       // Just to make sure super admin is always allowed even if trial status is still loading
       setLoading(false);
     }
-  }, [trialStatus, user, navigate, isSuperAdmin, superAdminLoading]);
+  }, [trialStatus, user, navigate, isSuperAdmin, superAdminLoading, subscribed, subLoading]);
 
-  if (loading || trialStatus.loading || superAdminLoading) {
+  if (loading || trialStatus.loading || superAdminLoading || subLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <Loader className="h-8 w-8 animate-spin text-ezblue mb-4" />
