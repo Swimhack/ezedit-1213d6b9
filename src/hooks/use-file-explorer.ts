@@ -1,60 +1,43 @@
 
-import { useFileExplorerStore } from "@/store/fileExplorerStore";
-import { listDir, getFile } from "@/lib/ftp";
-import { normalizePath } from "@/utils/path";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useFtpFileOperations } from "./file-explorer/use-ftp-file-operations";
+import { useFileSave } from "./file-explorer/use-file-save";
+import { useAiIntegration } from "./file-explorer/use-ai-integration";
+import { useFileExplorerStore } from "./file-explorer/use-file-explorer-store";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
 
 export function useFileExplorer() {
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
+  // Get all the store values and setters
   const {
     activeConnection, setActiveConnection,
     currentPath, setCurrentPath,
     currentFilePath, setCurrentFilePath,
     fileContent, setFileContent,
     files, setFiles,
-    isLoading, setIsLoading,
     hasUnsavedChanges, setHasUnsavedChanges,
+    error, setError,
     showFileBrowser, setShowFileBrowser,
     showFileEditor, setShowFileEditor,
     showAIAssistant, setShowAIAssistant,
   } = useFileExplorerStore();
 
-  useEffect(() => {
-    if (activeConnection && showFileBrowser) {
-      const startPath = activeConnection.root_directory ? normalizePath(activeConnection.root_directory) : "/";
-      loadDirectory(startPath);
-    }
-  }, [activeConnection, showFileBrowser]);
+  // Initialize the specialized hooks
+  const { loadDirectory: ftpLoadDirectory, fetchFileContent, isLoading, setIsLoading } = useFtpFileOperations();
+  const { isSaving, saveFileContent } = useFileSave();
+  const { applyAIResponse } = useAiIntegration();
 
   const loadDirectory = async (path: string) => {
     if (!activeConnection) return;
     
     setIsLoading(true);
-    setError(null);
     try {
-      const normalizedPath = normalizePath(path);
-      console.log(`[loadDirectory] Original: "${path}" → Normalized: "${normalizedPath}"`);
-      
-      const result = await listDir(activeConnection.id, normalizedPath);
-      
-      if (result && result.data && result.data.files) {
-        setFiles(result.data.files);
-        setCurrentPath(normalizedPath);
-      } else {
-        console.error("[useFileExplorer] Invalid response format:", result);
-        throw new Error("Invalid response format from server");
+      const result = await ftpLoadDirectory(activeConnection.id, path);
+      if (result) {
+        setFiles(result.files);
+        setCurrentPath(result.path);
       }
-    } catch (error: any) {
-      console.error("[useFileExplorer] Directory loading error:", error);
-      setError(error.message || "Failed to load directory");
-      toast.error(`Failed to load directory: ${error.message}`);
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      // Error is already handled in the hook
     }
   };
 
@@ -64,62 +47,19 @@ export function useFileExplorer() {
     } else {
       setCurrentFilePath(file.key);
       if (activeConnection) {
-        return fetchFileContent();
+        return fetchFileContent(activeConnection.id, file.key)
+          .then(content => {
+            setFileContent(content);
+            setHasUnsavedChanges(false);
+            return Promise.resolve();
+          })
+          .catch(() => {
+            setFileContent("");
+            setHasUnsavedChanges(false);
+            return Promise.resolve();
+          });
       }
       return Promise.resolve();
-    }
-  };
-
-  const fetchFileContent = async (): Promise<void> => {
-    if (!activeConnection || !currentFilePath) {
-      return Promise.resolve();
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      console.log(`[fetchFileContent] Loading: ${currentFilePath} from connection: ${activeConnection.id}`);
-      console.time(`[FTP] ${currentFilePath}`);
-      
-      const { data, error: supabaseError } = await getFile(activeConnection.id, currentFilePath);
-
-      console.timeEnd(`[FTP] ${currentFilePath}`);
-
-      if (supabaseError) {
-        const errorMsg = supabaseError.message || "Unknown error";
-        console.log('→ status: error, bytes: 0, error:', errorMsg);
-        setError(errorMsg);
-        toast.error(`Error loading file: ${errorMsg}`);
-        setFileContent("");
-        setHasUnsavedChanges(false);
-        return Promise.reject(errorMsg);
-      }
-      
-      if (data && data.content) {
-        const content = data.content || "";
-        console.log(`→ status: success, bytes: ${content.length}`);
-        setFileContent(content);
-        setError(null);
-        setHasUnsavedChanges(false);
-        return Promise.resolve();
-      } else {
-        const errorMsg = data?.message || data?.error || 'Unknown error';
-        console.log('→ status: error, bytes: 0, error:', errorMsg);
-        setError(errorMsg);
-        setFileContent("");
-        toast.error(`Failed to load file: ${errorMsg}`);
-        return Promise.reject(errorMsg);
-      }
-    } catch (error: any) {
-      console.error("[useFileExplorer] File loading error:", error);
-      console.log('→ status: exception, bytes: 0, error:', error.message);
-      setError(error.message || "Unknown error");
-      setFileContent("");
-      toast.error(`Error loading file: ${error.message}`);
-      return Promise.reject(error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -128,42 +68,14 @@ export function useFileExplorer() {
     setHasUnsavedChanges(true);
   };
 
-  const saveFileContent = async () => {
-    if (!activeConnection || !currentFilePath) {
-      toast.error("No file selected");
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      console.log(`[saveFileContent] Saving: ${currentFilePath}`);
-      console.time(`[FTP Save] ${currentFilePath}`);
-      
-      const { data, error } = await supabase.functions.invoke("saveFile", {
-        body: {
-          id: activeConnection.id,
-          filepath: currentFilePath,
-          content: fileContent,
-          username: "webapp-user"
-        }
-      });
-
-      console.timeEnd(`[FTP Save] ${currentFilePath}`);
-      
-      if (error) {
-        console.log('→ status: error saving, error:', error.message);
-        throw error;
-      }
-      
-      console.log('→ status: success saved');
-      toast.success("File saved successfully!");
+  const saveFile = async () => {
+    if (!activeConnection || !currentFilePath) return false;
+    
+    const success = await saveFileContent(activeConnection.id, currentFilePath, fileContent);
+    if (success) {
       setHasUnsavedChanges(false);
-    } catch (error: any) {
-      console.log('→ status: exception saving, error:', error.message);
-      toast.error(`Failed to save file: ${error.message}`);
-    } finally {
-      setIsSaving(false);
     }
+    return success;
   };
 
   const openConnection = async (connection: FtpConnection) => {
@@ -171,15 +83,13 @@ export function useFileExplorer() {
     setShowFileBrowser(true);
   };
 
-  const applyAIResponse = (text: string) => {
-    if (fileContent) {
-      const newContent = fileContent + '\n' + text;
-      updateFileContent(newContent);
-      toast.success("AI response applied to editor");
-    }
+  const applyAiResponse = (text: string) => {
+    const newContent = applyAIResponse(fileContent, text);
+    updateFileContent(newContent);
   };
 
   return {
+    // State
     activeConnection,
     currentPath,
     currentFilePath,
@@ -188,19 +98,20 @@ export function useFileExplorer() {
     isLoading,
     isSaving,
     hasUnsavedChanges,
+    error,
     showFileBrowser,
     showFileEditor,
     showAIAssistant,
-    error,
     
+    // Actions
     setShowFileBrowser,
     setShowFileEditor,
     setShowAIAssistant,
     loadDirectory,
     selectFile,
     updateFileContent,
-    saveFileContent,
+    saveFileContent: saveFile,
     openConnection,
-    applyAIResponse,
+    applyAIResponse: applyAiResponse,
   };
 }
