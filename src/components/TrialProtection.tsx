@@ -79,7 +79,7 @@ const TrialProtection = ({ children, requiresSubscription = false }: TrialProtec
       }
 
       // Regular trial status check for users who are not super admins or paid subscribers
-      if (!trialStatus.isActive) {
+      if (!trialStatus.isActive && !isSuperAdmin && !subscribed) {
         toast.warning("Your trial has expired. Please upgrade your account.");
         navigate("/pricing");
       } else if (trialStatus.daysRemaining !== null && trialStatus.daysRemaining <= 2) {
