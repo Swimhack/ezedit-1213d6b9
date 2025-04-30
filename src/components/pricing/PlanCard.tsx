@@ -19,7 +19,7 @@ export interface PlanProps {
   priceId: { monthly: string; yearly: string } | null;
   tier: 'free_trial' | 'business_pro';
   disclaimer: string;
-  isCurrentPlan: boolean;
+  isCurrentPlan?: boolean; // Changed to optional
   billingPeriod: 'monthly' | 'yearly';
   onSubscribe: () => void;
 }

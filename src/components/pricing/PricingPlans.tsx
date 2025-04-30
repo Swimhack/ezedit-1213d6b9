@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlanCard, PlanProps } from "./PlanCard";
 
 interface PricingPlansProps {
-  plans: Omit<PlanProps, 'billingPeriod' | 'onSubscribe'>[];
+  plans: Omit<PlanProps, 'billingPeriod' | 'onSubscribe' | 'isCurrentPlan'>[]; // Updated this type
   subscriptionTier: 'free_trial' | 'business_pro' | null;
   handleSubscribe: (plan: any, billingPeriod: 'monthly' | 'yearly') => Promise<void>;
 }
