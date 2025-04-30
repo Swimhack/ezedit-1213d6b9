@@ -30,10 +30,19 @@ export function HybridEditor({
   const grapesjsEditorRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [gjsView, setGjsView] = useState<'design' | 'code'>('design');
-
-  const previewSrc = useLivePreview(content, fileName || '');
+  
+  // Fix the type issue by extracting just the src string from useLivePreview
+  const { src: previewSrc, isLoading } = useLivePreview(content, fileName || '');
   const isHtmlFile = fileName ? /\.(html?|htm)$/i.test(fileName) : false;
   
+  // Initialize content when loading new content
+  useEffect(() => {
+    console.log('[HybridEditor] Content updated, length:', content?.length || 0);
+    if (content) {
+      setHtmlContent(content);
+    }
+  }, [content, fileName]);
+
   // Initialize GrapesJS when tab is selected
   useEffect(() => {
     if (tabIndex === 1 && isHtmlFile && containerRef.current && !grapesjsEditorRef.current) {
@@ -239,12 +248,19 @@ export function HybridEditor({
         
         {(tabIndex === 2 || (tabIndex === 1 && readOnly)) && (
           <div className="h-full w-full bg-white">
-            <iframe 
-              srcDoc={previewSrc} 
-              className="w-full h-full border-0" 
-              sandbox="allow-scripts"
-              title="Preview"
-            />
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+                <span>Generating preview...</span>
+              </div>
+            ) : (
+              <iframe 
+                srcDoc={previewSrc} 
+                className="w-full h-full border-0" 
+                sandbox="allow-scripts"
+                title="Preview"
+              />
+            )}
           </div>
         )}
       </div>
