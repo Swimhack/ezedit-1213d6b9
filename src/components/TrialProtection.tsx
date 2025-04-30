@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { toast } from "sonner";
 import { Loader } from "lucide-react";
 
@@ -15,6 +16,7 @@ const TrialProtection = ({ children }: TrialProtectionProps) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const trialStatus = useTrialStatus(user?.email);
+  const { isSuperAdmin, loading: superAdminLoading } = useSuperAdmin(user?.email);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -50,7 +52,13 @@ const TrialProtection = ({ children }: TrialProtectionProps) => {
   }, [loading, user, navigate]);
 
   useEffect(() => {
-    if (user && !trialStatus.loading) {
+    if (user && !trialStatus.loading && !superAdminLoading) {
+      // If user is a super admin, don't check trial status
+      if (isSuperAdmin) {
+        setLoading(false);
+        return;
+      }
+
       if (!trialStatus.isActive) {
         toast.warning("Your trial has expired or isn't active. Please upgrade your account.");
         navigate("/pricing");
@@ -61,10 +69,13 @@ const TrialProtection = ({ children }: TrialProtectionProps) => {
         // Trial is valid and not about to expire
         setLoading(false);
       }
+    } else if (!superAdminLoading && isSuperAdmin) {
+      // Super admin is always allowed
+      setLoading(false);
     }
-  }, [trialStatus, user, navigate]);
+  }, [trialStatus, user, navigate, isSuperAdmin, superAdminLoading]);
 
-  if (loading || trialStatus.loading) {
+  if (loading || trialStatus.loading || superAdminLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <Loader className="h-8 w-8 animate-spin text-ezblue mb-4" />
