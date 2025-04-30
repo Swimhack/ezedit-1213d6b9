@@ -135,11 +135,11 @@ export function FileEditorModal({
         {!isLoading && !error && (
           <div className="modal-body h-full flex flex-col">
             <EditorPreviewSplit
-              code={code || ""}  {/* Ensure we pass empty string instead of undefined */}
-              filePath={filePath}
-              onCodeChange={handleCodeChange}
-              detectLanguage={detectLanguage}
-              editorMode={editorMode}
+                code={code || ""} /* Ensure we pass empty string instead of undefined */
+                filePath={filePath}
+                onCodeChange={handleCodeChange}
+                detectLanguage={detectLanguage}
+                editorMode={editorMode}
             />
             
             <ClineChatDrawer
