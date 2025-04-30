@@ -6,6 +6,7 @@ import HowItWorksSection from "@/components/HowItWorksSection";
 import TestimonialSection from "@/components/TestimonialSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
+import { Toaster } from "sonner";
 
 const Index = () => {
   return (
@@ -19,6 +20,7 @@ const Index = () => {
         <CTASection />
       </main>
       <Footer />
+      <Toaster position="top-center" />
     </div>
   );
 };

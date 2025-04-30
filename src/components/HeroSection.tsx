@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import EmailSubmissionForm from "./EmailSubmissionForm";
 
 const HeroSection = () => {
   return (
@@ -13,6 +14,11 @@ const HeroSection = () => {
           Connect to any website via FTP/SFTP and update your code using natural language prompts.
           Secure, fast, and incredibly simple.
         </p>
+        
+        <div className="max-w-lg mx-auto mb-8">
+          <EmailSubmissionForm />
+        </div>
+        
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link to="/register">
             <Button size="lg" className="bg-ezblue text-eznavy hover:bg-ezblue-light">
