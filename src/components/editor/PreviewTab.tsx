@@ -14,17 +14,9 @@ export function PreviewTab({ content, fileName }: PreviewTabProps) {
   // Force refresh preview when content changes
   useEffect(() => {
     console.log("[PreviewTab] Content updated, forcing preview refresh");
+    console.log("🧪 Preview content:", content?.slice(0, 200));
     setPreviewKey(prev => prev + 1);
   }, [content, fileName]);
-
-  // Log the preview content for debugging
-  useEffect(() => {
-    if (content) {
-      console.log("Preview content type:", typeof content);
-      console.log("Preview content length:", content.length);
-      console.log("Preview content sample:", content.slice(0, 100));
-    }
-  }, [content]);
 
   return (
     <div className="h-full w-full bg-white">
@@ -32,6 +24,10 @@ export function PreviewTab({ content, fileName }: PreviewTabProps) {
         <div className="flex items-center justify-center h-full">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
           <span>Generating preview...</span>
+        </div>
+      ) : !content ? (
+        <div className="flex items-center justify-center h-full text-red-500">
+          <span>Failed to load content</span>
         </div>
       ) : (
         <iframe 

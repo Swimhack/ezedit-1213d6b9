@@ -15,6 +15,11 @@ export function useLivePreview(code: string | undefined, path: string) {
         return;
       }
       
+      // Log the content to debug
+      console.log("🧪 Preview content:", code?.slice(0, 200));
+      console.log(`[useLivePreview] Generating preview for ${path}, content length: ${code?.length || 0}`);
+      console.log("Visual fileContent typeof:", typeof code);
+      
       // When code is available but empty
       if (code === "") {
         console.log('[useLivePreview] Empty file content');
@@ -23,11 +28,7 @@ export function useLivePreview(code: string | undefined, path: string) {
         return;
       }
       
-      console.log(`[useLivePreview] Generating preview for ${path}, content length: ${code?.length || 0}`);
-      console.log("Visual fileContent typeof:", typeof code);
-      console.log("Visual fileContent length:", code?.length);
-      console.log("Visual preview content:", code?.slice(0, 200));
-      
+      // Always set loading to false once we have some content (even if it's empty)
       setIsLoading(false);
       
       if (/\.(html?|htm|php|md|txt|css|js)$/i.test(path)) {
