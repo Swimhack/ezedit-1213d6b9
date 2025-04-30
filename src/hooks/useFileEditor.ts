@@ -90,6 +90,15 @@ export function useFileEditor(connectionId: string, filePath: string) {
       // Ensure we're using the latest content without reloading
       if (result.content) {
         setCode(result.content);
+        // Force editor update if using WYSIWYG
+        if (editorRef.current && typeof editorRef.current.setContent === 'function') {
+          console.log("[useFileEditor] Forcing WYSIWYG editor update after save");
+          try {
+            editorRef.current.setContent(result.content);
+          } catch (err) {
+            console.error("[useFileEditor] Error updating WYSIWYG editor:", err);
+          }
+        }
       }
     } else {
       console.error("[useFileEditor] Save failed");
@@ -124,6 +133,15 @@ export function useFileEditor(connectionId: string, filePath: string) {
               // Ensure we use the content we just saved
               if (result.content) {
                 setCode(result.content);
+                // Force editor update if using WYSIWYG
+                if (editorRef.current && typeof editorRef.current.setContent === 'function') {
+                  console.log("[useFileEditor] Forcing WYSIWYG editor update after autosave");
+                  try {
+                    editorRef.current.setContent(result.content);
+                  } catch (err) {
+                    console.error("[useFileEditor] Error updating WYSIWYG editor after autosave:", err);
+                  }
+                }
               }
               toast.success("File autosaved", {
                 duration: 2000,

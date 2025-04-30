@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import Split from "react-split";
 import SplitHandle from "./SplitHandle";
@@ -43,6 +42,9 @@ export function EditorPreviewSplit({
       console.warn(`[EditorPreviewSplit] Code is undefined for file: ${filePath}`);
       setContentReady(false);
     }
+    
+    // Refresh preview when code changes
+    setPreviewKey(prev => prev + 1);
   }, [code, filePath]);
 
   // Force refresh preview when forceRefresh prop changes
@@ -52,11 +54,6 @@ export function EditorPreviewSplit({
       setPreviewKey(prev => prev + 1);
     }
   }, [forceRefresh]);
-
-  // Force refresh when code changes
-  useEffect(() => {
-    setPreviewKey(prev => prev + 1);
-  }, [code]);
 
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
