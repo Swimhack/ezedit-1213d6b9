@@ -1,17 +1,19 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Paintbrush, Code } from 'lucide-react';
+import { Paintbrush, Code, RefreshCw } from 'lucide-react';
 
 interface VisualModeToolbarProps {
   gjsView: 'design' | 'code';
   onViewChange: (view: 'design' | 'code') => void;
+  onRefresh?: () => void;
   readOnly?: boolean;
 }
 
 export function VisualModeToolbar({ 
   gjsView, 
   onViewChange,
+  onRefresh,
   readOnly = false
 }: VisualModeToolbarProps) {
   return (
@@ -36,6 +38,18 @@ export function VisualModeToolbar({
         <Code size={14} />
         Code
       </Button>
+      {onRefresh && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onRefresh}
+          className="flex items-center gap-1 ml-auto"
+          title="Refresh preview"
+        >
+          <RefreshCw size={14} />
+          Refresh
+        </Button>
+      )}
     </div>
   );
 }

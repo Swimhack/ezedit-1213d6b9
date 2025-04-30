@@ -1,132 +1,108 @@
 
-// Supabase Edge (Deno w/ Node polyfills)
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Client } from "npm:basic-ftp@5.0.3";
-import { PassThrough, Writable } from "node:stream";   // Node stream polyfilled in Deno
-import { getFtpCreds } from "../_shared/creds.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Client } from "https://esm.sh/basic-ftp@5.0.3";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization,x-client-info,apikey,content-type',
-  'Content-Type': 'application/json'
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Content-Type": "application/json",
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+  "Pragma": "no-cache",
+  "Expires": "0",
+  "Surrogate-Control": "no-store"
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
+  
   try {
-    const body = await req.json();
-    const { siteId, path = "/" } = body;
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
     
-    console.log("[GET-FILE] siteId:", siteId, "path:", path);
-
-    if (!siteId) {
+    const { siteId, path, timestamp } = await req.json();
+    
+    if (!siteId || !path) {
       return new Response(
-        JSON.stringify({ success: false, message: "Missing siteId" }),
-        { status: 400, headers: corsHeaders }
+        JSON.stringify({ success: false, message: "Connection ID and filepath are required" }),
+        { headers: corsHeaders, status: 400 }
       );
     }
 
-    // Lookup FTP credentials
-    const creds = await getFtpCreds(siteId);
-    if (!creds) {
-      return new Response(
-        JSON.stringify({ success: false, message: "Unknown siteId" }),
-        { status: 400, headers: corsHeaders }
-      );
+    // Log if cache busting is being used
+    if (timestamp) {
+      console.log(`[FTP-GET-FILE] Cache busting timestamp: ${timestamp}`);
     }
 
+    // Get credentials
+    const { data: credsData, error: credsError } = await supabase.functions.invoke("getFtpCreds", { 
+      body: { id: siteId } 
+    });
+
+    if (credsError) {
+      console.error("[getFile] Credentials error:", credsError);
+      return new Response(
+        JSON.stringify({ success: false, message: credsError }),
+        { headers: corsHeaders, status: 400 }
+      );
+    }
+    
+    // Connect to FTP and get file
     const client = new Client();
     try {
       await client.access({
-        host: creds.host,
-        user: creds.user,
-        password: creds.password,
-        port: creds.port,
+        host: credsData.host,
+        port: credsData.port,
+        user: credsData.user,
+        password: credsData.password,
         secure: false
       });
       
-      console.log(`[GET-FILE] Accessing path: ${path}`);
-      
-      // Create a PassThrough stream to collect file data
-      const stream = new PassThrough();
+      // Download file content to memory
       let content = "";
-      
-      stream.on('data', (chunk) => {
-        content += new TextDecoder().decode(chunk);
-      });
-      
-      // Create a promise that resolves when the stream ends
-      const streamEnd = new Promise<void>((resolve, reject) => {
-        stream.on('end', () => resolve());
-        stream.on('error', (err) => reject(err));
-      });
-      
-      // Download the file to our stream
-      try {
-        // Force ASCII mode for text files to avoid binary issues
-        await client.send("TYPE A");
-        await client.downloadTo(stream, path);
-      } catch (downloadError) {
-        // Check if this is actually a directory
-        try {
-          const list = await client.list(path);
-          console.log(`[GET-FILE] Path is a directory with ${list.length} items`);
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              isDirectory: true,
-              message: "Path is a directory, not a file" 
-            }),
-            { status: 400, headers: corsHeaders }
-          );
-        } catch (dirError) {
-          console.error("[GET-FILE] Download error:", downloadError);
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              message: downloadError.message || "Failed to download file" 
-            }),
-            { status: 500, headers: corsHeaders }
-          );
-        }
-      }
-      
-      // Wait for the stream to complete
-      await streamEnd;
-      
-      // Convert to base64 for safe transport
-      const base64Content = btoa(content);
-      
-      console.log(`[GET-FILE] Successfully downloaded file (${content.length} bytes)`);
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          content: base64Content 
+      const chunks = [];
+      await client.downloadTo(
+        new WritableStream({
+          write(chunk) {
+            chunks.push(chunk);
+          }
         }),
-        { headers: corsHeaders }
+        path
       );
-    } catch (error) {
-      console.error("[GET-FILE ERROR]", error);
+      
+      content = new TextDecoder().decode(new Uint8Array(await new Response(new Blob(chunks)).arrayBuffer()));
+      
+      // Broadcast event via Realtime
+      await supabase.channel(`ftp_logs:${siteId}`).send({
+        type: 'broadcast',
+        event: 'file_accessed',
+        payload: { path }
+      });
+      
       return new Response(
         JSON.stringify({ 
-          success: false, 
-          message: error.message || "Failed to download file" 
+          success: true,
+          content,
+          timestamp: Date.now(), // Include timestamp for cache verification
+          checksum: await crypto.subtle.digest("SHA-256", new TextEncoder().encode(content))
+            .then(hash => Array.from(new Uint8Array(hash))
+            .map(b => b.toString(16).padStart(2, "0"))
+            .join(""))
         }),
-        { status: 500, headers: corsHeaders }
+        { headers: corsHeaders, status: 200 }
       );
     } finally {
       client.close();
     }
-  } catch (error) {
-    console.error("[GET-FILE] Request processing error:", error);
+  } catch (err) {
+    console.error("[getFile] Exception:", err);
     return new Response(
-      JSON.stringify({ success: false, message: "Invalid request" }),
-      { status: 400, headers: corsHeaders }
+      JSON.stringify({ success: false, message: err.message }),
+      { headers: corsHeaders, status: 500 }
     );
   }
 });

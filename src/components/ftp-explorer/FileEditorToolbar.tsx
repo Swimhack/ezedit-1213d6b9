@@ -1,76 +1,75 @@
 
-import { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { SaveIcon, Lock } from "lucide-react";
-import { toast } from "sonner";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { FloppyDisk, Clock, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface FileEditorToolbarProps {
-  fileName: string | null;
-  onSave: () => void;
-  isSaving: boolean;
+  fileName: string;
   hasUnsavedChanges: boolean;
-  disabled?: boolean;
+  isSaving: boolean;
+  onSave: () => void;
+  onRefresh?: () => void;
 }
 
-export function FileEditorToolbar({ 
-  fileName, 
-  onSave, 
-  isSaving, 
+export function FileEditorToolbar({
+  fileName,
   hasUnsavedChanges,
-  disabled = false
+  isSaving,
+  onSave,
+  onRefresh
 }: FileEditorToolbarProps) {
-  const handleSave = () => {
-    if (disabled) {
-      toast.error("Editing requires a paid subscription");
-      return;
-    }
-    
-    if (!fileName) {
-      toast.error("No file selected");
-      return;
-    }
-    
-    onSave();
-  };
-
   return (
-    <div className="flex items-center justify-between p-2 border-b border-ezgray-dark bg-eznavy-light">
-      <div className="flex items-center">
-        <span className="text-sm text-ezgray-light ml-2 truncate max-w-[300px]">
-          {fileName || "No file selected"}
-        </span>
-      </div>
+    <div className="p-2 flex gap-2 items-center border-b bg-gray-50">
+      <Button
+        size="sm"
+        disabled={!hasUnsavedChanges || isSaving}
+        onClick={onSave}
+        className={cn(
+          "flex items-center gap-1",
+          hasUnsavedChanges ? "bg-blue-500 hover:bg-blue-600" : ""
+        )}
+      >
+        {isSaving ? (
+          <>
+            <Clock className="w-4 h-4 animate-spin" />
+            Saving...
+          </>
+        ) : (
+          <>
+            <FloppyDisk className="w-4 h-4" />
+            Save
+          </>
+        )}
+      </Button>
       
-      <div className="flex items-center space-x-2">
-        {hasUnsavedChanges && (
-          <span className="text-xs italic text-amber-400">
+      {onRefresh && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onRefresh}
+          className="flex items-center gap-1"
+          title="Refresh file content"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </Button>
+      )}
+      
+      <div className="flex-1"></div>
+      
+      <div className="text-sm text-gray-500">
+        {hasUnsavedChanges ? (
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 bg-orange-500 rounded-full inline-block"></span>
             Unsaved changes
           </span>
+        ) : (
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 bg-green-500 rounded-full inline-block"></span>
+            Saved
+          </span>
         )}
-        
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={isSaving || !fileName || disabled}
-                className={`relative ${disabled ? 'bg-slate-700' : 'bg-ezblue hover:bg-ezblue-light'}`}
-              >
-                {disabled ? (
-                  <Lock className="h-4 w-4 mr-2" />
-                ) : (
-                  <SaveIcon className="h-4 w-4 mr-2" />
-                )}
-                {isSaving ? "Saving..." : disabled ? "Locked" : "Save"}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {disabled ? "Upgrade to edit files" : "Save changes"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </div>
     </div>
   );

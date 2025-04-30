@@ -26,6 +26,7 @@ export function FileEditorModal({
   const [draggingSplitter, setDraggingSplitter] = useState(false);
   const [editorMode, setEditorMode] = useState<'code' | 'wysiwyg'>('code');
   const [loadAttempts, setLoadAttempts] = useState(0);
+  const [forceRefresh, setForceRefresh] = useState(0);
   
   const {
     code,
@@ -36,6 +37,7 @@ export function FileEditorModal({
     handleCodeChange,
     handleSave,
     loadFile,
+    refreshFile,
     detectLanguage
   } = useFileEditor(connectionId, filePath);
   
@@ -62,7 +64,18 @@ export function FileEditorModal({
     }
   }, [isOpen, connectionId, filePath, loadFile]);
 
-  // Load file when modal opens or when connection/path/attempts change
+  // Handle manual refresh
+  const handleRefresh = () => {
+    setForceRefresh(prev => prev + 1);
+    toast.info("Refreshing file content...");
+    refreshFile().then(() => {
+      toast.success("File content refreshed");
+    }).catch(err => {
+      toast.error(`Failed to refresh: ${err.message}`);
+    });
+  };
+
+  // Load file when modal opens or when connection/path/attempts/forceRefresh change
   useEffect(() => {
     if (isOpen) {
       console.log(`[FileEditorModal] Modal opened, triggering file load for ${filePath}`);
@@ -70,7 +83,7 @@ export function FileEditorModal({
     } else {
       console.log('[FileEditorModal] Modal closed');
     }
-  }, [fetchFileContent, isOpen, loadAttempts]);
+  }, [fetchFileContent, isOpen, loadAttempts, forceRefresh]);
 
   const handleRetry = () => {
     toast.info("Retrying file load...");
@@ -115,6 +128,14 @@ export function FileEditorModal({
                 <Edit3 className="w-4 h-4" />
                 Visual
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRefresh}
+                className="flex items-center gap-1 ml-2"
+              >
+                Refresh Content
+              </Button>
             </div>
           )}
         </div>
@@ -124,6 +145,7 @@ export function FileEditorModal({
           onSave={handleSave}
           isSaving={isSaving}
           hasUnsavedChanges={hasUnsavedChanges}
+          onRefresh={handleRefresh}
         />
         
         <EditorStateDisplay 
@@ -140,6 +162,7 @@ export function FileEditorModal({
                 onCodeChange={handleCodeChange}
                 detectLanguage={detectLanguage}
                 editorMode={editorMode}
+                forceRefresh={forceRefresh}
             />
             
             <ClineChatDrawer

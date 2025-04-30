@@ -2,11 +2,12 @@
 import { useRef, useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import Split from "react-split";
-import { Loader } from "lucide-react";
+import { Loader, RefreshCw } from "lucide-react";
 import SplitHandle from "./SplitHandle";
 import { useLivePreview } from "@/hooks/useLivePreview";
 import { TinyMCEEditor } from "@/components/editor/TinyMCEEditor";
 import { useTheme } from "@/hooks/use-theme";
+import { Button } from "@/components/ui/button";
 
 interface EditorPreviewSplitProps {
   code: string;
@@ -14,6 +15,7 @@ interface EditorPreviewSplitProps {
   onCodeChange: (newCode: string | undefined) => void;
   detectLanguage: () => string;
   editorMode?: 'code' | 'wysiwyg';
+  forceRefresh?: number;
 }
 
 export function EditorPreviewSplit({
@@ -21,9 +23,11 @@ export function EditorPreviewSplit({
   filePath,
   onCodeChange,
   detectLanguage,
-  editorMode = 'code'
+  editorMode = 'code',
+  forceRefresh = 0
 }: EditorPreviewSplitProps) {
   const [draggingSplitter, setDraggingSplitter] = useState(false);
+  const [previewKey, setPreviewKey] = useState(0);
   const editorRef = useRef<any>(null);
   const { src: previewSrc, isLoading: previewLoading } = useLivePreview(code, filePath || "");
   const { isLight } = useTheme();
@@ -42,6 +46,19 @@ export function EditorPreviewSplit({
       setContentReady(false);
     }
   }, [code, filePath]);
+
+  // Force refresh preview when forceRefresh prop changes
+  useEffect(() => {
+    if (forceRefresh > 0) {
+      console.log('[EditorPreviewSplit] Force refreshing preview');
+      setPreviewKey(prev => prev + 1);
+    }
+  }, [forceRefresh]);
+
+  // Force refresh when code changes
+  useEffect(() => {
+    setPreviewKey(prev => prev + 1);
+  }, [code]);
 
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
@@ -75,6 +92,11 @@ export function EditorPreviewSplit({
         editorRef.current.layout();
       }, 100);
     }
+  };
+
+  const handleManualRefresh = () => {
+    console.log('[EditorPreviewSplit] Manual refresh triggered');
+    setPreviewKey(prev => prev + 1);
   };
 
   console.log('[EditorPreviewSplit] Rendering with', editorMode, 'mode, filePath:', filePath, 'content ready:', contentReady);
@@ -154,8 +176,17 @@ export function EditorPreviewSplit({
         {renderEditor()}
       </div>
       <div className="preview flex-1 min-h-0 overflow-auto bg-white">
-        <div className="p-2 bg-gray-100 text-xs font-mono border-t border-b flex-none">
-          Preview
+        <div className="p-2 bg-gray-100 text-xs font-mono border-t border-b flex-none flex justify-between">
+          <span>Preview</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleManualRefresh}
+            className="p-0 h-4"
+            title="Refresh preview"
+          >
+            <RefreshCw size={12} />
+          </Button>
         </div>
         {!contentReady ? (
           <div className="flex items-center justify-center h-[calc(100%-28px)]">
@@ -174,6 +205,7 @@ export function EditorPreviewSplit({
         ) : (
           <iframe
             id={previewIframeId}
+            key={previewKey}
             srcDoc={previewSrc}
             className="w-full h-[calc(100%-28px)] border-none"
             sandbox="allow-scripts"

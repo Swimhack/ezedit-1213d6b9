@@ -6,6 +6,10 @@ import { getFtpCreds } from "../_shared/creds.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+  'Surrogate-Control': 'no-store'
 };
 
 serve(async (req) => {
@@ -17,7 +21,7 @@ serve(async (req) => {
   try {
     // Parse request body for parameters
     const body = await req.json();
-    const { siteId, path } = body;
+    const { siteId, path, timestamp } = body;
     
     if (!path || !siteId) {
       return new Response(
@@ -28,6 +32,9 @@ serve(async (req) => {
 
     console.log(`[SFTP] Attempting to get file: ${path}`);
     console.log(`[SFTP] Using siteId: ${siteId}`);
+    if (timestamp) {
+      console.log(`[SFTP] Cache busting timestamp: ${timestamp}`);
+    }
     
     // Get credentials from database
     const creds = await getFtpCreds(siteId);
@@ -82,7 +89,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true,
-          content: contentString
+          content: contentString,
+          timestamp: Date.now() // Include timestamp for cache verification
         }),
         { headers: corsHeaders }
       );

@@ -33,11 +33,13 @@ export function useFileEditor(connectionId: string, filePath: string) {
     try {
       console.log(`[useFileEditor] Loading file: ${filePath} for connection: ${connectionId}`);
       
-      // First try using the SFTP function
+      // First try using the SFTP function with cache-busting
+      const timestamp = Date.now();
       const response = await supabase.functions.invoke('sftp-file', {
         body: {
           siteId: connectionId,
-          path: filePath
+          path: filePath,
+          timestamp: timestamp // Add timestamp for cache busting
         }
       });
       
@@ -63,14 +65,16 @@ export function useFileEditor(connectionId: string, filePath: string) {
     } catch (sftpError: any) {
       console.error("[useFileEditor] SFTP Error:", sftpError);
       
-      // Fallback to the FTP get-file function
+      // Fallback to the FTP get-file function with cache busting
       try {
         console.log('[useFileEditor] Attempting fallback to ftp-get-file');
+        const timestamp = Date.now();
         
         const fallbackResponse = await supabase.functions.invoke('ftp-get-file', {
           body: {
             siteId: connectionId,
-            path: filePath
+            path: filePath,
+            timestamp: timestamp // Add timestamp for cache busting
           }
         });
         
@@ -152,6 +156,12 @@ export function useFileEditor(connectionId: string, filePath: string) {
     }
   };
   
+  // Force refresh file content with cache busting
+  const refreshFile = () => {
+    console.log("[useFileEditor] Force refreshing file content");
+    return loadFile();
+  };
+  
   // Language detection helper
   const detectLanguage = () => {
     if (!filePath) return "plaintext";
@@ -197,6 +207,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
     handleCodeChange,
     handleSave,
     loadFile,
+    refreshFile,
     detectLanguage
   };
 }
