@@ -1,5 +1,5 @@
 
-import { useFileExplorerStore } from "@/store/fileExplorerStore";
+import { useFileExplorerStore as useStore } from "@/store/fileExplorerStore";
 
 export function useFileExplorerStore() {
   const {
@@ -14,7 +14,7 @@ export function useFileExplorerStore() {
     showFileBrowser, setShowFileBrowser,
     showFileEditor, setShowFileEditor,
     showAIAssistant, setShowAIAssistant,
-  } = useFileExplorerStore(state => state);
+  } = useStore();
 
   return {
     activeConnection, setActiveConnection,

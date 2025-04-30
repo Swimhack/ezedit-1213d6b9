@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { useFtpFileOperations } from "./file-explorer/use-ftp-file-operations";
 import { useFileSave } from "./file-explorer/use-file-save";
 import { useAiIntegration } from "./file-explorer/use-ai-integration";
@@ -14,6 +13,8 @@ export function useFileExplorer() {
     currentFilePath, setCurrentFilePath,
     fileContent, setFileContent,
     files, setFiles,
+    isLoading: storeIsLoading,
+    setIsLoading: setStoreIsLoading,
     hasUnsavedChanges, setHasUnsavedChanges,
     error, setError,
     showFileBrowser, setShowFileBrowser,
@@ -22,7 +23,13 @@ export function useFileExplorer() {
   } = useFileExplorerStore();
 
   // Initialize the specialized hooks
-  const { loadDirectory: ftpLoadDirectory, fetchFileContent, isLoading, setIsLoading } = useFtpFileOperations();
+  const { 
+    loadDirectory: ftpLoadDirectory, 
+    fetchFileContent, 
+    isLoading, 
+    setIsLoading 
+  } = useFtpFileOperations();
+  
   const { isSaving, saveFileContent } = useFileSave();
   const { applyAIResponse } = useAiIntegration();
 

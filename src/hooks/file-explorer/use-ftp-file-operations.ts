@@ -90,6 +90,7 @@ export function useFtpFileOperations() {
     loadDirectory,
     fetchFileContent,
     isLoading,
+    setIsLoading,
     isSaving,
     error,
     setError
