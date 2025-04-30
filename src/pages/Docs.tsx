@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -6,10 +7,38 @@ import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, FileText, Search } from "lucide-react";
+import { BookOpen, FileText, Search, Book, ExternalLink, HelpCircle } from "lucide-react";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const Docs = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeSection, setActiveSection] = useState("getting-started");
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+  }, []);
 
   const gettingStartedGuides = [
     {
@@ -92,10 +121,33 @@ const Docs = () => {
     }
   ];
 
+  const faqs = [
+    {
+      question: "How do I connect my FTP server?",
+      answer: "You can connect your FTP server by navigating to the Dashboard > FTP Connections page and clicking 'Add Connection'. Enter your server details including hostname, username, password, and port. Click 'Test Connection' to verify, then save your connection."
+    },
+    {
+      question: "Can I edit HTML/CSS/JS files with EzEdit?",
+      answer: "Yes, EzEdit supports editing of all common web files including HTML, CSS, JavaScript, PHP, and more. Our AI assistant can help you make changes to any of these file types with natural language instructions."
+    },
+    {
+      question: "How secure is my FTP connection?",
+      answer: "EzEdit uses encrypted connections whenever possible (FTPS/SFTP) and stores your credentials securely. We never store passwords in plain text and use industry-standard encryption methods."
+    },
+    {
+      question: "Can multiple team members use EzEdit?",
+      answer: "Yes, our Professional and Enterprise plans support team collaboration features. You can add team members, assign different permission levels, and track edits made by each team member."
+    },
+    {
+      question: "What happens if I make a mistake?",
+      answer: "EzEdit keeps a version history of all your changes. You can easily roll back to previous versions if you make a mistake or need to restore earlier content."
+    }
+  ];
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-background">
       <Navbar />
-      <main className="flex-grow">
+      <main className="flex-grow pt-16">
         {/* Hero Section */}
         <section className="py-16 px-4 bg-eznavy">
           <div className="container mx-auto text-center">
@@ -120,15 +172,54 @@ const Docs = () => {
           </div>
         </section>
 
+        {/* Documentation Navigation */}
+        <section className="py-6 px-4 bg-eznavy-light border-b border-ezgray-dark">
+          <div className="container mx-auto">
+            <NavigationMenu className="justify-center w-full max-w-full">
+              <NavigationMenuList className="flex flex-wrap justify-center gap-2">
+                <NavigationMenuItem>
+                  <Link to="#getting-started" onClick={() => setActiveSection("getting-started")}>
+                    <Button variant={activeSection === "getting-started" ? "default" : "outline"}>
+                      Getting Started
+                    </Button>
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <Link to="#api" onClick={() => setActiveSection("api")}>
+                    <Button variant={activeSection === "api" ? "default" : "outline"}>
+                      API Reference
+                    </Button>
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <Link to="#advanced" onClick={() => setActiveSection("advanced")}>
+                    <Button variant={activeSection === "advanced" ? "default" : "outline"}>
+                      Advanced Topics
+                    </Button>
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <Link to="#faq" onClick={() => setActiveSection("faq")}>
+                    <Button variant={activeSection === "faq" ? "default" : "outline"}>
+                      FAQ
+                    </Button>
+                  </Link>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
+        </section>
+
         {/* Main Documentation */}
         <section className="py-12 px-4">
           <div className="container mx-auto">
-            <Tabs defaultValue="getting-started" className="w-full">
+            <Tabs defaultValue="getting-started" className="w-full" onValueChange={setActiveSection}>
               <div className="flex justify-center mb-8">
-                <TabsList className="grid w-full max-w-md grid-cols-3">
+                <TabsList className="grid w-full max-w-md grid-cols-4">
                   <TabsTrigger value="getting-started">Getting Started</TabsTrigger>
                   <TabsTrigger value="api">API</TabsTrigger>
                   <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                  <TabsTrigger value="faq">FAQ</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -152,7 +243,7 @@ const Docs = () => {
                 </div>
 
                 <div className="mt-12">
-                  <h2 className="text-2xl font-bold mb-6">Installation Guide</h2>
+                  <h2 className="text-2xl font-bold mb-6">Quick Start Guide</h2>
                   <Card>
                     <CardContent className="pt-6">
                       <div className="prose max-w-none">
@@ -189,6 +280,38 @@ Port: 21`}
                     </CardContent>
                   </Card>
                 </div>
+
+                <div className="mt-12">
+                  <h2 className="text-2xl font-bold mb-6">Video Tutorials</h2>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Card className="bg-eznavy border-ezgray-dark">
+                      <CardHeader>
+                        <CardTitle>Getting Started with EzEdit</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="aspect-video bg-eznavy-light flex items-center justify-center rounded-md">
+                          <PlayButton />
+                        </div>
+                        <p className="mt-4 text-ezgray">
+                          Learn the basics of EzEdit in this comprehensive tutorial.
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-eznavy border-ezgray-dark">
+                      <CardHeader>
+                        <CardTitle>Advanced Editing Techniques</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="aspect-video bg-eznavy-light flex items-center justify-center rounded-md">
+                          <PlayButton />
+                        </div>
+                        <p className="mt-4 text-ezgray">
+                          Discover how to use AI-powered editing to transform your workflow.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
               </TabsContent>
 
               <TabsContent value="api" className="w-full">
@@ -211,7 +334,7 @@ Port: 21`}
                 </div>
 
                 <div className="mt-12">
-                  <h2 className="text-2xl font-bold mb-6">API Overview</h2>
+                  <h2 className="text-2xl font-bold mb-6">API Reference</h2>
                   <Card>
                     <CardContent className="pt-6">
                       <div className="prose max-w-none">
@@ -233,11 +356,32 @@ curl -X GET "https://api.ezedit.co/v1/files" \\
                         <p className="text-ezgray">
                           API requests are subject to rate limiting based on your subscription plan:
                         </p>
-                        <ul className="list-disc pl-5 text-ezgray">
-                          <li>Free: 100 requests/hour</li>
-                          <li>Professional: 1,000 requests/hour</li>
-                          <li>Enterprise: 10,000 requests/hour</li>
-                        </ul>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Plan</TableHead>
+                              <TableHead>Rate Limit</TableHead>
+                              <TableHead>Burst Limit</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell>Free</TableCell>
+                              <TableCell>100 requests/hour</TableCell>
+                              <TableCell>20 requests/minute</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>Professional</TableCell>
+                              <TableCell>1,000 requests/hour</TableCell>
+                              <TableCell>100 requests/minute</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>Enterprise</TableCell>
+                              <TableCell>10,000 requests/hour</TableCell>
+                              <TableCell>500 requests/minute</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
 
                         <h3 className="mt-6">Pagination</h3>
                         <p className="text-ezgray">
@@ -250,6 +394,44 @@ curl -X GET "https://api.ezedit.co/v1/files" \\
 GET /v1/files?limit=25&offset=50`}
                           </code>
                         </pre>
+
+                        <h3 className="mt-6">Endpoints</h3>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Endpoint</TableHead>
+                              <TableHead>Method</TableHead>
+                              <TableHead>Description</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell>/v1/connections</TableCell>
+                              <TableCell>GET</TableCell>
+                              <TableCell>List all FTP connections</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>/v1/connections</TableCell>
+                              <TableCell>POST</TableCell>
+                              <TableCell>Create a new FTP connection</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>/v1/files</TableCell>
+                              <TableCell>GET</TableCell>
+                              <TableCell>List files in a directory</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>/v1/files/:path</TableCell>
+                              <TableCell>GET</TableCell>
+                              <TableCell>Get file content</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>/v1/files/:path</TableCell>
+                              <TableCell>PUT</TableCell>
+                              <TableCell>Update file content</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
                       </div>
                     </CardContent>
                   </Card>
@@ -311,11 +493,28 @@ GET /v1/files?limit=25&offset=50`}
                         <p className="text-ezgray">
                           Enterprise and Professional plans support fine-grained permissions for team members:
                         </p>
-                        <ul className="list-disc pl-5 text-ezgray">
-                          <li>Admin: Full access to all features</li>
-                          <li>Editor: Can edit files but not manage connections</li>
-                          <li>Viewer: Read-only access to files</li>
-                        </ul>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Role</TableHead>
+                              <TableHead>Permissions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell>Admin</TableCell>
+                              <TableCell>Full access to all features</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>Editor</TableCell>
+                              <TableCell>Can edit files but not manage connections</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>Viewer</TableCell>
+                              <TableCell>Read-only access to files</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
                         
                         <h3 className="mt-6">Custom Integrations</h3>
                         <p className="text-ezgray">
@@ -332,6 +531,85 @@ GET /v1/files?limit=25&offset=50`}
 }`}
                           </code>
                         </pre>
+
+                        <h3 className="mt-6">Enterprise Security</h3>
+                        <p className="text-ezgray">
+                          Our Enterprise plan includes advanced security features such as:
+                        </p>
+                        <ul className="list-disc pl-5 text-ezgray">
+                          <li>Single Sign-On (SSO) integration</li>
+                          <li>IP address restrictions</li>
+                          <li>Two-factor authentication</li>
+                          <li>Audit logging</li>
+                          <li>Data encryption at rest and in transit</li>
+                          <li>Compliance certifications</li>
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="faq" className="w-full">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Frequently Asked Questions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Accordion type="single" collapsible className="w-full">
+                      {faqs.map((faq, index) => (
+                        <AccordionItem key={index} value={`item-${index}`}>
+                          <AccordionTrigger>{faq.question}</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="text-ezgray">{faq.answer}</p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </CardContent>
+                </Card>
+
+                <div className="mt-8">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Troubleshooting</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="prose max-w-none">
+                        <h3>Common Issues</h3>
+                        
+                        <h4 className="mt-4">Connection Failures</h4>
+                        <p className="text-ezgray">
+                          If you're experiencing connection failures, check that:
+                        </p>
+                        <ul className="list-disc pl-5 text-ezgray">
+                          <li>Your FTP credentials are correct</li>
+                          <li>Your server allows connections from external IP addresses</li>
+                          <li>Firewall settings are not blocking connections</li>
+                          <li>Your FTP server is running and accessible</li>
+                        </ul>
+                        
+                        <h4 className="mt-4">File Upload Issues</h4>
+                        <p className="text-ezgray">
+                          If you're having trouble uploading files:
+                        </p>
+                        <ul className="list-disc pl-5 text-ezgray">
+                          <li>Verify you have write permissions on the target directory</li>
+                          <li>Check that your FTP user has sufficient permissions</li>
+                          <li>Ensure the file doesn't exceed size limits</li>
+                          <li>Try uploading in smaller batches for multiple files</li>
+                        </ul>
+                        
+                        <h4 className="mt-4">Editor Problems</h4>
+                        <p className="text-ezgray">
+                          If the editor is not working as expected:
+                        </p>
+                        <ul className="list-disc pl-5 text-ezgray">
+                          <li>Try clearing your browser cache</li>
+                          <li>Ensure you're using a supported browser (Chrome, Firefox, Safari, Edge)</li>
+                          <li>Check if your file format is supported</li>
+                          <li>Try switching between editor modes</li>
+                        </ul>
                       </div>
                     </CardContent>
                   </Card>
@@ -367,7 +645,7 @@ GET /v1/files?limit=25&offset=50`}
               <Card className="bg-eznavy border-ezgray-dark text-center">
                 <CardHeader>
                   <div className="flex justify-center">
-                    <BookOpen className="h-12 w-12 text-ezblue" />
+                    <Book className="h-12 w-12 text-ezblue" />
                   </div>
                   <CardTitle className="mt-4">Community Forum</CardTitle>
                 </CardHeader>
@@ -382,7 +660,7 @@ GET /v1/files?limit=25&offset=50`}
               <Card className="bg-eznavy border-ezgray-dark text-center">
                 <CardHeader>
                   <div className="flex justify-center">
-                    <BookOpen className="h-12 w-12 text-ezblue" />
+                    <HelpCircle className="h-12 w-12 text-ezblue" />
                   </div>
                   <CardTitle className="mt-4">Contact Support</CardTitle>
                 </CardHeader>
@@ -401,5 +679,12 @@ GET /v1/files?limit=25&offset=50`}
     </div>
   );
 };
+
+// Play button component for video tutorials
+const PlayButton = () => (
+  <div className="w-16 h-16 rounded-full bg-ezblue flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors">
+    <div className="w-0 h-0 border-t-8 border-b-8 border-l-16 border-t-transparent border-b-transparent border-l-white ml-1"></div>
+  </div>
+);
 
 export default Docs;
