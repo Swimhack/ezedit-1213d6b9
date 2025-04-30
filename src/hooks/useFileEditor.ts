@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useFileLoader } from "./useFileLoader";
 import { useFileSaver } from "./useFileSaver";
@@ -35,13 +35,14 @@ export function useFileEditor(connectionId: string, filePath: string) {
   /**
    * Load file content from FTP/SFTP connection with cache busting
    */
-  const loadFileContent = async () => {
+  const loadFileContent = useCallback(async () => {
     if (!connectionId || !filePath) {
       setError("Missing connection ID or file path");
       return "";
     }
     
     try {
+      setIsLoading(true);
       // Use cache busting
       const timestamp = Date.now();
       console.log(`[useFileEditor] Loading file with cache busting: ${filePath}?t=${timestamp}`);
@@ -58,25 +59,18 @@ export function useFileEditor(connectionId: string, filePath: string) {
       
       const content = await response.text();
       
-      if (content !== undefined) {
-        console.log(`[useFileEditor] Content loaded successfully, length: ${content.length}`);
-        setCode(content);
-        setHasUnsavedChanges(false);
-        setIsLoading(false);
-        return content;
-      } else {
-        console.error(`[useFileEditor] Content is undefined for file: ${filePath}`);
-        setError("Failed to load file content");
-        setIsLoading(false);
-        return "";
-      }
+      console.log(`[useFileEditor] Content loaded successfully, length: ${content?.length || 0}`);
+      setCode(content);
+      setHasUnsavedChanges(false);
+      setIsLoading(false);
+      return content;
     } catch (error: any) {
       console.error(`[useFileEditor] Error loading file: ${filePath}`, error);
       setError(error.message || "Failed to load file");
       setIsLoading(false);
       return "";
     }
-  };
+  }, [connectionId, filePath, setError, setIsLoading]);
   
   /**
    * Save file content to FTP connection
@@ -87,9 +81,14 @@ export function useFileEditor(connectionId: string, filePath: string) {
       return;
     }
     
+    console.log(`[useFileEditor] Saving file: ${filePath}, content length: ${code.length}`);
     const success = await saveFileContent(connectionId, filePath, code);
+    
     if (success) {
+      console.log("[useFileEditor] Save successful");
       setHasUnsavedChanges(false);
+    } else {
+      console.error("[useFileEditor] Save failed");
     }
   };
 
@@ -113,14 +112,18 @@ export function useFileEditor(connectionId: string, filePath: string) {
         setIsAutoSaving(true);
         autoSaveTimerRef.current = window.setTimeout(async () => {
           console.log("[useFileEditor] Autosaving...");
-          const success = await saveFileContent(connectionId, filePath, newCode);
-          
-          if (success) {
-            setHasUnsavedChanges(false);
-            toast.success("File autosaved", {
-              duration: 2000,
-              position: "bottom-right",
-            });
+          if (connectionId && filePath && newCode !== undefined) {
+            const success = await saveFileContent(connectionId, filePath, newCode);
+            
+            if (success) {
+              setHasUnsavedChanges(false);
+              toast.success("File autosaved", {
+                duration: 2000,
+                position: "bottom-right",
+              });
+            }
+          } else {
+            console.error("[useFileEditor] Cannot autosave - missing data");
           }
           setIsAutoSaving(false);
           autoSaveTimerRef.current = null;
@@ -183,6 +186,13 @@ export function useFileEditor(connectionId: string, filePath: string) {
       }
     };
   }, []);
+
+  // Initial load
+  useEffect(() => {
+    if (connectionId && filePath) {
+      loadFileContent();
+    }
+  }, [connectionId, filePath, loadFileContent]);
 
   return {
     code,

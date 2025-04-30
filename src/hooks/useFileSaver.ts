@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { saveFile } from "@/lib/ftp";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
@@ -21,21 +21,31 @@ export function useFileSaver() {
     setIsSaving(true);
     
     try {
-      const { error } = await saveFile({
-        id: connectionId,
-        filepath: filePath,
-        content: content,
-        username: "editor-user"
+      console.log(`[useFileSaver] Saving file: ${filePath}, content length: ${content.length}`);
+      
+      const response = await fetch(`/api/saveFile`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({
+          id: connectionId,
+          filepath: filePath,
+          content: content,
+          username: "editor-user"
+        }),
       });
       
-      if (error) {
-        throw new Error(error.message);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to save: ${response.status} ${errorText}`);
       }
       
+      console.log('[useFileSaver] Save successful');
       toast.success("File saved successfully");
       return true;
     } catch (error: any) {
-      console.error("Error saving file:", error);
+      console.error("[useFileSaver] Error saving file:", error);
       toast.error(`Error saving file: ${error.message}`);
       return false;
     } finally {

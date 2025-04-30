@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePath, joinPath } from "@/utils/path";
 
@@ -25,9 +24,28 @@ export async function saveFile({ id, filepath, content, originalChecksum, userna
   originalChecksum?: string;
   username?: string;
 }) {
-  return supabase.functions.invoke("saveFile", { 
-    body: { id, filepath, content, originalChecksum, username } 
-  });
+  try {
+    console.log(`[ftp.saveFile] Saving file: ${filepath}, content length: ${content.length}`);
+    
+    const response = await fetch(`/api/saveFile`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+      },
+      body: JSON.stringify({ id, filepath, content, originalChecksum, username }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to save: ${response.status} ${errorText}`);
+    }
+    
+    return { data: await response.json(), error: null };
+  } catch (error: any) {
+    console.error("[ftp.saveFile] Error:", error);
+    return { data: null, error: { message: error.message } };
+  }
 }
 
 export async function uploadFile(id: string, path: string, file: File) {

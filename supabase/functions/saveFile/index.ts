@@ -20,9 +20,22 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
     
-    const { id, filepath, content, originalChecksum, username } = await req.json();
+    // Parse the request body
+    let bodyData = {};
+    try {
+      bodyData = await req.json();
+    } catch (e) {
+      console.error("[saveFile] JSON parse error:", e);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { headers: corsHeaders, status: 400 }
+      );
+    }
+    
+    const { id, filepath, content, originalChecksum, username } = bodyData;
     
     if (!id || !filepath || content === undefined) {
+      console.error("[saveFile] Missing required fields:", { id, filepath, contentExists: content !== undefined });
       return new Response(
         JSON.stringify({ error: "Connection ID, filepath, and content are required" }),
         { headers: corsHeaders, status: 400 }
@@ -56,6 +69,14 @@ Deno.serve(async (req) => {
       );
     }
     
+    if (!credsData || !credsData.host || !credsData.user) {
+      console.error("[saveFile] Invalid credentials:", credsData);
+      return new Response(
+        JSON.stringify({ error: "Invalid FTP credentials" }),
+        { headers: corsHeaders, status: 400 }
+      );
+    }
+    
     // Get current file content for backup and checksum validation
     let currentContent = "";
     try {
@@ -81,87 +102,100 @@ Deno.serve(async (req) => {
     
     // Create backup if file exists
     if (currentContent) {
-      const checksum = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(currentContent))
-        .then(hash => Array.from(new Uint8Array(hash))
-        .map(b => b.toString(16).padStart(2, "0"))
-        .join(""));
-        
-      await supabase.from("ftp_backups").insert({
-        connection_id: id,
-        path: filepath,
-        orig: currentContent,
-        updated: content,
-        checksum
-      });
+      try {
+        const checksum = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(currentContent))
+          .then(hash => Array.from(new Uint8Array(hash))
+          .map(b => b.toString(16).padStart(2, "0"))
+          .join(""));
+          
+        await supabase.from("ftp_backups").insert({
+          connection_id: id,
+          path: filepath,
+          orig: currentContent,
+          updated: content,
+          checksum
+        });
+      } catch (err) {
+        console.warn("[saveFile] Failed to create backup:", err);
+        // Continue anyway, saving is more important than backup
+      }
     }
     
-    // Connect to FTP and save file
-    const client = new Client();
     try {
-      await client.access({
-        host: credsData.host,
-        port: credsData.port,
-        user: credsData.user,
-        password: credsData.password,
-        secure: false
-      });
+      // Connect to FTP and save file
+      const client = new Client();
+      client.ftp.verbose = true; // Enable verbose logging
       
-      // Upload content
-      const encoder = new TextEncoder();
-      const contentBuffer = encoder.encode(content);
-      
-      await client.uploadFrom(
-        new ReadableStream({
-          start(controller) {
-            controller.enqueue(contentBuffer);
-            controller.close();
-          }
-        }),
-        filepath
-      );
-      
-      // Update file record
-      await supabase.from("ftp_files").upsert({
-        connection_id: id,
-        path: filepath,
-        size: contentBuffer.byteLength,
-        last_modified: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
-      
-      // Release lock if we had one
-      if (username) {
-        await supabase.from("ftp_file_locks")
-          .delete()
-          .eq("connection_id", id)
-          .eq("path", filepath)
-          .eq("locked_by", username);
+      try {
+        console.log("[saveFile] Connecting to FTP:", { 
+          host: credsData.host, 
+          port: credsData.port, 
+          user: credsData.user 
+        });
+        
+        await client.access({
+          host: credsData.host,
+          port: credsData.port || 21,
+          user: credsData.user,
+          password: credsData.password,
+          secure: false
+        });
+        
+        console.log("[saveFile] FTP connected successfully");
+        
+        // Upload content
+        const encoder = new TextEncoder();
+        const contentBuffer = encoder.encode(content);
+        
+        // Use uploadFromBuffer instead of uploadFrom with ReadableStream
+        await client.uploadFrom(contentBuffer, filepath);
+        console.log("[saveFile] File uploaded successfully");
+        
+        // Update file record
+        await supabase.from("ftp_files").upsert({
+          connection_id: id,
+          path: filepath,
+          size: contentBuffer.byteLength,
+          last_modified: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        
+        // Release lock if we had one
+        if (username) {
+          await supabase.from("ftp_file_locks")
+            .delete()
+            .eq("connection_id", id)
+            .eq("path", filepath)
+            .eq("locked_by", username);
+        }
+        
+        // Calculate new checksum
+        const newChecksum = await crypto.subtle.digest("SHA-256", encoder.encode(content))
+          .then(hash => Array.from(new Uint8Array(hash))
+          .map(b => b.toString(16).padStart(2, "0"))
+          .join(""));
+        
+        return new Response(
+          JSON.stringify({ success: true, checksum: newChecksum }),
+          { headers: corsHeaders, status: 200 }
+        );
+      } catch (ftpError) {
+        console.error("[saveFile] FTP error:", ftpError);
+        throw new Error(`FTP operation failed: ${ftpError.message}`);
+      } finally {
+        client.close();
       }
-      
-      // Broadcast event via Realtime
-      await supabase.channel(`ftp_logs:${id}`).send({
-        type: 'broadcast',
-        event: 'file_updated',
-        payload: { filepath, by: username || "anonymous" }
-      });
-      
+    } catch (err) {
+      console.error("[saveFile] Exception:", err);
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          checksum: await crypto.subtle.digest("SHA-256", new TextEncoder().encode(content))
-            .then(hash => Array.from(new Uint8Array(hash))
-            .map(b => b.toString(16).padStart(2, "0"))
-            .join(""))
-        }),
-        { headers: corsHeaders, status: 200 }
+        JSON.stringify({ error: err.message || "Unknown error occurred" }),
+        { headers: corsHeaders, status: 500 }
       );
-    } finally {
-      client.close();
     }
   } catch (err) {
-    console.error("[saveFile] Exception:", err);
+    console.error("[saveFile] Top-level exception:", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: err.message || "Server error" }),
       { headers: corsHeaders, status: 500 }
     );
   }
