@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useFileLoader } from "./useFileLoader";
@@ -45,21 +46,34 @@ export function useFileEditor(connectionId: string, filePath: string) {
       const timestamp = Date.now();
       console.log(`[useFileEditor] Loading file with cache busting: ${filePath}?t=${timestamp}`);
       
-      const content = await loadFile(connectionId, filePath);
+      // Using recommended fetch logic
+      const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${timestamp}`, {
+        cache: "no-store",
+        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      }
+      
+      const content = await response.text();
       
       if (content !== undefined) {
         console.log(`[useFileEditor] Content loaded successfully, length: ${content.length}`);
         setCode(content);
         setHasUnsavedChanges(false);
+        setIsLoading(false);
         return content;
       } else {
         console.error(`[useFileEditor] Content is undefined for file: ${filePath}`);
         setError("Failed to load file content");
+        setIsLoading(false);
         return "";
       }
     } catch (error: any) {
       console.error(`[useFileEditor] Error loading file: ${filePath}`, error);
       setError(error.message || "Failed to load file");
+      setIsLoading(false);
       return "";
     }
   };
@@ -136,10 +150,26 @@ export function useFileEditor(connectionId: string, filePath: string) {
     setIsLoading(true);
     
     try {
-      const content = await loadFileContent();
+      // Use the recommended fetch logic with cache busting
+      const timestamp = Date.now();
+      const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${timestamp}`, {
+        cache: "no-store",
+        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      }
+      
+      const content = await response.text();
+      console.log(`[useFileEditor] Content refreshed successfully, length: ${content.length}`);
+      setCode(content);
+      setHasUnsavedChanges(false);
       setIsLoading(false);
       return content;
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`[useFileEditor] Error refreshing file: ${filePath}`, error);
+      setError(error.message || "Failed to refresh file");
       setIsLoading(false);
       throw error;
     }

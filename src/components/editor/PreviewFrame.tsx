@@ -30,7 +30,7 @@ export function PreviewFrame({
   if (!contentReady || !code) {
     return (
       <div className="flex items-center justify-center h-full text-red-500">
-        <span>Error loading file</span>
+        <span>Error: file is empty or failed to load</span>
       </div>
     );
   }

@@ -33,7 +33,7 @@ export function EditorContent({
   if (content === undefined) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <span className="text-red-500">Error loading file content</span>
+        <span className="text-red-500">Error: file is empty or failed to load</span>
       </div>
     );
   }
