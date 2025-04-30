@@ -48,50 +48,9 @@ const TrialProtection = ({ children, requiresSubscription = false }: TrialProtec
   }, [navigate]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      toast.info("Please login or start a trial to access this feature");
-      navigate("/login");
-    }
+    // Skip login check for now to allow dashboard access
+    setLoading(false);
   }, [loading, user, navigate]);
-
-  useEffect(() => {
-    // First check if super admin status is loaded - if they are a super admin, allow immediate access
-    if (!superAdminLoading && isSuperAdmin && user) {
-      console.log("Super admin access granted to:", user.email);
-      setLoading(false);
-      return; // Early return for super admins
-    }
-    
-    // Then check if subscription status is loaded - if they are subscribed, allow immediate access
-    if (!subLoading && subscribed && user) {
-      console.log("Paid subscriber access granted to:", user.email);
-      setLoading(false);
-      return; // Early return for paid subscribers
-    }
-    
-    // If user exists and we've finished loading both trial status, subscription status and super admin status
-    if (user && !trialStatus.loading && !superAdminLoading && !subLoading) {
-      // If this feature requires a subscription and user doesn't have one
-      if (requiresSubscription && !subscribed && !isSuperAdmin) {
-        toast.warning("This feature requires a paid subscription. Please upgrade your account.");
-        navigate("/pricing");
-        return;
-      }
-
-      // Regular trial status check for users who are not super admins or paid subscribers
-      if (!trialStatus.isActive && !isSuperAdmin && !subscribed) {
-        toast.warning("Your trial has expired. Please upgrade your account.");
-        navigate("/pricing");
-      } else if (trialStatus.daysRemaining !== null && trialStatus.daysRemaining <= 2) {
-        // Show warning for trials with 2 or fewer days left
-        toast.warning(`Your trial expires in ${trialStatus.daysRemaining} days. Consider upgrading.`);
-        setLoading(false);
-      } else {
-        // Trial is valid and not about to expire
-        setLoading(false);
-      }
-    }
-  }, [trialStatus, user, navigate, isSuperAdmin, superAdminLoading, subscribed, subLoading, requiresSubscription]);
 
   if (loading || trialStatus.loading || superAdminLoading || subLoading) {
     return (
@@ -102,6 +61,7 @@ const TrialProtection = ({ children, requiresSubscription = false }: TrialProtec
     );
   }
 
+  // Always show content regardless of trial status
   return <>{children}</>;
 };
 

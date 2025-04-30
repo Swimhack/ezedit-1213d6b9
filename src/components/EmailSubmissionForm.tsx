@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -34,7 +33,6 @@ export function EmailSubmissionForm() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${supabase.auth.session()?.access_token}`
         },
         body: JSON.stringify({
           to: data.email,
