@@ -57,3 +57,12 @@
   background-color: #007bff;
   color: white;
 }
+
+/* Logo styles for light/dark modes */
+.dark .logo-text .edit-text {
+  color: #e6f1ff;
+}
+.dark .logo-text .domain-text {
+  color: #8892b0;
+}
+
