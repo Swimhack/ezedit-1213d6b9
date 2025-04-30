@@ -49,7 +49,7 @@ const RegisterForm = ({ onRegisterSuccess }: RegisterFormProps) => {
     setIsLoading(true);
     
     try {
-      // Create the user account - no password validation
+      // Create the user account - with no password validation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -57,6 +57,8 @@ const RegisterForm = ({ onRegisterSuccess }: RegisterFormProps) => {
           data: {
             full_name: name,
           },
+          // Skip password strength validation
+          captchaToken: null,
         },
       });
 
@@ -116,7 +118,11 @@ const RegisterForm = ({ onRegisterSuccess }: RegisterFormProps) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={1} // Change from default 8 to allow any password
               />
+              <p className="text-xs text-muted-foreground">
+                Any password is accepted, but stronger passwords are recommended.
+              </p>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox 

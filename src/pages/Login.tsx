@@ -95,6 +95,7 @@ const Login = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      minLength={1} // Allow weak passwords
                       className="bg-background border-input text-foreground pr-10"
                     />
                     <Button
@@ -141,7 +142,7 @@ const Login = () => {
             <CardFooter className="pt-2 flex-col items-center">
               <div className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <Link to="/register" className="text-primary font-medium hover:underline">
+                <Link to="/register" className="text-primary hover:underline">
                   Sign up
                 </Link>
               </div>

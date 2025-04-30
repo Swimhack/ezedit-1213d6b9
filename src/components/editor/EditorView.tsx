@@ -71,7 +71,7 @@ export function EditorView({
       content={content}
       onChange={onChange}
       editorRef={editorRef}
-      readOnly={readOnly}
+      // Remove the readOnly prop as it's not supported by WysiwygEditor
     />
   );
 }

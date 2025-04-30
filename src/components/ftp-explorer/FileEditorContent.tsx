@@ -2,7 +2,6 @@
 import React from "react";
 import { SplitEditor } from "@/components/editor/SplitEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useEditorStore } from "@/store/editorStore";
 
 interface FileEditorContentProps {
   filePath: string;
