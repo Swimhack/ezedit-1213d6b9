@@ -9,7 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import DashboardLayout from '@/components/DashboardLayout';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
-import { Loader } from 'lucide-react';
+import { Loader, Download, FileText } from 'lucide-react';
+import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 
 // Define strict types for console logs
 type ConsoleLogType = "error" | "log" | "warn" | "info";
@@ -23,19 +24,21 @@ interface ConsoleLog {
 interface EdgeFunctionLog {
   id: string;
   timestamp: string;
-  message: string;
+  event_message: string;
   function_id: string;
   level: string;
 }
 
 const Logs = () => {
-  const [activeTab, setActiveTab] = useState('editor');
+  const [activeTab, setActiveTab] = useState('combined');
   const [editorLogs, setEditorLogs] = useState<ConsoleLog[]>([]);
   const [functionLogs, setFunctionLogs] = useState<EdgeFunctionLog[]>([]);
   const [ftpLogs, setFtpLogs] = useState<ConsoleLog[]>([]);
+  const [combinedText, setCombinedText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isSuperAdmin } = useSuperAdmin();
 
   useEffect(() => {
     // Fetch TinyMCE editor logs from localStorage
@@ -122,6 +125,41 @@ const Logs = () => {
     };
   }, [toast]);
 
+  // Generate combined text logs format
+  useEffect(() => {
+    let text = "# COMBINED LOGS\n\n";
+    
+    // Add editor logs
+    text += "## EDITOR LOGS\n";
+    if (editorLogs.length === 0) {
+      text += "No editor logs available.\n";
+    } else {
+      editorLogs.slice().reverse().forEach((log, i) => {
+        text += `[${formatTimestamp(log.timestamp)}] [${log.type.toUpperCase()}] ${log.message}\n`;
+      });
+    }
+    
+    text += "\n## FUNCTION LOGS\n";
+    if (functionLogs.length === 0) {
+      text += "No function logs available.\n";
+    } else {
+      functionLogs.slice().reverse().forEach((log, i) => {
+        text += `[${formatFunctionTimestamp(log.timestamp)}] [${(log.level || 'INFO').toUpperCase()}] ${log.event_message}\n`;
+      });
+    }
+    
+    text += "\n## FTP LOGS\n";
+    if (ftpLogs.length === 0) {
+      text += "No FTP logs available.\n";
+    } else {
+      ftpLogs.slice().reverse().forEach((log, i) => {
+        text += `[${formatTimestamp(log.timestamp)}] [${log.type.toUpperCase()}] ${log.message}\n`;
+      });
+    }
+    
+    setCombinedText(text);
+  }, [editorLogs, functionLogs, ftpLogs]);
+
   // Helper function to validate log types
   const validateLogType = (type: string): ConsoleLogType => {
     const validTypes: ConsoleLogType[] = ["error", "log", "warn", "info"];
@@ -152,6 +190,17 @@ const Logs = () => {
     return new Date(timestamp).toLocaleString();
   };
 
+  // Download logs as text file
+  const downloadLogs = () => {
+    const element = document.createElement('a');
+    const file = new Blob([combinedText], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `logs-${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -166,17 +215,47 @@ const Logs = () => {
   return (
     <DashboardLayout>
       <div className="container mx-auto px-4 py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">System Logs</h1>
-          <p className="text-gray-500">Review logs for troubleshooting and monitoring.</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">System Logs</h1>
+            <p className="text-gray-500">Review logs for troubleshooting and monitoring.</p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={downloadLogs} variant="outline" className="flex items-center gap-1">
+              <Download className="h-4 w-4" />
+              Download Logs
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4">
+            <TabsTrigger value="combined">
+              <div className="flex items-center gap-1">
+                <FileText className="h-4 w-4" />
+                Combined Text
+              </div>
+            </TabsTrigger>
             <TabsTrigger value="editor">Editor Logs ({editorLogs.length})</TabsTrigger>
             <TabsTrigger value="functions">Function Logs ({functionLogs.length})</TabsTrigger>
             <TabsTrigger value="ftp">FTP Logs ({ftpLogs.length})</TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="combined">
+            <Card>
+              <CardHeader>
+                <CardTitle>Combined Log File</CardTitle>
+                <CardDescription>
+                  All logs in a single text file format
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px] w-full rounded-md border p-4">
+                  <pre className="font-mono text-sm whitespace-pre-wrap break-words">{combinedText}</pre>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
           
           <TabsContent value="editor">
             <Card>
@@ -239,7 +318,7 @@ const Logs = () => {
                             <small className="text-gray-500">{formatFunctionTimestamp(log.timestamp)}</small>
                           </div>
                           <div className="font-mono text-sm whitespace-pre-wrap break-all">
-                            {log.message}
+                            {log.event_message}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
                             Function: {log.function_id || 'Unknown'}
@@ -294,16 +373,20 @@ const Logs = () => {
           <Button variant="outline" onClick={() => navigate(-1)} className="mr-2">
             Go Back
           </Button>
-          <Button onClick={() => {
-            localStorage.removeItem('tinymce_logs');
-            localStorage.removeItem('ftp_logs');
-            setEditorLogs([]);
-            setFtpLogs([]);
-            toast({
-              title: 'Logs cleared',
-              description: 'All local log data has been removed.',
-            });
-          }}>
+          <Button 
+            onClick={() => {
+              localStorage.removeItem('tinymce_logs');
+              localStorage.removeItem('ftp_logs');
+              setEditorLogs([]);
+              setFtpLogs([]);
+              setCombinedText("# COMBINED LOGS\n\nAll logs have been cleared.");
+              toast({
+                title: 'Logs cleared',
+                description: 'All local log data has been removed.',
+              });
+            }}
+            variant="destructive"
+          >
             Clear All Logs
           </Button>
         </div>

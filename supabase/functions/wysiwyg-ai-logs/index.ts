@@ -39,6 +39,22 @@ serve(async (req) => {
           event_type: "Log", 
           level: "log",
           function_id: "wysiwyg-ai"
+        },
+        {
+          id: "log-4",
+          timestamp: new Date(Date.now() - 180000).toISOString(),
+          event_message: "File format conversion completed",
+          event_type: "Log", 
+          level: "info",
+          function_id: "wysiwyg-ai"
+        },
+        {
+          id: "log-5",
+          timestamp: new Date(Date.now() - 240000).toISOString(),
+          event_message: "Text extraction process finished",
+          event_type: "Log", 
+          level: "log",
+          function_id: "wysiwyg-ai"
         }
       ];
 
