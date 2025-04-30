@@ -82,11 +82,15 @@ export function useFileEditor(connectionId: string, filePath: string) {
     }
     
     console.log(`[useFileEditor] Saving file: ${filePath}, content length: ${code.length}`);
-    const success = await saveFileContent(connectionId, filePath, code);
+    const result = await saveFileContent(connectionId, filePath, code);
     
-    if (success) {
+    if (result.success) {
       console.log("[useFileEditor] Save successful");
       setHasUnsavedChanges(false);
+      // Ensure we're using the latest content without reloading
+      if (result.content) {
+        setCode(result.content);
+      }
     } else {
       console.error("[useFileEditor] Save failed");
     }
@@ -113,10 +117,14 @@ export function useFileEditor(connectionId: string, filePath: string) {
         autoSaveTimerRef.current = window.setTimeout(async () => {
           console.log("[useFileEditor] Autosaving...");
           if (connectionId && filePath && newCode !== undefined) {
-            const success = await saveFileContent(connectionId, filePath, newCode);
+            const result = await saveFileContent(connectionId, filePath, newCode);
             
-            if (success) {
+            if (result.success) {
               setHasUnsavedChanges(false);
+              // Ensure we use the content we just saved
+              if (result.content) {
+                setCode(result.content);
+              }
               toast.success("File autosaved", {
                 duration: 2000,
                 position: "bottom-right",

@@ -12,10 +12,10 @@ export function useFileSaver() {
   /**
    * Save file content to FTP connection
    */
-  const saveFileContent = async (connectionId: string, filePath: string, content: string): Promise<boolean> => {
+  const saveFileContent = async (connectionId: string, filePath: string, content: string): Promise<{success: boolean, content: string}> => {
     if (!connectionId || !filePath || content === undefined) {
       toast.error("Missing data for saving");
-      return false;
+      return { success: false, content: "" };
     }
     
     setIsSaving(true);
@@ -43,11 +43,11 @@ export function useFileSaver() {
       
       console.log('[useFileSaver] Save successful');
       toast.success("File saved successfully");
-      return true;
+      return { success: true, content: content };
     } catch (error: any) {
       console.error("[useFileSaver] Error saving file:", error);
       toast.error(`Error saving file: ${error.message}`);
-      return false;
+      return { success: false, content: "" };
     } finally {
       setIsSaving(false);
     }

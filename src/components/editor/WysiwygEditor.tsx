@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TinyMCEEditor } from './TinyMCEEditor';
 
 interface WysiwygEditorProps {
@@ -10,6 +10,11 @@ interface WysiwygEditorProps {
 }
 
 export function WysiwygEditor({ content, onChange, previewSelector, editorRef }: WysiwygEditorProps) {
+  // Log when the component receives new content
+  useEffect(() => {
+    console.log('[WysiwygEditor] Received content update, length:', content?.length || 0);
+  }, [content]);
+  
   return (
     <div className="h-full">
       <TinyMCEEditor 

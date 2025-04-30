@@ -66,6 +66,20 @@ export function TinyMCEEditor({
     }
   }, [internalContent, previewSelector]);
 
+  // Forcibly update the editor content when it changes externally
+  const forceContentUpdate = () => {
+    if (editorRef.current && editorInitialized && content) {
+      try {
+        console.log('[TinyMCE] Force updating content, length:', content.length);
+        editorRef.current.setContent(content);
+        setInternalContent(content);
+        setLastExternalContent(content);
+      } catch (err) {
+        console.error('[TinyMCE] Error force updating content:', err);
+      }
+    }
+  };
+
   return (
     <Editor
       apiKey={apiKey}
@@ -88,7 +102,7 @@ export function TinyMCEEditor({
           }, 100);
         }
       }}
-      initialValue={content}
+      value={content}
       onEditorChange={(newContent, editor) => {
         // Only trigger onChange if content actually changed to prevent loops
         if (newContent !== internalContent) {

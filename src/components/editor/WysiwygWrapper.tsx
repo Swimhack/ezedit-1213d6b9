@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { TinyMCEEditor } from "@/components/editor/TinyMCEEditor";
 
 interface WysiwygWrapperProps {
@@ -17,6 +17,11 @@ export function WysiwygWrapper({
   editorRef,
   previewIframeId
 }: WysiwygWrapperProps) {
+  // Log when the component receives new code
+  useEffect(() => {
+    console.log('[WysiwygWrapper] Received new code, length:', code?.length || 0);
+  }, [code]);
+
   const handleEditorChange = (newContent: string) => {
     console.log('[WysiwygWrapper] TinyMCE content changed, length:', newContent.length);
     onCodeChange(newContent);
