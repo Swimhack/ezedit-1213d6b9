@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -27,6 +28,7 @@ export function EmailSubmissionForm() {
 
   const onSubmit = async (data: EmailFormValues) => {
     setIsSubmitting(true);
+    let emailSavedToDatabase = false;
     
     try {
       // Store email in Supabase database first
@@ -41,51 +43,60 @@ export function EmailSubmissionForm() {
         throw new Error(dbError.message);
       }
 
-      // Then send the actual email via edge function
-      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/send-email`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          to: data.email,
-          subject: "Thanks for your interest in EzEdit.co!",
-          text: `Hello,\n\nThank you for your interest in EzEdit.co! We'll send you an invite soon.\n\nBest regards,\nThe EzEdit Team`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #333;">Thanks for your interest in EzEdit.co!</h2>
-              <p>We've received your email and will send you an invite soon.</p>
-              <p>In the meantime, feel free to explore our <a href="https://ezedit.co/features" style="color: #0070f3; text-decoration: none;">features</a>.</p>
-              <p style="margin-top: 20px;">Best regards,<br>The EzEdit Team</p>
-            </div>
-          `
-        }),
-      });
+      emailSavedToDatabase = true;
+      console.log("Email successfully saved to database:", data.email);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Email function error:", errorData);
-        throw new Error("Failed to send email");
+      // Then try to send the actual email via edge function
+      try {
+        const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/send-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            to: data.email,
+            subject: "Thanks for your interest in EzEdit.co!",
+            text: `Hello,\n\nThank you for your interest in EzEdit.co! We'll send you an invite soon.\n\nBest regards,\nThe EzEdit Team`,
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #333;">Thanks for your interest in EzEdit.co!</h2>
+                <p>We've received your email and will send you an invite soon.</p>
+                <p>In the meantime, feel free to explore our <a href="https://ezedit.co/features" style="color: #0070f3; text-decoration: none;">features</a>.</p>
+                <p style="margin-top: 20px;">Best regards,<br>The EzEdit Team</p>
+              </div>
+            `
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Email function error:", errorData);
+          throw new Error("Failed to send email");
+        }
+
+        // Update the status in the database to sent
+        const { error: updateError } = await supabase
+          .from('email_subscribers')
+          .update({ 
+            status: 'sent',
+            sent_at: new Date().toISOString() 
+          })
+          .eq('email', data.email);
+
+        if (updateError) {
+          console.error("Failed to update email status:", updateError);
+        }
+      } catch (emailError) {
+        // Log the email sending error but don't throw - we still want to show success
+        console.error("Error sending email:", emailError);
+        console.log("Email will be processed from database records later");
       }
 
-      // Update the status in the database to sent
-      const { error: updateError } = await supabase
-        .from('email_subscribers')
-        .update({ 
-          status: 'sent',
-          sent_at: new Date().toISOString() 
-        })
-        .eq('email', data.email);
-
-      if (updateError) {
-        console.error("Failed to update email status:", updateError);
-      }
-
+      // Always show success if the email was saved to the database
       toast.success("Thanks! We'll send you an invite soon.");
       form.reset();
     } catch (error) {
       console.error("Error in email submission process:", error);
-      // If we have a database record but email sending failed, we keep the record
       toast.error("Failed to submit. Please try again later.");
     } finally {
       setIsSubmitting(false);
