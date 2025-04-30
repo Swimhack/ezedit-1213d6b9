@@ -15,11 +15,12 @@ const HeroSection = () => {
           Secure, fast, and incredibly simple.
         </p>
         
-        <div className="max-w-lg mx-auto mb-8">
+        <div className="max-w-lg mx-auto mb-12">
+          <h3 className="text-lg font-medium mb-3">Get early access to EzEdit</h3>
           <EmailSubmissionForm />
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
           <Link to="/register">
             <Button size="lg" className="bg-ezblue text-eznavy hover:bg-ezblue-light">
               Get Started for Free
