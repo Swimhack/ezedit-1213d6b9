@@ -1,6 +1,5 @@
 
-import React, { useState, useEffect } from "react";
-import { Loader } from "lucide-react";
+import React from 'react';
 
 interface PreviewFrameProps {
   previewSrc: string;
@@ -19,38 +18,29 @@ export function PreviewFrame({
   isLoading,
   code
 }: PreviewFrameProps) {
-  if (!contentReady) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100%-28px)]">
-        <Loader className="h-6 w-6 animate-spin text-gray-400" />
-        <span className="ml-2">Waiting for content...</span>
-      </div>
-    );
-  }
-  
-  if (code === "") {
-    return (
-      <div className="flex items-center justify-center h-[calc(100%-28px)] text-gray-500">
-        Empty file – nothing to preview
-      </div>
-    );
-  }
-  
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100%-28px)]">
-        <Loader className="h-6 w-6 animate-spin text-gray-400" />
-        <span className="ml-2">Generating preview...</span>
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+        <span>Loading file...</span>
       </div>
     );
   }
-  
+
+  if (!contentReady || !code) {
+    return (
+      <div className="flex items-center justify-center h-full text-red-500">
+        <span>Error loading file</span>
+      </div>
+    );
+  }
+
   return (
-    <iframe
+    <iframe 
       id={previewIframeId}
       key={previewKey}
       srcDoc={previewSrc}
-      className="w-full h-[calc(100%-28px)] border-none"
+      className="w-full h-full border-0"
       sandbox="allow-scripts"
       title="Preview"
     />

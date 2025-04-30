@@ -30,6 +30,14 @@ export function EditorContent({
     );
   }
   
+  if (content === undefined) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <span className="text-red-500">Error loading file content</span>
+      </div>
+    );
+  }
+  
   return (
     <div className="flex-1 grid grid-rows-[1fr_auto]">
       <div className="flex flex-col md:flex-row h-full">
@@ -52,7 +60,7 @@ export function EditorContent({
         
         {/* Preview Section */}
         <div className={`${activeTab === 'code' ? 'hidden md:block' : ''} flex-1 h-full bg-white`}>
-          <PreviewTab content={content || ''} fileName={filePath} />
+          <PreviewTab content={content} fileName={filePath} />
         </div>
       </div>
     </div>

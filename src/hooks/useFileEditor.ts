@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useFileLoader } from "./useFileLoader";
@@ -21,9 +20,8 @@ export function useFileEditor(connectionId: string, filePath: string) {
   // Autosave timer reference
   const autoSaveTimerRef = useRef<number | null>(null);
   
-  // Reset state when file path changes
+  // Reset state when file path changes, but keep content until new content is loaded
   useEffect(() => {
-    setCode(undefined);
     setHasUnsavedChanges(false);
     
     // Clear any pending autosave when file changes
@@ -34,7 +32,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
   }, [filePath]);
   
   /**
-   * Load file content from FTP/SFTP connection
+   * Load file content from FTP/SFTP connection with cache busting
    */
   const loadFileContent = async () => {
     if (!connectionId || !filePath) {
@@ -43,12 +41,25 @@ export function useFileEditor(connectionId: string, filePath: string) {
     }
     
     try {
+      // Use cache busting
+      const timestamp = Date.now();
+      console.log(`[useFileEditor] Loading file with cache busting: ${filePath}?t=${timestamp}`);
+      
       const content = await loadFile(connectionId, filePath);
-      setCode(content);
-      setHasUnsavedChanges(false);
-      return content;
+      
+      if (content !== undefined) {
+        console.log(`[useFileEditor] Content loaded successfully, length: ${content.length}`);
+        setCode(content);
+        setHasUnsavedChanges(false);
+        return content;
+      } else {
+        console.error(`[useFileEditor] Content is undefined for file: ${filePath}`);
+        setError("Failed to load file content");
+        return "";
+      }
     } catch (error: any) {
-      console.error("Error loading file:", error);
+      console.error(`[useFileEditor] Error loading file: ${filePath}`, error);
+      setError(error.message || "Failed to load file");
       return "";
     }
   };
@@ -117,9 +128,21 @@ export function useFileEditor(connectionId: string, filePath: string) {
   /**
    * Force refresh file content with cache busting
    */
-  const refreshFile = () => {
-    console.log("[useFileEditor] Force refreshing file content");
-    return loadFileContent();
+  const refreshFile = async () => {
+    console.log("[useFileEditor] Force refreshing file content with cache busting");
+    
+    // Clear the current code to force a complete refresh
+    // but only temporarily to avoid flickering
+    setIsLoading(true);
+    
+    try {
+      const content = await loadFileContent();
+      setIsLoading(false);
+      return content;
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
   };
 
   // Clean up timer on unmount

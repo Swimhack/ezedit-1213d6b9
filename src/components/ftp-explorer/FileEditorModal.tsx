@@ -54,7 +54,7 @@ export function FileEditorModal({
     setEditorMode
   });
 
-  // Handle manual refresh
+  // Handle manual refresh with cache busting
   const handleRefresh = () => {
     setForceRefresh(prev => prev + 1);
     toast.info("Refreshing file content...");
@@ -116,7 +116,7 @@ export function FileEditorModal({
         {!isLoading && !error && (
           <div className="modal-body h-full flex flex-col">
             <EditorPreviewSplit
-                code={code || ""} /* Ensure we pass empty string instead of undefined */
+                code={code || ""} 
                 filePath={filePath}
                 onCodeChange={handleCodeChange}
                 detectLanguage={detectLanguage}

@@ -6,34 +6,38 @@ export function useLivePreview(code: string | undefined, path: string) {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    const id = setTimeout(() => {
-      // Handle undefined code as loading state
-      if (code === undefined) {
-        console.log('[useLivePreview] Code is undefined, setting loading state');
-        setSrc("");
-        setIsLoading(true);
-        return;
-      }
+    // If path is empty, return early
+    if (!path) {
+      setIsLoading(false);
+      setSrc("");
+      return;
+    }
+
+    setIsLoading(true);
+    
+    // Use the recommended fetch logic with cache busting
+    fetch(`/api/readFile?path=${encodeURIComponent(path)}&t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+    })
+    .then(res => res.text())
+    .then(content => {
+      console.log(`[useLivePreview] Content loaded for ${path}, length: ${content?.length || 0}`);
       
-      // Log the content to debug
-      console.log("🧪 Preview content:", code?.slice(0, 200));
-      console.log(`[useLivePreview] Generating preview for ${path}, content length: ${code?.length || 0}`);
-      console.log("Visual fileContent typeof:", typeof code);
-      
-      // When code is available but empty
-      if (code === "") {
+      // When content is available but empty
+      if (content === "") {
         console.log('[useLivePreview] Empty file content');
         setSrc(`<div style="padding:2rem;font-family:system-ui">Empty file – nothing to preview</div>`);
         setIsLoading(false);
         return;
       }
       
-      // Always set loading to false once we have some content (even if it's empty)
+      // Set loading to false once we have content
       setIsLoading(false);
       
       if (/\.(html?|htm|php|md|txt|css|js)$/i.test(path)) {
         // For HTML content, wrap it in a proper HTML structure if it's just a fragment
-        if (/\.(html?|htm|php)$/i.test(path) && !code.includes('<html')) {
+        if (/\.(html?|htm|php)$/i.test(path) && !content.includes('<html')) {
           const htmlTemplate = `
 <!DOCTYPE html>
 <html>
@@ -47,27 +51,31 @@ export function useLivePreview(code: string | undefined, path: string) {
   </style>
 </head>
 <body>
-${code}
+${content}
 </body>
 </html>`;
           setSrc(htmlTemplate);
         } else {
-          setSrc(code);
+          setSrc(content);
         }
       } else if (/\.(jpe?g|png|gif|svg|webp)$/i.test(path)) {
         // For image files, create a data URL if possible
-        if (code.startsWith('data:')) {
-          setSrc(code);
+        if (content.startsWith('data:')) {
+          setSrc(content);
         } else {
           setSrc(`<div style="padding:2rem;font-family:system-ui">Image preview not available in code view.</div>`);
         }
       } else {
         setSrc(`<div style="padding:2rem;font-family:system-ui">Preview not available for this file type.</div>`);
       }
-    }, 400); // Short delay to prevent constant re-rendering during typing
+    })
+    .catch(error => {
+      console.error(`[useLivePreview] Error fetching file: ${error}`);
+      setIsLoading(false);
+      setSrc(`<div style="padding:2rem;font-family:system-ui;color:red">Error loading file: ${error.message}</div>`);
+    });
     
-    return () => clearTimeout(id);
-  }, [code, path]);
+  }, [path]);
   
   return { src, isLoading };
 }
