@@ -9,7 +9,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff, LogIn } from "lucide-react";
-import Logo from "@/components/Logo";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useTheme } from "@/hooks/use-theme";
@@ -59,7 +58,6 @@ const Login = () => {
       <div className="flex-grow flex items-center justify-center py-16 px-4 w-full">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <Logo className="mx-auto h-12" />
             <h1 className="text-2xl font-bold mt-6 text-foreground">Welcome back</h1>
             <p className="text-muted-foreground mt-2">Sign in to your account</p>
           </div>
