@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { supabase } from "../_shared/supabaseClient.ts"
 
 const MAILGUN_API_KEY = Deno.env.get('MAILGUN_API_KEY')
 const MAILGUN_DOMAIN = Deno.env.get('MAILGUN_DOMAIN')
@@ -27,6 +28,12 @@ serve(async (req) => {
 
     console.log(`Sending email to ${to} with subject: ${subject}`)
 
+    // Check if we have the required environment variables
+    if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
+      console.error("Missing Mailgun credentials")
+      throw new Error("Server configuration error: Missing email provider credentials")
+    }
+
     const formData = new FormData()
     formData.append('from', `EzEdit <noreply@${MAILGUN_DOMAIN}>`)
     formData.append('to', to)
@@ -46,11 +53,27 @@ serve(async (req) => {
     )
 
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`Mailgun API error: ${response.status} ${response.statusText}`, errorText)
       throw new Error(`Mailgun API error: ${response.statusText}`)
     }
 
     const result = await response.json()
     console.log('Email sent successfully:', result)
+
+    // Log the success in database
+    try {
+      const { error } = await supabase
+        .from('email_subscribers')
+        .update({ status: 'sent', sent_at: new Date().toISOString() })
+        .eq('email', to)
+      
+      if (error) {
+        console.error("Failed to update email status in database:", error)
+      }
+    } catch (dbError) {
+      console.error("Database update error:", dbError)
+    }
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

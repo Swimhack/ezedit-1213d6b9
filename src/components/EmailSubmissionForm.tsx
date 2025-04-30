@@ -29,6 +29,19 @@ export function EmailSubmissionForm() {
     setIsSubmitting(true);
     
     try {
+      // Store email in Supabase database first
+      const { error: dbError } = await supabase
+        .from('email_subscribers')
+        .insert({ 
+          email: data.email,
+          status: 'pending'
+        });
+
+      if (dbError) {
+        throw new Error(dbError.message);
+      }
+
+      // Then send the actual email via edge function
       const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/send-email`, {
         method: "POST",
         headers: {
@@ -50,13 +63,29 @@ export function EmailSubmissionForm() {
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Email function error:", errorData);
         throw new Error("Failed to send email");
+      }
+
+      // Update the status in the database to sent
+      const { error: updateError } = await supabase
+        .from('email_subscribers')
+        .update({ 
+          status: 'sent',
+          sent_at: new Date().toISOString() 
+        })
+        .eq('email', data.email);
+
+      if (updateError) {
+        console.error("Failed to update email status:", updateError);
       }
 
       toast.success("Thanks! We'll send you an invite soon.");
       form.reset();
     } catch (error) {
-      console.error("Error sending email:", error);
+      console.error("Error in email submission process:", error);
+      // If we have a database record but email sending failed, we keep the record
       toast.error("Failed to submit. Please try again later.");
     } finally {
       setIsSubmitting(false);

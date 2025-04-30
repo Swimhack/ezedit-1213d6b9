@@ -34,3 +34,8 @@ path = "supabase/functions/check-subscription"
 verify_jwt = true
 name = "customer-portal"
 path = "supabase/functions/customer-portal"
+
+[[functions]]
+verify_jwt = false
+name = "send-email"
+path = "supabase/functions/send-email"
