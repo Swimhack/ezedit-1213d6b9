@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Save, Clock, RefreshCw } from "lucide-react";
+import { Save, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FileEditorToolbarProps {
@@ -32,7 +32,7 @@ export function FileEditorToolbar({
       >
         {isSaving ? (
           <>
-            <Clock className="w-4 h-4 animate-spin" />
+            <div className="w-4 h-4 animate-spin rounded-full border-2 border-b-transparent border-white" />
             Saving...
           </>
         ) : (
