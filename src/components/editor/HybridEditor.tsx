@@ -1,15 +1,12 @@
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Tabs, TabList, Tab, TabPanel } from 'react-tabs';
+import React, { useEffect, useState } from 'react';
 import 'react-tabs/style/react-tabs.css';
-import grapesjs from 'grapesjs';
-import gjsPreset from 'grapesjs-preset-webpage';
+import { TabPanel } from 'react-tabs';
 import { CodeEditor } from './CodeEditor';
-import { WysiwygEditor } from './WysiwygEditor';
-import { Button } from '@/components/ui/button';
-import { Eye, Code, Columns, Paintbrush } from 'lucide-react';
-import { useLivePreview } from '@/hooks/useLivePreview';
 import './grapesjs-styles.css';
+import { EditorTabView } from './EditorTabView';
+import { VisualEditor } from './VisualEditor';
+import { PreviewTab } from './PreviewTab';
 
 interface HybridEditorProps {
   content: string;
@@ -28,12 +25,7 @@ export function HybridEditor({
 }: HybridEditorProps) {
   const [tabIndex, setTabIndex] = useState(0);
   const [htmlContent, setHtmlContent] = useState(content);
-  const grapesjsEditorRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [gjsView, setGjsView] = useState<'design' | 'code'>('design');
   
-  // Fix the type issue by extracting just the src string from useLivePreview
-  const { src: previewSrc, isLoading } = useLivePreview(content, fileName || '');
   const isHtmlFile = fileName ? /\.(html?|htm)$/i.test(fileName) : false;
   
   // Initialize content when loading new content
@@ -43,124 +35,6 @@ export function HybridEditor({
       setHtmlContent(content);
     }
   }, [content, fileName]);
-
-  // Initialize GrapesJS when tab is selected
-  useEffect(() => {
-    if (tabIndex === 1 && isHtmlFile && containerRef.current && !grapesjsEditorRef.current) {
-      const editor = grapesjs.init({
-        container: containerRef.current,
-        height: '100%',
-        width: 'auto',
-        fromElement: false,
-        storageManager: {
-          type: 'remote',
-          autosave: false,
-          autoload: true,
-          options: {
-            remote: {
-              urlStore: '/api/save',
-              urlLoad: '/api/load',
-              headers: { 
-                'Content-Type': 'application/json' 
-              },
-              onStore: (data: any) => {
-                // Add filename to the data before storing
-                return {
-                  ...data,
-                  filename: fileName
-                };
-              },
-              onLoad: (result: any) => {
-                // Process the loaded data if needed
-                return result;
-              }
-            }
-          }
-        },
-        plugins: [gjsPreset],
-        pluginsOpts: {
-          gjsPreset: {}
-        },
-        panels: { 
-          defaults: [
-            {
-              id: 'views',
-              buttons: [
-                {
-                  id: 'design-btn',
-                  label: 'Design',
-                  className: 'gjs-pn-btn',
-                  command: 'show-design',
-                  active: gjsView === 'design',
-                  attributes: { title: 'Switch to Design View' },
-                },
-                {
-                  id: 'code-btn',
-                  label: 'Code',
-                  className: 'gjs-pn-btn',
-                  command: 'show-code',
-                  active: gjsView === 'code',
-                  attributes: { title: 'Switch to Code View' },
-                }
-              ]
-            }
-          ] 
-        },
-        deviceManager: { devices: [
-          { name: 'Desktop', width: '' },
-          { name: 'Tablet', width: '768px' },
-          { name: 'Mobile', width: '320px' }
-        ]},
-        styleManager: { sectors: [] },
-        blockManager: { appendTo: '#blocks' }
-      });
-      
-      // Add the toggle commands
-      editor.Commands.add('show-design', {
-        run: (editor) => {
-          editor.runCommand('core:open-blocks');
-          editor.runCommand('core:open-layers');
-          editor.stopCommand('core:open-code');
-          setGjsView('design');
-        }
-      });
-
-      editor.Commands.add('show-code', {
-        run: (editor) => {
-          editor.stopCommand('core:open-blocks');
-          editor.stopCommand('core:open-layers');
-          editor.runCommand('core:open-code');
-          setGjsView('code');
-        }
-      });
-      
-      // Set content
-      editor.setComponents(htmlContent);
-      
-      // Listen for changes
-      editor.on('change:changesCount', () => {
-        const html = editor.getHtml();
-        setHtmlContent(html);
-        onChange(html);
-      });
-      
-      grapesjsEditorRef.current = editor;
-      
-      // Return cleanup function
-      return () => {
-        editor.destroy();
-        grapesjsEditorRef.current = null;
-      };
-    }
-  }, [tabIndex, isHtmlFile]);
-  
-  // Update GrapesJS content when external content changes
-  useEffect(() => {
-    if (grapesjsEditorRef.current && content !== htmlContent) {
-      grapesjsEditorRef.current.setComponents(content);
-      setHtmlContent(content);
-    }
-  }, [content]);
   
   if (!isHtmlFile) {
     return (
@@ -176,28 +50,12 @@ export function HybridEditor({
   
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b border-gray-200 dark:border-gray-700 pb-1">
-        <Tabs selectedIndex={tabIndex} onSelect={(index) => setTabIndex(index)}>
-          <TabList className="flex gap-2 mb-0">
-            <Tab className="flex items-center gap-1 px-3 py-2 rounded-t cursor-pointer border-b-2 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800">
-              <Code size={16} />
-              <span>Code</span>
-            </Tab>
-            {!readOnly && (
-              <>
-                <Tab className="flex items-center gap-1 px-3 py-2 rounded-t cursor-pointer border-b-2 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800">
-                  <Columns size={16} />
-                  <span>Visual</span>
-                </Tab>
-              </>
-            )}
-            <Tab className="flex items-center gap-1 px-3 py-2 rounded-t cursor-pointer border-b-2 border-transparent hover:bg-gray-100 dark:hover:bg-gray-800">
-              <Eye size={16} />
-              <span>Preview</span>
-            </Tab>
-          </TabList>
-        </Tabs>
-      </div>
+      <EditorTabView 
+        tabIndex={tabIndex} 
+        setTabIndex={setTabIndex} 
+        readOnly={readOnly}
+        isHtmlFile={isHtmlFile}
+      />
       
       <div className="flex-grow">
         {tabIndex === 0 && (
@@ -210,59 +68,17 @@ export function HybridEditor({
           />
         )}
         
-        {tabIndex === 1 && !readOnly && (
-          <div className="h-full">
-            <div className="flex gap-2 p-2 border-b">
-              <Button 
-                size="sm" 
-                variant={gjsView === 'design' ? 'default' : 'outline'}
-                onClick={() => {
-                  if (grapesjsEditorRef.current) {
-                    grapesjsEditorRef.current.runCommand('show-design');
-                  }
-                }}
-                className="flex items-center gap-1"
-                disabled={readOnly}
-              >
-                <Paintbrush size={14} />
-                Design
-              </Button>
-              <Button 
-                size="sm" 
-                variant={gjsView === 'code' ? 'default' : 'outline'}
-                onClick={() => {
-                  if (grapesjsEditorRef.current) {
-                    grapesjsEditorRef.current.runCommand('show-code');
-                  }
-                }}
-                className="flex items-center gap-1"
-                disabled={readOnly}
-              >
-                <Code size={14} />
-                Code
-              </Button>
-            </div>
-            <div id="blocks" className="hidden"></div>
-            <div ref={containerRef} className="h-full"></div>
-          </div>
+        {tabIndex === 1 && !readOnly && isHtmlFile && (
+          <VisualEditor
+            content={content}
+            onChange={onChange}
+            fileName={fileName}
+            readOnly={readOnly}
+          />
         )}
         
         {(tabIndex === 2 || (tabIndex === 1 && readOnly)) && (
-          <div className="h-full w-full bg-white">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
-                <span>Generating preview...</span>
-              </div>
-            ) : (
-              <iframe 
-                srcDoc={previewSrc} 
-                className="w-full h-full border-0" 
-                sandbox="allow-scripts"
-                title="Preview"
-              />
-            )}
-          </div>
+          <PreviewTab content={content} fileName={fileName} />
         )}
       </div>
     </div>
