@@ -23,7 +23,11 @@ export function useLivePreview(code: string | undefined, path: string) {
         return;
       }
       
-      console.log(`[useLivePreview] Generating preview for ${path}, content length: ${code.length}`);
+      console.log(`[useLivePreview] Generating preview for ${path}, content length: ${code?.length || 0}`);
+      console.log("Visual fileContent typeof:", typeof code);
+      console.log("Visual fileContent length:", code?.length);
+      console.log("Visual preview content:", code?.slice(0, 200));
+      
       setIsLoading(false);
       
       if (/\.(html?|htm|php|md|txt|css|js)$/i.test(path)) {

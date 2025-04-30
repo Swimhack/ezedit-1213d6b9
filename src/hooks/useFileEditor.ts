@@ -50,6 +50,9 @@ export function useFileEditor(connectionId: string, filePath: string) {
       if (response.data && response.data.success) {
         const fileContent = response.data.content || "";
         console.log(`[useFileEditor] File loaded successfully via SFTP, size: ${fileContent.length} bytes`);
+        console.log("Visual fileContent typeof:", typeof fileContent);
+        console.log("Visual fileContent length:", fileContent?.length);
+        console.log("Visual preview content:", fileContent?.slice(0, 200));
         setCode(fileContent);
         setHasUnsavedChanges(false);
         setIsLoading(false);
@@ -92,6 +95,9 @@ export function useFileEditor(connectionId: string, filePath: string) {
           }
           
           console.log(`[useFileEditor] File loaded successfully via FTP fallback, size: ${decodedContent?.length || 0} bytes`);
+          console.log("Visual fileContent typeof:", typeof decodedContent);
+          console.log("Visual fileContent length:", decodedContent?.length);
+          console.log("Visual preview content:", decodedContent?.slice(0, 200));
           setCode(decodedContent || "");
           setHasUnsavedChanges(false);
           setIsLoading(false);

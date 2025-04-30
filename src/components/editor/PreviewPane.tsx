@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 interface PreviewPaneProps {
@@ -52,6 +53,10 @@ export function PreviewPane({
       setIsLoading(false);
       return;
     }
+    
+    console.log("Visual fileContent typeof:", typeof content);
+    console.log("Visual fileContent length:", content?.length);
+    console.log("Visual preview content:", content?.slice(0, 200));
     
     const isPreviewableFile = fileName && /\.(html?|htm|php)$/i.test(fileName);
     

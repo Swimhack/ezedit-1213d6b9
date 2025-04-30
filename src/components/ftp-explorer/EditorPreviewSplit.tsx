@@ -7,7 +7,6 @@ import SplitHandle from "./SplitHandle";
 import { useLivePreview } from "@/hooks/useLivePreview";
 import { TinyMCEEditor } from "@/components/editor/TinyMCEEditor";
 import { useTheme } from "@/hooks/use-theme";
-import { toast } from "sonner";
 
 interface EditorPreviewSplitProps {
   code: string;
