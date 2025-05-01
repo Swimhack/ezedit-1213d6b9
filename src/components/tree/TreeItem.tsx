@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +18,7 @@ interface TreeItemProps {
   node: TreeNode;
   level?: number;
   activeFilePath?: string;
-  onToggle: () => void;
+  onToggle: (path: string) => void; // Updated to pass the path
   onSelectFile: (path: string) => void;
 }
 
@@ -35,7 +34,7 @@ export function TreeItem({
   
   const handleClick = () => {
     if (isDirectory) {
-      onToggle();
+      onToggle(node.path); // Pass the path to the toggle handler
     } else {
       onSelectFile(node.path);
     }
@@ -82,7 +81,7 @@ export function TreeItem({
               node={childNode}
               level={level + 1}
               activeFilePath={activeFilePath}
-              onToggle={() => onToggle()}
+              onToggle={onToggle}
               onSelectFile={onSelectFile}
             />
           ))}

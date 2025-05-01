@@ -20,16 +20,9 @@ export function WysiwygWrapper({
   const [editorContent, setEditorContent] = useState<string>('');
   const [isContentReady, setIsContentReady] = useState<boolean>(false);
 
-  // Fetch and load the file content when path changes
-  useEffect(() => {
-    if (filePath) {
-      loadFileContent(filePath);
-    }
-  }, [filePath]);
-
   // Update internal state when code prop changes (if it's different from what we already have)
   useEffect(() => {
-    if (code !== undefined && typeof code === 'string' && code !== editorContent) {
+    if (code !== undefined && typeof code === 'string') {
       console.log('[WysiwygWrapper] Code prop updated, length:', code?.length || 0);
       setEditorContent(code);
       setIsContentReady(true);
@@ -50,36 +43,6 @@ export function WysiwygWrapper({
       } catch (err) {
         console.error('[WysiwygWrapper] Error updating preview:', err);
       }
-    }
-  };
-
-  const loadFileContent = async (path: string) => {
-    console.log(`[WysiwygWrapper] Loading file content: ${path}`);
-    setIsContentReady(false);
-    
-    try {
-      const res = await fetch(`/api/readFile?path=${encodeURIComponent(path)}&t=${Date.now()}`, {
-        method: "GET",
-        cache: "no-store",
-        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
-      });
-      
-      if (!res.ok) {
-        throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
-      }
-      
-      const content = await res.text();
-      console.log(`[WysiwygWrapper] File content loaded, length: ${content.length}`);
-      
-      setEditorContent(content);
-      setIsContentReady(true);
-      onCodeChange(content); // Update parent component
-      
-      // Update preview
-      updatePreview(content);
-    } catch (err) {
-      console.error(`[WysiwygWrapper] Error loading file: ${path}`, err);
-      setIsContentReady(false);
     }
   };
 

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ClineChatDrawer } from "./ClineChatDrawer";
@@ -27,7 +27,9 @@ export function FileEditorModal({
   const [editorMode, setEditorMode] = useState<'code' | 'wysiwyg'>('code');
   const [loadAttempts, setLoadAttempts] = useState(0);
   const [forceRefresh, setForceRefresh] = useState(0);
+  const editorRef = useRef<any>(null);
   
+  // Use our enhanced file editor hook
   const {
     code,
     isLoading,
@@ -36,6 +38,7 @@ export function FileEditorModal({
     hasUnsavedChanges,
     autoSaveEnabled,
     isAutoSaving,
+    editorContentReady,
     handleCodeChange,
     handleSave,
     loadFile,
@@ -114,7 +117,7 @@ export function FileEditorModal({
         />
         
         {!isLoading && !error && (
-          <div className="modal-body h-full flex flex-col">
+          <div className="modal-body h-full flex flex-col overflow-hidden">
             <EditorPreviewSplit
                 code={code || ""} 
                 filePath={filePath}
@@ -122,6 +125,8 @@ export function FileEditorModal({
                 detectLanguage={detectLanguage}
                 editorMode={editorMode}
                 forceRefresh={forceRefresh}
+                editorRef={editorRef}
+                editorContentReady={editorContentReady}
             />
             
             <ClineChatDrawer

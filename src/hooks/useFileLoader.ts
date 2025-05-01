@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
@@ -11,7 +10,7 @@ export function useFileLoader() {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Load file content from FTP/SFTP connection
+   * Load file content from FTP/SFTP connection with cache busting
    */
   const loadFile = async (connectionId: string, filePath: string): Promise<string> => {
     if (!connectionId || !filePath) {
@@ -26,9 +25,9 @@ export function useFileLoader() {
     try {
       console.log(`[useFileLoader] Loading file: ${filePath} for connection: ${connectionId}`);
       
-      // Use the recommended fetch logic with cache busting
+      // Use secure fetch with cache busting timestamp
       const timestamp = Date.now();
-      const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${timestamp}`, {
+      const response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${timestamp}`, {
         cache: "no-store",
         headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
       });
@@ -39,14 +38,14 @@ export function useFileLoader() {
       
       const fileContent = await response.text();
       console.log(`[useFileLoader] File loaded successfully, size: ${fileContent.length} bytes`);
-      console.log("Visual fileContent typeof:", typeof fileContent);
-      console.log("Visual fileContent length:", fileContent?.length);
-      console.log("Visual preview content:", fileContent?.slice(0, 200));
       setIsLoading(false);
       setError(null);
       return fileContent;
     } catch (error: any) {
       console.error("[useFileLoader] Error:", error);
+      
+      // Retry logic could be implemented here if needed
+      
       setError(error.message || "Failed to load file");
       setIsLoading(false);
       return "";
