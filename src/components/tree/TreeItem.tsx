@@ -82,7 +82,7 @@ export function TreeItem({
               node={childNode}
               level={level + 1}
               activeFilePath={activeFilePath}
-              onToggle={() => onToggle(childNode.path)}
+              onToggle={() => onToggle()}
               onSelectFile={onSelectFile}
             />
           ))}

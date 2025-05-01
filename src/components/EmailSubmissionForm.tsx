@@ -28,10 +28,27 @@ export function EmailSubmissionForm() {
 
   const onSubmit = async (data: EmailFormValues) => {
     setIsSubmitting(true);
-    let emailSavedToDatabase = false;
     
     try {
-      // Store email in Supabase database first
+      // Check if the email already exists
+      const { data: existingEmails, error: checkError } = await supabase
+        .from('email_subscribers')
+        .select('email')
+        .eq('email', data.email);
+        
+      if (checkError) {
+        throw new Error(checkError.message);
+      }
+      
+      // If email already exists, just show success without trying to insert again
+      if (existingEmails && existingEmails.length > 0) {
+        toast.success("Thanks! We'll send you an invite soon.");
+        form.reset();
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Store email in Supabase database
       const { error: dbError } = await supabase
         .from('email_subscribers')
         .insert({ 
@@ -42,11 +59,10 @@ export function EmailSubmissionForm() {
       if (dbError) {
         throw new Error(dbError.message);
       }
-
-      emailSavedToDatabase = true;
+      
       console.log("Email successfully saved to database:", data.email);
 
-      // Then try to send the actual email via edge function
+      // Send the email via edge function
       try {
         const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/send-email`, {
           method: "POST",
@@ -71,20 +87,10 @@ export function EmailSubmissionForm() {
         if (!response.ok) {
           const errorData = await response.json();
           console.error("Email function error:", errorData);
-          throw new Error("Failed to send email");
-        }
-
-        // Update the status in the database to sent
-        const { error: updateError } = await supabase
-          .from('email_subscribers')
-          .update({ 
-            status: 'sent',
-            sent_at: new Date().toISOString() 
-          })
-          .eq('email', data.email);
-
-        if (updateError) {
-          console.error("Failed to update email status:", updateError);
+          // Don't throw here - we'll still show success since we've saved the email
+          console.log("Email sending failed, but will be processed from database records later");
+        } else {
+          console.log("Email sent successfully to:", data.email);
         }
       } catch (emailError) {
         // Log the email sending error but don't throw - we still want to show success
@@ -92,7 +98,6 @@ export function EmailSubmissionForm() {
         console.log("Email will be processed from database records later");
       }
 
-      // Always show success if the email was saved to the database
       toast.success("Thanks! We'll send you an invite soon.");
       form.reset();
     } catch (error) {
