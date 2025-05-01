@@ -47,15 +47,34 @@ serve(async (req) => {
       console.log(`[FTP-LIST] Successfully listed directory "${path}". Found ${list.length} entries`);
       
       // Format entries using the exact server-provided values
-      const formattedEntries = list.map(entry => ({
-        name: entry.name,
-        type: entry.isDirectory ? "directory" : "file",
-        size: entry.size || 0,
-        // Use the actual server-provided modification date
-        modified: entry.modifiedAt ? entry.modifiedAt.toISOString() : (entry.date ? entry.date.toISOString() : null),
-        isDirectory: entry.isDirectory,
-        path: `${path === "/" ? "" : path}/${entry.name}`.replace(/\/+/g, "/")
-      }));
+      const formattedEntries = list.map(entry => {
+        // Safely handle the modification date
+        let modifiedDate = null;
+        if (entry.modifiedAt) {
+          try {
+            modifiedDate = entry.modifiedAt.toISOString();
+          } catch (e) {
+            console.error("[FTP-LIST] Error converting modifiedAt to ISO string:", e);
+            modifiedDate = new Date().toISOString(); // Fallback
+          }
+        } else if (entry.date) {
+          try {
+            modifiedDate = entry.date.toISOString();
+          } catch (e) {
+            console.error("[FTP-LIST] Error converting date to ISO string:", e);
+            modifiedDate = new Date().toISOString(); // Fallback
+          }
+        }
+        
+        return {
+          name: entry.name,
+          type: entry.isDirectory ? "directory" : "file",
+          size: entry.size || 0,
+          modified: modifiedDate,
+          isDirectory: entry.isDirectory,
+          path: `${path === "/" ? "" : path}/${entry.name}`.replace(/\/+/g, "/")
+        };
+      });
       
       return new Response(
         JSON.stringify({ 

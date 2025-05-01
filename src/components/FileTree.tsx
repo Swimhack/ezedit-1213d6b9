@@ -37,7 +37,17 @@ export default function FileTree({ connection, onSelectFile, activeFilePath }: F
               {treeData.map((node) => (
                 <TreeItem
                   key={node.path}
-                  node={node}
+                  node={{
+                    name: node.name,
+                    path: node.path,
+                    isFolder: node.isFolder,
+                    isOpen: node.isOpen,
+                    isLoaded: node.isLoaded,
+                    children: node.children,
+                    size: node.size,
+                    modified: node.modified,
+                    isDirectory: node.isDirectory || node.isFolder // Ensure compatibility with both types
+                  }}
                   activeFilePath={activeFilePath}
                   onToggle={() => toggleDirectory(node.path)}
                   onSelectFile={onSelectFile}

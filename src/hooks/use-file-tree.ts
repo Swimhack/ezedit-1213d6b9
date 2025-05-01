@@ -4,6 +4,9 @@ import { toast } from 'sonner';
 import { useFileTreeCache } from '@/store/fileExplorerStore';
 import { supabase } from '@/integrations/supabase/client';
 
+// Importing TreeNode type from TreeItem component for consistency
+import { TreeNode } from '@/components/tree/TreeItem';
+
 interface FileItem {
   name: string;
   type: string;
@@ -11,18 +14,6 @@ interface FileItem {
   path?: string;
   size?: number;
   modified?: string | Date;
-}
-
-interface TreeNode {
-  name: string;
-  path: string;
-  isFolder: boolean;
-  isOpen: boolean;
-  isLoaded: boolean;
-  children?: TreeNode[];
-  size?: number;
-  modified?: string | Date | null;
-  isDirectory?: boolean; // Add this for compatibility
 }
 
 interface UseFileTreeProps {
@@ -93,10 +84,10 @@ export function useFileTree({ connection }: UseFileTreeProps) {
           isFolder: file.isDirectory,
           isOpen: false,
           isLoaded: false,
-          isDirectory: file.isDirectory, // Add this for compatibility
+          isDirectory: file.isDirectory,
           size: file.size,
-          modified: file.modified // Use the server-provided modification date
-        }));
+          modified: file.modified
+        })) as TreeNode[];
         
         setTreeData(nodes);
         setCurrentPath(safePath);

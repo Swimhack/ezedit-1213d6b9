@@ -1,82 +1,91 @@
 
-import { ChevronRight, ChevronDown, FolderIcon, FileIcon } from "lucide-react";
-import { toast } from "sonner";
+import { useState } from "react";
+import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface TreeNode {
+export interface TreeNode {
   name: string;
   path: string;
-  isDirectory: boolean;
-  children: TreeNode[];
-  isOpen?: boolean;
-  isLoaded?: boolean;
+  isFolder: boolean;
+  isOpen: boolean;
+  isLoaded: boolean;
+  children?: TreeNode[];
   size?: number;
-  modified?: string;
+  modified?: string | Date | null;
+  isDirectory?: boolean; // Make this optional for backward compatibility
 }
 
 interface TreeItemProps {
   node: TreeNode;
+  level?: number;
   activeFilePath?: string;
-  onToggle: (node: TreeNode) => void;
+  onToggle: () => void;
   onSelectFile: (path: string) => void;
 }
 
-export function TreeItem({ node, activeFilePath, onToggle, onSelectFile }: TreeItemProps) {
-  const handleClick = async () => {
-    try {
-      if (node.isDirectory) {
-        // Ensure path is valid before toggling
-        const nodePath = node.path || "/";
-        const nodeWithSafePath = {
-          ...node,
-          path: nodePath
-        };
-        await onToggle(nodeWithSafePath);
-      } else {
-        onSelectFile(node.path);
-      }
-    } catch (error: any) {
-      toast.error(`Failed to open ${node.isDirectory ? 'directory' : 'file'}: ${error.message}`);
+export function TreeItem({
+  node,
+  level = 0,
+  activeFilePath,
+  onToggle,
+  onSelectFile
+}: TreeItemProps) {
+  const isActive = activeFilePath === node.path;
+  const isDirectory = node.isFolder || node.isDirectory;
+  
+  const handleClick = () => {
+    if (isDirectory) {
+      onToggle();
+    } else {
+      onSelectFile(node.path);
     }
   };
-
+  
   return (
-    <li className="relative">
+    <li className="select-none">
       <div
-        className={`flex items-center py-1 px-2 hover:bg-eznavy rounded cursor-pointer ${
-          !node.isDirectory && node.path === activeFilePath ? "bg-eznavy-light" : ""
-        }`}
+        className={cn(
+          "flex items-center py-1 px-2 rounded-md text-sm",
+          isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted cursor-pointer",
+          level > 0 && "ml-4"
+        )}
         onClick={handleClick}
       >
-        {node.isDirectory ? (
-          <>
-            <span className="mr-1">
-              {node.isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </span>
-            <FolderIcon size={16} className="text-blue-400 mr-1" />
-          </>
-        ) : (
-          <>
-            <span className="mr-1 w-4"></span>
-            <FileIcon size={16} className="text-gray-400 mr-1" />
-          </>
-        )}
-        <span className="text-sm truncate">{node.name}</span>
-      </div>
-      {node.isDirectory && node.isOpen && node.children && (
-        <ul className="pl-4 space-y-1">
-          {node.children.length > 0 ? (
-            node.children.map((childNode) => (
-              <TreeItem
-                key={childNode.path}
-                node={childNode}
-                activeFilePath={activeFilePath}
-                onToggle={onToggle}
-                onSelectFile={onSelectFile}
-              />
-            ))
+        <div className="mr-1 w-4">
+          {isDirectory ? (
+            node.isOpen ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )
+          ) : null}
+        </div>
+        <div className="mr-2 w-4">
+          {isDirectory ? (
+            node.isOpen ? (
+              <FolderOpen className="h-4 w-4 text-yellow-400" />
+            ) : (
+              <Folder className="h-4 w-4 text-yellow-400" />
+            )
           ) : (
-            <li className="text-xs text-gray-400 py-1 px-2">No files</li>
+            <File className="h-4 w-4 text-blue-400" />
           )}
+        </div>
+        <span className="truncate">{node.name}</span>
+      </div>
+      
+      {isDirectory && node.isOpen && node.children && (
+        <ul className="pl-2">
+          {node.children.map((childNode) => (
+            <TreeItem
+              key={childNode.path}
+              node={childNode}
+              level={level + 1}
+              activeFilePath={activeFilePath}
+              onToggle={() => onToggle(childNode.path)}
+              onSelectFile={onSelectFile}
+            />
+          ))}
         </ul>
       )}
     </li>
