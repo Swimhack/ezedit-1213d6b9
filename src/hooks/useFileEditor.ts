@@ -52,7 +52,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
       setIsLoading(true);
       setEditorContentReady(false);
       
-      // Use the exact loading logic as specified
+      // Fetch file content with cache busting
       const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${Date.now()}`, {
         method: "GET",
         cache: "no-store",
@@ -218,7 +218,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
     setEditorContentReady(false);
     
     try {
-      // Use the exact loading logic as specified
+      // Use cache busting technique
       const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${Date.now()}`, {
         method: "GET",
         cache: "no-store",

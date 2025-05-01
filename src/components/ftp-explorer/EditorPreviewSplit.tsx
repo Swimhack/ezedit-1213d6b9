@@ -31,11 +31,11 @@ export function EditorPreviewSplit({
   const { src: previewSrc, isLoading: previewLoading } = useLivePreview(code, filePath || "");
   const previewIframeId = "preview-iframe-" + Math.random().toString(36).substring(2, 9);
   const [editorLoading, setEditorLoading] = useState(true);
-  const [editorContent, setEditorContent] = useState<string>(code || '');
+  const [editorContent, setEditorContent] = useState<string>('');
   const [contentReady, setContentReady] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
-  const [lastFilePath, setLastFilePath] = useState<string>(filePath);
-  const [lastForceRefresh, setLastForceRefresh] = useState<number>(forceRefresh);
+  const [lastFilePath, setLastFilePath] = useState<string>('');
+  const [lastForceRefresh, setLastForceRefresh] = useState<number>(0);
 
   // Effect to load file content when path changes or force refresh happens
   useEffect(() => {
@@ -57,7 +57,7 @@ export function EditorPreviewSplit({
     }
   }, [filePath, forceRefresh]);
 
-  // Effect to track when content is ready to display
+  // Effect to track when code prop changes
   useEffect(() => {
     if (typeof code === 'string') {
       console.log(`[EditorPreviewSplit] Code received, length: ${code?.length || 0}, filePath: ${filePath}`);
@@ -73,10 +73,13 @@ export function EditorPreviewSplit({
     }
   }, [code, filePath]);
 
-  // Implement the exact file loading logic specified
+  // Implement file loading with cache busting
   const loadFileContent = async (path: string) => {
+    if (!path) return;
+    
     setEditorLoading(true);
     setIsEditorReady(false);
+    setContentReady(false);
     
     try {
       console.log(`[EditorPreviewSplit] Loading file content: ${path}`);
@@ -101,20 +104,7 @@ export function EditorPreviewSplit({
       setIsEditorReady(true);
       onCodeChange(content);
       
-      // Force editor update if WYSIWYG mode
-      if (editorMode === 'wysiwyg' && editorRef.current) {
-        try {
-          console.log('[EditorPreviewSplit] Applying content to WYSIWYG editor');
-          setTimeout(() => {
-            if (editorRef.current && editorRef.current.setContent) {
-              editorRef.current.setContent(content);
-            }
-          }, 100);
-        } catch (err) {
-          console.error('[EditorPreviewSplit] Error updating editor content:', err);
-        }
-      }
-      
+      // Force preview update
       setPreviewKey(prev => prev + 1);
     } catch (err) {
       console.error(`[EditorPreviewSplit] Error loading file: ${path}`, err);

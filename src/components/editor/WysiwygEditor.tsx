@@ -10,15 +10,18 @@ interface WysiwygEditorProps {
 }
 
 export function WysiwygEditor({ content, onChange, previewSelector, editorRef }: WysiwygEditorProps) {
-  const [editorContent, setEditorContent] = useState<string>(content || '');
-  const [isContentReady, setIsContentReady] = useState<boolean>(false);
+  const [editorContent, setEditorContent] = useState<string>('');
+  const [isEditorReady, setIsEditorReady] = useState<boolean>(false);
   
   // Update internal state when content prop changes
   useEffect(() => {
-    if (content !== undefined) {
+    if (content !== undefined && typeof content === 'string') {
       console.log('[WysiwygEditor] Content prop updated, length:', content?.length || 0);
       setEditorContent(content);
-      setIsContentReady(true);
+      setIsEditorReady(true);
+    } else {
+      console.log('[WysiwygEditor] Content prop is invalid:', content);
+      setIsEditorReady(false);
     }
   }, [content]);
   
@@ -29,7 +32,7 @@ export function WysiwygEditor({ content, onChange, previewSelector, editorRef }:
     onChange(newContent);
   }, [onChange]);
 
-  if (!isContentReady || typeof editorContent !== 'string') {
+  if (!isEditorReady || !editorContent || typeof editorContent !== 'string') {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>

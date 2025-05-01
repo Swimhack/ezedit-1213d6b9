@@ -17,17 +17,51 @@ export function WysiwygWrapper({
   editorRef,
   previewIframeId
 }: WysiwygWrapperProps) {
-  const [editorContent, setEditorContent] = useState<string>(code || '');
+  const [editorContent, setEditorContent] = useState<string>('');
   const [isContentReady, setIsContentReady] = useState<boolean>(false);
 
-  // Update internal state when code prop changes
+  // Fetch and load the file content when path changes
   useEffect(() => {
-    if (code !== undefined) {
+    if (filePath) {
+      loadFileContent(filePath);
+    }
+  }, [filePath]);
+
+  // Update internal state when code prop changes (if it's different from what we already have)
+  useEffect(() => {
+    if (code !== undefined && typeof code === 'string' && code !== editorContent) {
       console.log('[WysiwygWrapper] Code prop updated, length:', code?.length || 0);
       setEditorContent(code);
       setIsContentReady(true);
     }
   }, [code]);
+
+  const loadFileContent = async (path: string) => {
+    console.log(`[WysiwygWrapper] Loading file content: ${path}`);
+    setIsContentReady(false);
+    
+    try {
+      const res = await fetch(`/api/readFile?path=${encodeURIComponent(path)}&t=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store",
+        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
+      }
+      
+      const content = await res.text();
+      console.log(`[WysiwygWrapper] File content loaded, length: ${content.length}`);
+      
+      setEditorContent(content);
+      setIsContentReady(true);
+      onCodeChange(content); // Update parent component
+    } catch (err) {
+      console.error(`[WysiwygWrapper] Error loading file: ${path}`, err);
+      setIsContentReady(false);
+    }
+  };
 
   const handleEditorChange = useCallback((newContent: string) => {
     console.log('[WysiwygWrapper] TinyMCE content changed, length:', newContent?.length || 0);
@@ -35,7 +69,7 @@ export function WysiwygWrapper({
     onCodeChange(newContent);
   }, [onCodeChange]);
 
-  if (!isContentReady || typeof editorContent !== 'string') {
+  if (!isContentReady || !editorContent || typeof editorContent !== 'string') {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>

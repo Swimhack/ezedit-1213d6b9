@@ -22,63 +22,17 @@ export function TinyMCEEditor({
   const editorRef = externalEditorRef || internalEditorRef;
   const { theme } = useTheme();
   const [editorInitialized, setEditorInitialized] = useState<boolean>(false);
-  const [isEditorReady, setIsEditorReady] = useState<boolean>(false);
-  const contentRef = useRef<string>(content || "");
-
+  
   // Use the provided API key directly
   const apiKey = "q8smw06bbgh2t6wcki98o8ja4l5bco8g7k6tgfapjboh81tv";
   
-  // Update contentRef when content prop changes
-  useEffect(() => {
-    contentRef.current = content || "";
-    
-    // If content is available and editor is initialized, set editor content
-    if (editorRef.current && editorInitialized && content !== undefined) {
-      try {
-        console.log('[TinyMCE] External content updated, length:', content?.length || 0);
-        
-        // Safely check if the editor is ready
-        if (editorRef.current.setContent) {
-          console.log('[TinyMCE] Applying new content to editor');
-          editorRef.current.setContent(content);
-        } else if (editorRef.current.editor && typeof editorRef.current.editor.setContent === 'function') {
-          console.log('[TinyMCE] Applying new content to editor.editor');
-          editorRef.current.editor.setContent(content);
-        } else {
-          console.warn('[TinyMCE] Editor reference exists but setContent method not found');
-        }
-      } catch (err) {
-        console.error('[TinyMCE] Error accessing editor methods:', err);
-      }
-    }
-  }, [content, editorRef, editorInitialized]);
-
-  // Effect to update preview iframe if selector is provided
-  useEffect(() => {
-    if (previewSelector && content) {
-      const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
-      if (previewFrame) {
-        try {
-          previewFrame.srcdoc = content;
-        } catch (err) {
-          console.error('[TinyMCE] Error updating preview iframe:', err);
-        }
-      }
-    }
-  }, [content, previewSelector]);
-
-  // Determine if we have valid content to show
-  useEffect(() => {
-    if (typeof content === 'string') {
-      setIsEditorReady(true);
-    }
-  }, [content]);
-
-  if (!isEditorReady || typeof content !== 'string') {
+  // Check if content is valid
+  if (!content || typeof content !== 'string') {
+    console.error('[TinyMCE] Invalid content provided:', content);
     return (
       <div className="flex items-center justify-center h-full">
         <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
-        <span>Loading editor content...</span>
+        <span>Waiting for valid content...</span>
       </div>
     );
   }
@@ -91,19 +45,16 @@ export function TinyMCEEditor({
         setEditorInitialized(true);
         console.log('[TinyMCE] Editor initialized');
         
-        // Ensure initial content is set correctly after editor is fully initialized
-        if (contentRef.current) {
-          setTimeout(() => {
-            try {
-              console.log('[TinyMCE] Setting initial content, length:', contentRef.current.length);
-              editor.setContent(contentRef.current);
-            } catch (err) {
-              console.error('[TinyMCE] Error setting initial content:', err);
-            }
-          }, 100);
-        }
+        // Set content right after initialization
+        setTimeout(() => {
+          try {
+            console.log('[TinyMCE] Setting initial content, length:', content.length);
+            editor.setContent(content);
+          } catch (err) {
+            console.error('[TinyMCE] Error setting initial content:', err);
+          }
+        }, 100);
       }}
-      initialValue={content} 
       value={content}
       onEditorChange={(newContent, editor) => {
         console.log('[TinyMCE] Content changed via onEditorChange, new length:', newContent.length);
