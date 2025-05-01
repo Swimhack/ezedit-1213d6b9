@@ -56,7 +56,7 @@ export function useFileTree({ connection }: UseFileTreeProps) {
       console.log("Directory listing response:", data);
       
       if (data.success) {
-        // Create tree nodes from files
+        // Create tree nodes from files using the exact metadata from server
         const nodes = data.files.map((file: FileItem) => ({
           name: file.name,
           path: `${safePath === "/" ? "" : safePath}/${file.name}${file.isDirectory ? "/" : ""}`.replace(/\/+/g, "/"),
@@ -65,7 +65,7 @@ export function useFileTree({ connection }: UseFileTreeProps) {
           isOpen: false,
           isLoaded: false,
           size: file.size,
-          modified: file.modified
+          modified: file.modified // Use the server-provided modification date
         }));
         
         setTreeData(nodes);

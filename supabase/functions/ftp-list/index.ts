@@ -44,12 +44,13 @@ serve(async (req) => {
       const list = await client.list(path);
       console.log(`[FTP-LIST] Successfully listed directory "${path}". Found ${list.length} entries`);
       
-      // Format entries to match our expected FtpEntry type
+      // Format entries using the exact server-provided values
       const formattedEntries = list.map(entry => ({
         name: entry.name,
         type: entry.isDirectory ? "directory" : "file",
         size: entry.size || 0,
-        modified: entry.modifiedAt ? entry.modifiedAt.toISOString() : new Date().toISOString(),
+        // Use the actual server-provided modification date
+        modified: entry.modifiedAt ? entry.modifiedAt.toISOString() : (entry.date ? entry.date.toISOString() : null),
         isDirectory: entry.isDirectory
       }));
       

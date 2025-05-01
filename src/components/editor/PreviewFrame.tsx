@@ -26,12 +26,13 @@ export function PreviewFrame({
     if (iframe) {
       try {
         console.log('[PreviewFrame] Updating iframe with new content');
+        // Directly use the code as srcdoc - no manipulation needed
         iframe.srcdoc = code;
       } catch (err) {
         console.error('[PreviewFrame] Error updating iframe:', err);
       }
     }
-  }, [code, contentReady, previewKey]);
+  }, [code, contentReady, previewKey, previewIframeId, isLoading]);
 
   if (isLoading) {
     return (
@@ -51,7 +52,7 @@ export function PreviewFrame({
     );
   }
 
-  // For HTML content, directly use the code as srcdoc
+  // For HTML content, directly use the code as srcdoc without modifications
   return (
     <iframe
       id={previewIframeId}

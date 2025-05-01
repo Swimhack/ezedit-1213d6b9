@@ -51,23 +51,22 @@ export function FTPFileList({
 
   const formatDate = (dateValue: any) => {
     try {
-      // Check if the date is already a Date object
+      // Handle different date formats that might come from the server
       if (dateValue instanceof Date) {
         return format(dateValue, "MMM d, yyyy HH:mm");
       }
       
-      // If it's a number (timestamp), convert to Date
-      if (typeof dateValue === 'number') {
-        return format(new Date(dateValue), "MMM d, yyyy HH:mm");
-      }
-      
       // If it's a string that can be parsed as a date
       if (typeof dateValue === 'string') {
-        // Try to create a date from string
         const date = new Date(dateValue);
         if (!isNaN(date.getTime())) {
           return format(date, "MMM d, yyyy HH:mm");
         }
+      }
+      
+      // If it's a number (timestamp)
+      if (typeof dateValue === 'number') {
+        return format(new Date(dateValue), "MMM d, yyyy HH:mm");
       }
       
       return "Unknown date";

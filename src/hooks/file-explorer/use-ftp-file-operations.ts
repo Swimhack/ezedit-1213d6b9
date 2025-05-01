@@ -21,6 +21,7 @@ export function useFtpFileOperations() {
       const result = await listDir(connectionId, normalizedPath);
       
       if (result && result.data && result.data.files) {
+        // Pass through the exact server-provided file metadata without modification
         return {
           files: result.data.files,
           path: normalizedPath

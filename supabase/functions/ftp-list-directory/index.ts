@@ -50,13 +50,13 @@ serve(async (req) => {
       
       console.log(`[FTP-LIST-DIRECTORY] Successfully listed directory "${safePath}". Found ${list.length} entries:`);
       for (const item of list.slice(0, 5)) {  // Log just the first 5 for clarity
-        console.log(`- ${item.isDirectory ? 'Dir' : 'File'}: ${item.name}`);
+        console.log(`- ${item.isDirectory ? 'Dir' : 'File'}: ${item.name} (Modified: ${item.date})`);
       }
       
       const files = list.map(item => ({
         name: item.name,
         size: item.size,
-        // Ensure we format the date as an ISO string for consistent parsing
+        // Correctly format the date from the server response
         modified: item.date instanceof Date ? item.date.toISOString() : new Date().toISOString(),
         type: item.isDirectory ? "directory" : "file",
         isDirectory: item.isDirectory
