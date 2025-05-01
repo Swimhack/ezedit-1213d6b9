@@ -9,13 +9,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function ThemeToggle() {
+export function ThemeToggle({ className = "" }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 px-0">
+        <Button variant="ghost" size="icon" className={`h-8 w-8 px-0 ${className}`}>
           {theme === 'dark' ? (
             <Moon className="h-4 w-4" />
           ) : theme === 'light' ? (

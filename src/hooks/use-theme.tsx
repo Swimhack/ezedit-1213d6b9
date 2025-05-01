@@ -40,20 +40,20 @@ export function useTheme() {
     // Determine actual theme based on preference
     if (currentTheme === 'system') {
       const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setResolvedTheme(systemPrefersDark ? 'dark' : 'light');
+      const newTheme = systemPrefersDark ? 'dark' : 'light';
+      setResolvedTheme(newTheme);
       
       // Add the appropriate class
-      root.classList.add(systemPrefersDark ? 'dark' : 'light');
+      root.classList.add(newTheme);
+      root.setAttribute('data-theme', newTheme); // Set attribute consistently
     } else {
       const newTheme = currentTheme as 'light' | 'dark';
       setResolvedTheme(newTheme);
       
       // Add the theme class
       root.classList.add(newTheme);
+      root.setAttribute('data-theme', newTheme); // Set attribute consistently
     }
-    
-    // Set a data attribute for components that might use it
-    root.setAttribute('data-theme', resolvedTheme);
   };
 
   return {
