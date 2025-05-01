@@ -2,7 +2,6 @@
 // Supabase Edge (Deno w/ Node polyfills)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Client } from "npm:basic-ftp@5.0.3";
-import { PassThrough, Writable } from "node:stream";   // Node stream polyfilled in Deno
 import { getFtpCreds } from "../_shared/creds.ts";
 
 const corsHeaders = {
@@ -10,6 +9,43 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization,x-client-info,apikey,content-type',
   'Content-Type': 'application/json'
 };
+
+// Helper to safely format a date, handling various formats
+function safeFormatDate(dateInput: any): string | null {
+  if (!dateInput) return null;
+  
+  try {
+    // Handle string dates
+    if (typeof dateInput === 'string') {
+      const date = new Date(dateInput);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+      return dateInput;
+    }
+    
+    // Handle Date objects
+    if (dateInput instanceof Date) {
+      return dateInput.toISOString();
+    }
+    
+    // Handle timestamps
+    if (typeof dateInput === 'number') {
+      return new Date(dateInput).toISOString();
+    }
+    
+    // If it's an object with a toString method
+    if (dateInput && typeof dateInput.toString === 'function') {
+      return dateInput.toString();
+    }
+    
+    return null;
+  } catch (e) {
+    console.error("[FTP-LIST] Date formatting error:", e, "Value:", dateInput);
+    // Return current date as fallback
+    return new Date().toISOString();
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -43,27 +79,35 @@ serve(async (req) => {
       
       console.log(`[FTP-LIST] Connected to FTP server. Listing path: "${path}"`);
       
-      const list = await client.list(path);
-      console.log(`[FTP-LIST] Successfully listed directory "${path}". Found ${list.length} entries`);
+      let list = [];
+      let usedMLSD = false;
+      
+      // Try MLSD first (more standardized format with better timestamps)
+      try {
+        list = await client.listFeatures(path);
+        usedMLSD = true;
+        console.log(`[FTP-LIST] Successfully used MLSD to list directory "${path}". Found ${list.length} entries`);
+      } catch (mlsdError) {
+        // Fallback to standard LIST command
+        console.log(`[FTP-LIST] MLSD failed, falling back to LIST: ${mlsdError.message}`);
+        list = await client.list(path);
+        console.log(`[FTP-LIST] Successfully listed directory "${path}" with LIST. Found ${list.length} entries`);
+      }
       
       // Format entries using the exact server-provided values
       const formattedEntries = list.map(entry => {
-        // Safely handle the modification date
+        // Handle modification date safely
         let modifiedDate = null;
-        if (entry.modifiedAt) {
-          try {
-            modifiedDate = entry.modifiedAt.toISOString();
-          } catch (e) {
-            console.error("[FTP-LIST] Error converting modifiedAt to ISO string:", e);
-            modifiedDate = new Date().toISOString(); // Fallback
-          }
+        
+        if (usedMLSD && entry.rawModifiedAt) {
+          // MLSD provides more accurate timestamps
+          modifiedDate = safeFormatDate(entry.rawModifiedAt);
+        } else if (entry.modifiedAt) {
+          modifiedDate = safeFormatDate(entry.modifiedAt);
         } else if (entry.date) {
-          try {
-            modifiedDate = entry.date.toISOString();
-          } catch (e) {
-            console.error("[FTP-LIST] Error converting date to ISO string:", e);
-            modifiedDate = new Date().toISOString(); // Fallback
-          }
+          modifiedDate = safeFormatDate(entry.date);
+        } else {
+          modifiedDate = safeFormatDate(new Date());
         }
         
         return {
@@ -79,7 +123,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          files: formattedEntries 
+          files: formattedEntries,
+          source: usedMLSD ? "MLSD" : "LIST"
         }),
         { headers: corsHeaders }
       );

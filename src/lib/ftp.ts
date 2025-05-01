@@ -115,6 +115,28 @@ export async function testFtpConnection(host: string, port: number, user: string
   });
 }
 
+export async function refreshFilesFromServer(id: string, path = "/") {
+  console.log(`[ftp.refreshFilesFromServer] Refreshing files for connection ${id}, path: ${path}`);
+  
+  try {
+    const response = await fetch('/api/files/refreshFromServer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ connectionId: id, path }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Failed to refresh files: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (err: any) {
+    console.error(`[ftp.refreshFilesFromServer] Exception:`, err);
+    throw err;
+  }
+}
+
 // Re-export the path utils
 export { normalizePath, joinPath } from "@/utils/path";
 

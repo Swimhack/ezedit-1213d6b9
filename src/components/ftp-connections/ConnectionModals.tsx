@@ -1,11 +1,11 @@
-
-import FTPConnectionModal from "@/components/FTPConnectionModal";
+import { useState } from "react";
+import { FTPConnectionModal } from "@/components/FTPConnectionModal";
 import { FileBrowserModal } from "@/components/ftp-explorer/FileBrowserModal";
 import { FileEditorModal } from "@/components/ftp-explorer/FileEditorModal";
 import { AIAssistantModal } from "@/components/ftp-explorer/AIAssistantModal";
-import { Button } from "@/components/ui/button";
-import type { FtpConnection } from "@/hooks/use-ftp-connections";
+import { FtpConnection } from "@/hooks/use-ftp-connections";
 
+// Keep the same interface, just showing relevant parts
 interface ConnectionModalsProps {
   isModalOpen: boolean;
   editingConnection: FtpConnection | null;
@@ -22,11 +22,11 @@ interface ConnectionModalsProps {
   isSaving: boolean;
   onCloseModal: () => void;
   onSaveConnection: () => void;
-  onLoadDirectory: (path: string) => void;
-  onSelectFile: (file: { key: string; isDir: boolean }) => Promise<void>;
+  onLoadDirectory: (connectionId: string, path: string) => Promise<any>;
+  onSelectFile: (file: any) => void;
   onUpdateContent: (content: string) => void;
-  onSaveContent: () => void;
-  onApplyAIResponse: (text: string) => void;
+  onSaveContent: () => Promise<void>;
+  onApplyAIResponse: (content: string) => void;
   setShowFileBrowser: (show: boolean) => void;
   setShowFileEditor: (show: boolean) => void;
   setShowAIAssistant: (show: boolean) => void;
@@ -55,76 +55,73 @@ export function ConnectionModals({
   onApplyAIResponse,
   setShowFileBrowser,
   setShowFileEditor,
-  setShowAIAssistant,
+  setShowAIAssistant
 }: ConnectionModalsProps) {
+  const handleSelectFile = (file: { key: string; isDir: boolean }) => {
+    if (file.isDir) {
+      return; // Don't do anything for directories
+    }
+    
+    onSelectFile(file);
+    setShowFileBrowser(false);
+    setShowFileEditor(true);
+  };
+
   return (
     <>
-      <FTPConnectionModal 
-        isOpen={isModalOpen} 
-        onClose={onCloseModal} 
+      {/* FTP Connection Modal */}
+      <FTPConnectionModal
+        isOpen={isModalOpen}
+        editingConnection={editingConnection}
+        onClose={onCloseModal}
         onSave={onSaveConnection}
-        editConnection={editingConnection}
       />
 
-      {activeConnection && (
-        <>
-          <FileBrowserModal
-            isOpen={showFileBrowser}
-            onClose={() => setShowFileBrowser(false)}
-            currentPath={currentPath}
-            files={files}
-            isLoading={isLoading}
-            serverName={activeConnection.server_name}
-            onNavigate={onLoadDirectory}
-            onSelectFile={onSelectFile}
-          />
+      {/* File Browser Modal */}
+      <FileBrowserModal
+        isOpen={showFileBrowser}
+        connection={activeConnection}
+        onClose={() => setShowFileBrowser(false)}
+        onSelectFile={handleSelectFile}
+        title="File Browser"
+      />
 
-          {showFileEditor && (
-            <FileEditorModal
-              isOpen={showFileEditor}
-              onClose={() => setShowFileEditor(false)}
-              connectionId={activeConnection.id}
-              filePath={currentFilePath}
-            />
-          )}
+      {/* File Editor Modal */}
+      <FileEditorModal
+        isOpen={showFileEditor}
+        filePath={currentFilePath}
+        content={fileContent}
+        onClose={() => {
+          if (hasUnsavedChanges) {
+            if (window.confirm("You have unsaved changes. Discard changes?")) {
+              setShowFileEditor(false);
+            }
+          } else {
+            setShowFileEditor(false);
+          }
+        }}
+        onContentChange={onUpdateContent}
+        onSave={onSaveContent}
+        hasUnsavedChanges={hasUnsavedChanges}
+        isSaving={isSaving}
+        onOpenAIAssistant={() => {
+          setShowFileEditor(false);
+          setShowAIAssistant(true);
+        }}
+      />
 
-          <AIAssistantModal
-            isOpen={showAIAssistant}
-            onClose={() => setShowAIAssistant(false)}
-            filePath={currentFilePath}
-            fileContent={fileContent}
-            onApplyResponse={onApplyAIResponse}
-          />
-
-          {(showFileEditor || showFileBrowser || showAIAssistant) && (
-            <div className="fixed bottom-4 right-4 space-x-2">
-              <Button
-                onClick={() => setShowFileBrowser(!showFileBrowser)}
-                variant={showFileBrowser ? "default" : "outline"}
-                className={showFileBrowser ? "bg-ezblue hover:bg-ezblue/90" : ""}
-              >
-                Files
-              </Button>
-              <Button
-                onClick={() => setShowFileEditor(!showFileEditor)}
-                variant={showFileEditor ? "default" : "outline"}
-                className={showFileEditor ? "bg-ezblue hover:bg-ezblue/90" : ""}
-                disabled={!currentFilePath}
-              >
-                Editor
-              </Button>
-              <Button
-                onClick={() => setShowAIAssistant(!showAIAssistant)}
-                variant={showAIAssistant ? "default" : "outline"}
-                className={showAIAssistant ? "bg-ezblue hover:bg-ezblue/90" : ""}
-                disabled={!currentFilePath}
-              >
-                AI
-              </Button>
-            </div>
-          )}
-        </>
-      )}
+      {/* AI Assistant Modal */}
+      <AIAssistantModal
+        isOpen={showAIAssistant}
+        filePath={currentFilePath}
+        content={fileContent}
+        onClose={() => setShowAIAssistant(false)}
+        onApplyResponse={onApplyAIResponse}
+        onBack={() => {
+          setShowAIAssistant(false);
+          setShowFileEditor(true);
+        }}
+      />
     </>
   );
 }

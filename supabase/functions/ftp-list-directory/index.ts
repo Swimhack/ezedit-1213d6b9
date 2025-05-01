@@ -8,6 +8,43 @@ const corsHeaders = {
   'Content-Type': 'application/json'
 };
 
+// Helper to safely format a date, handling various formats
+function safeFormatDate(dateInput: any): string | null {
+  if (!dateInput) return null;
+  
+  try {
+    // Handle string dates
+    if (typeof dateInput === 'string') {
+      const date = new Date(dateInput);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+      return dateInput;
+    }
+    
+    // Handle Date objects
+    if (dateInput instanceof Date) {
+      return dateInput.toISOString();
+    }
+    
+    // Handle timestamps
+    if (typeof dateInput === 'number') {
+      return new Date(dateInput).toISOString();
+    }
+    
+    // If it's an object with a toString method
+    if (dateInput && typeof dateInput.toString === 'function') {
+      return dateInput.toString();
+    }
+    
+    return null;
+  } catch (e) {
+    console.error("[FTP-LIST-DIRECTORY] Date formatting error:", e, "Value:", dateInput);
+    // Return current date as fallback
+    return new Date().toISOString();
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -46,28 +83,53 @@ serve(async (req) => {
 
       console.log(`[FTP-LIST-DIRECTORY] Connected to FTP server. Listing path: "${safePath}"`);
       
-      const list = await client.list(safePath);
+      let list = [];
+      let usedMLSD = false;
       
-      console.log(`[FTP-LIST-DIRECTORY] Successfully listed directory "${safePath}". Found ${list.length} entries:`);
-      for (const item of list.slice(0, 5)) {  // Log just the first 5 for clarity
-        console.log(`- ${item.isDirectory ? 'Dir' : 'File'}: ${item.name} (Modified: ${item.date})`);
+      // Try MLSD first (more standardized format with better timestamps)
+      try {
+        list = await client.listFeatures(safePath);
+        usedMLSD = true;
+        console.log(`[FTP-LIST-DIRECTORY] Successfully used MLSD for directory "${safePath}". Found ${list.length} entries`);
+      } catch (mlsdError) {
+        // Fallback to standard LIST command
+        console.log(`[FTP-LIST-DIRECTORY] MLSD failed, falling back to LIST: ${mlsdError.message}`);
+        list = await client.list(safePath);
+        console.log(`[FTP-LIST-DIRECTORY] Successfully listed directory "${safePath}" with LIST. Found ${list.length} entries`);
       }
       
-      const files = list.map(item => ({
-        name: item.name,
-        size: item.size,
-        // Correctly format the date from the server response
-        modified: item.date instanceof Date ? item.date.toISOString() : new Date().toISOString(),
-        type: item.isDirectory ? "directory" : "file",
-        isDirectory: item.isDirectory,
-        path: `${safePath === "/" ? "" : safePath}/${item.name}`.replace(/\/+/g, "/")
-      }));
+      // Format entries with proper date handling
+      const files = list.map(item => {
+        // Handle modification date safely
+        let modifiedDate = null;
+        
+        if (usedMLSD && item.rawModifiedAt) {
+          // MLSD provides more accurate timestamps
+          modifiedDate = safeFormatDate(item.rawModifiedAt);
+        } else if (item.modifiedAt) {
+          modifiedDate = safeFormatDate(item.modifiedAt);
+        } else if (item.date) {
+          modifiedDate = safeFormatDate(item.date);
+        } else {
+          modifiedDate = safeFormatDate(new Date());
+        }
+        
+        return {
+          name: item.name,
+          size: item.size,
+          modified: modifiedDate,
+          type: item.isDirectory ? "directory" : "file",
+          isDirectory: item.isDirectory,
+          path: `${safePath === "/" ? "" : safePath}/${item.name}`.replace(/\/+/g, "/")
+        };
+      });
 
       return new Response(
         JSON.stringify({ 
           success: true, 
           files,
-          path: safePath
+          path: safePath,
+          source: usedMLSD ? "MLSD" : "LIST"
         }),
         { headers: corsHeaders }
       );
