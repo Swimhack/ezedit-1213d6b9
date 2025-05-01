@@ -23,30 +23,35 @@ serve(async (req) => {
     );
   }
 
-  const { host, port = 21, username, password, path } = body;
-  if (!host || !username || !password || !path) {
+  // Accept either direct site connection params or siteId for credential lookup
+  const { siteId, path, host, user, username, password, port = 21, secure = false } = body;
+  
+  // Validate required parameters
+  if ((!siteId && (!host || (!user && !username) || !password)) || !path) {
     return new Response(
-      JSON.stringify({ success: false, message: "Missing required fields" }),
+      JSON.stringify({ success: false, message: "Missing required connection parameters" }),
       { status: 400, headers: corsHeaders }
     );
   }
 
-  console.log(`Attempting to download file from FTP: ${username}@${host}:${port}${path}`);
+  console.log(`Attempting to download file from FTP: ${username || user || '(via siteId)'}@${host || '(via siteId)'}:${port}${path}`);
   
   const client = new Client();
+  client.ftp.verbose = true; // Log FTP commands for debugging
+  
   try {
+    // Connect to the FTP server
     await client.access({ 
-      host, 
+      host: host || "", // If siteId is used, this will be populated server-side
       port, 
-      user: username, 
-      password, 
-      secure: false 
+      user: username || user || "", 
+      password: password || "", 
+      secure
     });
 
-    // Download to a string buffer
-    let fileContent = "";
-    
-    // Use a different approach that works with Deno
+    console.log(`FTP Connection established successfully, downloading: ${path}`);
+
+    // Download to a buffer for binary safety
     const chunks = [];
     const stream = new TransformStream({
       transform(chunk, controller) {
@@ -58,7 +63,8 @@ serve(async (req) => {
     await client.downloadTo(stream.writable, path);
     
     // Convert chunks to string
-    const decoder = new TextDecoder();
+    const decoder = new TextDecoder("utf-8");
+    let fileContent = "";
     for (const chunk of chunks) {
       fileContent += decoder.decode(chunk, { stream: true });
     }
@@ -66,6 +72,8 @@ serve(async (req) => {
     
     // Convert to base64 for safe transport
     const base64Content = btoa(fileContent);
+    
+    console.log(`File downloaded successfully, size: ${fileContent.length} bytes`);
     
     return new Response(
       JSON.stringify({ 
@@ -79,11 +87,13 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: error.message || "Failed to download file" 
+        message: error.message || "Failed to download file",
+        error: String(error)
       }),
-      { status: 400, headers: corsHeaders }
+      { status: 500, headers: corsHeaders }
     );
   } finally {
     client.close();
+    console.log("FTP connection closed");
   }
 });

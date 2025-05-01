@@ -7,7 +7,59 @@ const sleep = (ms: number): Promise<void> => {
 };
 
 /**
- * API endpoint for reading file content with cache busting and retry mechanism
+ * API endpoint for reading file content with robust FTP connection
+ */
+export async function POST(request: Request) {
+  try {
+    // Parse request body for direct connection details
+    const { path, site } = await request.json();
+    
+    if (!path) {
+      return new Response("Path parameter is required", { status: 400 });
+    }
+    
+    console.log(`[API readFile POST] Reading file: ${path} via direct connection`);
+    
+    // Call the Edge Function with direct connection details
+    const response = await supabase.functions.invoke("ftp-download-file", {
+      body: { 
+        host: site.host,
+        username: site.user,
+        password: site.password,
+        port: site.port || 21,
+        path: path,
+        secure: site.secure || false
+      }
+    });
+    
+    if (response.error) {
+      console.error("[API readFile POST] Error from Edge Function:", response.error);
+      return new Response(response.error.message, { status: 500 });
+    }
+    
+    if (!response.data || !response.data.content) {
+      return new Response("File not found or empty", { status: 404 });
+    }
+    
+    // The content comes base64 encoded from our edge function for safe transport
+    const decodedContent = atob(response.data.content);
+    
+    return new Response(decodedContent, {
+      status: 200,
+      headers: { 
+        "Content-Type": "text/plain",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache"
+      }
+    });
+  } catch (err: any) {
+    console.error("[API readFile POST] Exception:", err);
+    return new Response(err.message || "Unknown error", { status: 500 });
+  }
+}
+
+/**
+ * API endpoint for reading file content with cache busting and retry mechanism (legacy GET method)
  */
 export async function GET(request: Request) {
   try {
@@ -28,7 +80,7 @@ export async function GET(request: Request) {
       return new Response("Invalid path format, connection ID is required", { status: 400 });
     }
     
-    console.log(`[API readFile] Reading file: ${filePath} from connection ${connectionId} (cache timestamp: ${timestamp || 'none'})`);
+    console.log(`[API readFile GET] Reading file: ${filePath} from connection ${connectionId} (cache timestamp: ${timestamp || 'none'})`);
     
     // First attempt to call the Supabase Edge Function
     let response = await supabase.functions.invoke("ftp-download-file", {
@@ -41,11 +93,11 @@ export async function GET(request: Request) {
     
     // Check if the first attempt failed or returned invalid data
     if (response.error || !response.data || !response.data.content) {
-      console.warn(`[API readFile] First attempt failed or empty content, waiting 2 seconds before retry...`);
+      console.warn(`[API readFile GET] First attempt failed or empty content, waiting 2 seconds before retry...`);
       await sleep(2000); // 2-second delay before retry
       
       // Second attempt after delay
-      console.log(`[API readFile] Retrying file read: ${filePath} from connection ${connectionId}`);
+      console.log(`[API readFile GET] Retrying file read: ${filePath} from connection ${connectionId}`);
       response = await supabase.functions.invoke("ftp-download-file", {
         body: { 
           siteId: connectionId, 
@@ -56,7 +108,7 @@ export async function GET(request: Request) {
     }
     
     if (response.error) {
-      console.error("[API readFile] Error from Edge Function after retry:", response.error);
+      console.error("[API readFile GET] Error from Edge Function after retry:", response.error);
       return new Response(response.error.message, { 
         status: 500,
         headers: {
@@ -88,7 +140,7 @@ export async function GET(request: Request) {
       }
     });
   } catch (err: any) {
-    console.error("[API readFile] Exception:", err);
+    console.error("[API readFile GET] Exception:", err);
     return new Response(err.message || "Unknown error", { 
       status: 500,
       headers: {

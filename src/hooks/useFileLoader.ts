@@ -15,6 +15,73 @@ export function useFileLoader() {
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   /**
+   * Load file content from FTP/SFTP connection with direct connection details
+   */
+  const loadFileWithSiteDetails = async (site: {
+    host: string;
+    user: string;
+    password: string;
+    port?: number;
+    secure?: boolean;
+  }, filePath: string): Promise<string> => {
+    if (!site.host || !site.user || !site.password || !filePath) {
+      const msg = "Missing connection details or file path";
+      setError(msg);
+      toast.error(msg);
+      return "";
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log(`[useFileLoader] Loading file: ${filePath} with direct connection to ${site.host}`);
+
+      const response = await fetch(`/api/readFile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+        },
+        body: JSON.stringify({
+          site: {
+            host: site.host,
+            user: site.user,
+            password: site.password,
+            port: site.port || 21,
+            secure: site.secure || false
+          },
+          path: filePath
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error ${response.status}: ${errorText}`);
+      }
+
+      const fileContent = await response.text();
+
+      if (!fileContent || fileContent.trim().length === 0) {
+        throw new Error("Empty file content received");
+      }
+
+      console.log(`[useFileLoader] File loaded successfully with direct connection, size: ${fileContent.length} bytes`);
+      setError(null);
+      setIsLoading(false);
+      return fileContent;
+
+    } catch (error: any) {
+      console.error("[useFileLoader] Direct connection error:", error);
+      const errorMessage = error.message || "Failed to load file";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      setIsLoading(false);
+      return "";
+    }
+  };
+
+  /**
    * Load file content from FTP/SFTP connection with cache busting and graceful retry
    */
   const loadFile = async (connectionId: string, filePath: string): Promise<string> => {
@@ -92,6 +159,7 @@ export function useFileLoader() {
     isLoading,
     error,
     loadFile,
+    loadFileWithSiteDetails,
     setError,
     setIsLoading
   };
