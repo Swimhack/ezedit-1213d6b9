@@ -84,6 +84,15 @@ export function FileEditorModal({
     });
   };
 
+  // Fix the handleRetry function that was missing
+  const handleRetry = () => {
+    setLoadAttempts(prev => prev + 1);
+    toast.info("Retrying file load...");
+    loadContent().catch(err => {
+      toast.error(`Retry failed: ${err.message}`);
+    });
+  };
+
   // Handle close with unsaved changes warning
   const handleEditorClose = () => {
     if (hasUnsavedChanges) {

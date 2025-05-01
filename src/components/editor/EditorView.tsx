@@ -3,10 +3,11 @@ import { useState, useEffect } from "react";
 import { CodeEditor } from "./CodeEditor";
 import { WysiwygEditor } from "./WysiwygEditor";
 import { getLanguageFromFileName } from "@/utils/language-detector";
+import { Loader } from "lucide-react";
 
 interface EditorViewProps {
   mode: 'code' | 'wysiwyg';
-  content: string;
+  content: string | null;
   fileName: string | null;
   onChange: (content: string) => void;
   editorRef?: React.MutableRefObject<any>;
@@ -24,14 +25,18 @@ export function EditorView({
   readOnly = false
 }: EditorViewProps) {
   const [contentLoaded, setContentLoaded] = useState(false);
+  const [editorKey, setEditorKey] = useState(`editor-${Date.now()}`);
 
   useEffect(() => {
-    // Mark content as loaded when it arrives
+    // Mark content as loaded when it arrives and is valid
     if (content && !contentLoaded) {
       console.log(`[EditorView] Content loaded, length: ${content.length}`);
       setContentLoaded(true);
+      
+      // Force editor remount when content or file changes
+      setEditorKey(`editor-${fileName}-${content.slice(0, 20)}-${Date.now()}`);
     }
-  }, [content, contentLoaded]);
+  }, [content, contentLoaded, fileName]);
 
   const getFileLanguage = () => {
     if (!fileName) return "plaintext";
@@ -42,14 +47,14 @@ export function EditorView({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full text-slate-400">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
+        <Loader className="animate-spin h-8 w-8 text-primary mr-3" />
         <span>Loading file content...</span>
       </div>
     );
   }
 
   // Show empty state if no content is available
-  if (!content) {
+  if (content === null || content === undefined) {
     return (
       <div className="flex items-center justify-center h-full text-slate-400">
         No content to display
@@ -60,6 +65,7 @@ export function EditorView({
   // Render the appropriate editor based on mode
   return mode === 'code' ? (
     <CodeEditor
+      key={`code-${editorKey}`}
       content={content}
       language={getFileLanguage()}
       onChange={onChange}
@@ -68,10 +74,11 @@ export function EditorView({
     />
   ) : (
     <WysiwygEditor 
+      key={`wysiwyg-${editorKey}`}
       content={content}
       onChange={onChange}
       editorRef={editorRef}
-      // Remove the readOnly prop as it's not supported by WysiwygEditor
+      // Note: readOnly is not supported by WysiwygEditor but we pass it anyway for future implementation
     />
   );
 }

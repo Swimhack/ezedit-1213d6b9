@@ -2,6 +2,7 @@
 import React, { useEffect, useCallback, useState } from "react";
 import { TinyMCEEditor } from "@/components/editor/TinyMCEEditor";
 import { toast } from "sonner";
+import { Loader } from "lucide-react";
 
 interface WysiwygWrapperProps {
   code: string;
@@ -18,15 +19,21 @@ export function WysiwygWrapper({
   previewIframeId,
   editorRef
 }: WysiwygWrapperProps) {
-  const [editorContent, setEditorContent] = useState<string>('');
+  const [editorContent, setEditorContent] = useState<string | null>(null);
   const [isContentReady, setIsContentReady] = useState<boolean>(false);
   const [isContentValid, setIsContentValid] = useState<boolean>(false);
 
+  // Sleep helper function
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   // Validate content before setting it
-  const validateAndSetContent = useCallback((content: string | undefined) => {
+  const validateAndSetContent = useCallback(async (content: string | undefined) => {
     if (content && typeof content === 'string' && content.trim().length > 0) {
       console.log('[WysiwygWrapper] Content validated successfully, length:', content.length);
-      console.log('[WysiwygWrapper] Content preview:', content.slice(0, 100));
+      
+      // Small delay for smoother UX
+      await sleep(100);
+      
       setEditorContent(content);
       setIsContentValid(true);
       setIsContentReady(true);
@@ -38,16 +45,20 @@ export function WysiwygWrapper({
     }
   }, []);
 
-  // Update internal state when code prop changes (if it's different from what we already have)
+  // Update internal state when code prop changes
   useEffect(() => {
-    if (code !== undefined && typeof code === 'string') {
-      console.log('[WysiwygWrapper] Code prop updated, length:', code?.length || 0);
-      
-      if (validateAndSetContent(code)) {
-        // Update preview only if content is valid
-        updatePreview(code);
+    const initializeContent = async () => {
+      if (code !== undefined && typeof code === 'string') {
+        console.log('[WysiwygWrapper] Code prop updated, length:', code?.length || 0);
+        
+        if (await validateAndSetContent(code)) {
+          // Update preview only if content is valid
+          updatePreview(code);
+        }
       }
-    }
+    };
+    
+    initializeContent();
   }, [code, validateAndSetContent]);
 
   // Update preview with content
@@ -84,7 +95,7 @@ export function WysiwygWrapper({
   if (!isContentReady || !isContentValid) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
+        <Loader className="h-6 w-6 animate-spin mr-2 text-primary" />
         <span>Waiting for valid content...</span>
       </div>
     );
@@ -92,13 +103,16 @@ export function WysiwygWrapper({
 
   return (
     <div className="h-full">
-      <TinyMCEEditor
-        content={editorContent}
-        onChange={handleEditorChange}
-        height="100%"
-        previewSelector={`#${previewIframeId}`}
-        editorRef={editorRef}
-      />
+      {editorContent && isContentValid && (
+        <TinyMCEEditor
+          key={`wysiwyg-${filePath}-${editorContent.slice(0, 20)}`} // Force remount on file or content change
+          content={editorContent}
+          onChange={handleEditorChange}
+          height="100%"
+          previewSelector={`#${previewIframeId}`}
+          editorRef={editorRef}
+        />
+      )}
     </div>
   );
 }

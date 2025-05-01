@@ -1,6 +1,7 @@
 
 import React, { useEffect, useCallback, useState } from 'react';
 import { TinyMCEEditor } from './TinyMCEEditor';
+import { Loader } from "lucide-react";
 
 interface WysiwygEditorProps {
   content: string;
@@ -10,19 +11,33 @@ interface WysiwygEditorProps {
 }
 
 export function WysiwygEditor({ content, onChange, previewSelector, editorRef }: WysiwygEditorProps) {
-  const [editorContent, setEditorContent] = useState<string>('');
+  const [editorContent, setEditorContent] = useState<string | null>(null);
   const [isEditorReady, setIsEditorReady] = useState<boolean>(false);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  
+  // Helper function to sleep
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
   
   // Update internal state when content prop changes
   useEffect(() => {
-    if (content !== undefined && typeof content === 'string') {
-      console.log('[WysiwygEditor] Content prop updated, length:', content?.length || 0);
-      setEditorContent(content);
-      setIsEditorReady(true);
-    } else {
-      console.log('[WysiwygEditor] Content prop is invalid:', content);
-      setIsEditorReady(false);
-    }
+    const initializeEditor = async () => {
+      if (content !== undefined && typeof content === 'string' && content.trim().length > 0) {
+        console.log('[WysiwygEditor] Content prop updated, length:', content?.length || 0);
+        
+        // Add a small delay for smoother initialization
+        await sleep(100);
+        
+        setEditorContent(content);
+        setIsEditorReady(true);
+        setIsInitialized(true);
+      } else {
+        console.log('[WysiwygEditor] Content prop is invalid:', content);
+        setIsEditorReady(false);
+        setEditorContent(null);
+      }
+    };
+    
+    initializeEditor();
   }, [content]);
   
   // Handle editor content changes
@@ -46,8 +61,8 @@ export function WysiwygEditor({ content, onChange, previewSelector, editorRef }:
 
   if (!isEditorReady || !editorContent || typeof editorContent !== 'string') {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
+      <div className="flex flex-col items-center justify-center h-full bg-background">
+        <Loader className="h-6 w-6 animate-spin mr-2 mb-2 text-primary" />
         <span>Preparing editor content...</span>
       </div>
     );
@@ -55,12 +70,15 @@ export function WysiwygEditor({ content, onChange, previewSelector, editorRef }:
   
   return (
     <div className="h-full">
-      <TinyMCEEditor 
-        content={editorContent} 
-        onChange={handleChange} 
-        previewSelector={previewSelector}
-        editorRef={editorRef}
-      />
+      {isInitialized && editorContent && (
+        <TinyMCEEditor 
+          key={editorContent.slice(0, 20)} // Force remount if initial content changes
+          content={editorContent} 
+          onChange={handleChange} 
+          previewSelector={previewSelector}
+          editorRef={editorRef}
+        />
+      )}
     </div>
   );
 }
