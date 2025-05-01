@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ClineChatDrawer } from "./ClineChatDrawer";
 import { FileEditorToolbar } from "./FileEditorToolbar";
-import { EditorPreviewSplit } from "./EditorPreviewSplit";
+import { EditorPreviewSplit } from "../editor/EditorPreviewSplit";
 import { EditorStateDisplay } from "@/components/editor/EditorStateDisplay";
 import { FileEditorHeader } from "@/components/editor/FileEditorHeader";
 import { EditorModeTabs } from "@/components/editor/EditorModeTabs";
@@ -125,7 +125,6 @@ export function FileEditorModal({
                 detectLanguage={detectLanguage}
                 editorMode={editorMode}
                 forceRefresh={forceRefresh}
-                editorRef={editorRef}
                 editorContentReady={editorContentReady}
             />
             

@@ -12,7 +12,6 @@ interface EditorPreviewSplitProps {
   detectLanguage: () => string;
   editorMode: 'code' | 'wysiwyg';
   forceRefresh?: number;
-  editorRef?: React.MutableRefObject<any>;
   editorContentReady?: boolean;
 }
 
@@ -23,7 +22,6 @@ export function EditorPreviewSplit({
   detectLanguage,
   editorMode,
   forceRefresh = 0,
-  editorRef,
   editorContentReady = true
 }: EditorPreviewSplitProps) {
   const [previewKey, setPreviewKey] = useState(0);
@@ -43,7 +41,7 @@ export function EditorPreviewSplit({
         <div className="h-full">
           {editorMode === 'code' ? (
             <CodeEditor
-              code={code}
+              content={code}
               onChange={onCodeChange}
               language={detectLanguage()}
               readOnly={false}
@@ -53,7 +51,6 @@ export function EditorPreviewSplit({
               code={code}
               filePath={filePath}
               onCodeChange={onCodeChange}
-              editorRef={editorRef}
               previewIframeId={previewIframeId}
             />
           )}

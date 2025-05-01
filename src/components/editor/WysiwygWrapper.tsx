@@ -6,16 +6,16 @@ interface WysiwygWrapperProps {
   code: string;
   filePath: string;
   onCodeChange: (newCode: string) => void;
-  editorRef: React.MutableRefObject<any>;
   previewIframeId: string;
+  editorRef?: React.MutableRefObject<any>;
 }
 
 export function WysiwygWrapper({
   code,
   filePath,
   onCodeChange,
-  editorRef,
-  previewIframeId
+  previewIframeId,
+  editorRef
 }: WysiwygWrapperProps) {
   const [editorContent, setEditorContent] = useState<string>('');
   const [isContentReady, setIsContentReady] = useState<boolean>(false);
