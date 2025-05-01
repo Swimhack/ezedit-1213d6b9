@@ -3,6 +3,7 @@ import React, { useEffect, useCallback, useState } from "react";
 import { TinyMCEEditor } from "@/components/editor/TinyMCEEditor";
 import { toast } from "sonner";
 import { Loader } from "lucide-react";
+import { EditorErrorRetry } from "@/components/editor/EditorErrorRetry";
 
 interface WysiwygWrapperProps {
   code: string;
@@ -22,6 +23,8 @@ export function WysiwygWrapper({
   const [editorContent, setEditorContent] = useState<string | null>(null);
   const [isContentReady, setIsContentReady] = useState<boolean>(false);
   const [isContentValid, setIsContentValid] = useState<boolean>(false);
+  const [loadAttempts, setLoadAttempts] = useState<number>(0);
+  const [error, setError] = useState<string | null>(null);
 
   // Sleep helper function
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -37,10 +40,12 @@ export function WysiwygWrapper({
       setEditorContent(content);
       setIsContentValid(true);
       setIsContentReady(true);
+      setError(null);
       return true;
     } else {
       console.warn('[WysiwygWrapper] Invalid content received:', content);
       setIsContentValid(false);
+      setError("Received invalid or empty content");
       return false;
     }
   }, []);
@@ -54,7 +59,11 @@ export function WysiwygWrapper({
         if (await validateAndSetContent(code)) {
           // Update preview only if content is valid
           updatePreview(code);
+        } else {
+          setError("Invalid content received from parent component");
         }
+      } else {
+        setError("No content available");
       }
     };
     
@@ -91,12 +100,35 @@ export function WysiwygWrapper({
     }
   }, [onCodeChange, updatePreview]);
 
+  // Handle retry loading
+  const handleRetry = () => {
+    setLoadAttempts(prev => prev + 1);
+    setIsContentReady(false);
+    setIsContentValid(false);
+    setError(null);
+    // The parent component will handle reloading the content
+    toast.info("Retrying content load...");
+  };
+
+  // Show error state if content validation fails
+  if (error) {
+    return (
+      <EditorErrorRetry 
+        message="Failed to load editor content" 
+        onRetry={handleRetry}
+        errorDetails={error}
+      />
+    );
+  }
+
   // Show loading state if content is not ready or valid
   if (!isContentReady || !isContentValid) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader className="h-6 w-6 animate-spin mr-2 text-primary" />
-        <span>Waiting for valid content...</span>
+        <div className="flex flex-col items-center">
+          <Loader className="h-6 w-6 animate-spin mb-2 text-primary" />
+          <span>Waiting for valid content...</span>
+        </div>
       </div>
     );
   }

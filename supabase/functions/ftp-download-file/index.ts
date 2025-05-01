@@ -26,7 +26,7 @@ serve(async (req) => {
   const { host, port = 21, username, password, path } = body;
   if (!host || !username || !password || !path) {
     return new Response(
-      JSON.stringify({ success: false, message: "Missing fields" }),
+      JSON.stringify({ success: false, message: "Missing required fields" }),
       { status: 400, headers: corsHeaders }
     );
   }

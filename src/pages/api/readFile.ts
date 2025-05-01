@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     console.log(`[API readFile] Reading file: ${filePath} from connection ${connectionId} (cache timestamp: ${timestamp || 'none'})`);
     
     // First attempt to call the Supabase Edge Function
-    let response = await supabase.functions.invoke("sftp-file", {
+    let response = await supabase.functions.invoke("ftp-download-file", {
       body: { 
         siteId: connectionId, 
         path: filePath,
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
       
       // Second attempt after delay
       console.log(`[API readFile] Retrying file read: ${filePath} from connection ${connectionId}`);
-      response = await supabase.functions.invoke("sftp-file", {
+      response = await supabase.functions.invoke("ftp-download-file", {
         body: { 
           siteId: connectionId, 
           path: filePath,
@@ -76,7 +76,10 @@ export async function GET(request: Request) {
       });
     }
     
-    return new Response(response.data.content, {
+    // The content comes base64 encoded from our edge function for safe transport
+    const decodedContent = atob(response.data.content);
+    
+    return new Response(decodedContent, {
       status: 200,
       headers: { 
         "Content-Type": "text/plain",
