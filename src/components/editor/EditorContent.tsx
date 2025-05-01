@@ -1,15 +1,14 @@
 
-import React from 'react';
-import { Loader } from "lucide-react";
-import Editor from "@monaco-editor/react";
-import { PreviewTab } from './PreviewTab';
+import React from "react";
+import { FileEditorContent } from "@/components/ftp-explorer/FileEditorContent";
+import { EditorPreviewSplit } from "@/components/editor/EditorPreviewSplit";
 
 interface EditorContentProps {
   isLoading: boolean;
   activeTab: string;
-  content: string | undefined;
+  content: string | null;
   filePath: string;
-  handleContentChange: (value: string | undefined) => void;
+  handleContentChange: (content: string) => void;
   detectLanguage: () => string;
 }
 
@@ -21,48 +20,43 @@ export function EditorContent({
   handleContentChange,
   detectLanguage
 }: EditorContentProps) {
-  if (isLoading) {
+  // For HTML files, we offer a split view with preview
+  const isHtmlFile = /\.(html?|htm|php)$/i.test(filePath);
+  
+  if (activeTab === "split" && isHtmlFile) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader className="h-6 w-6 animate-spin mr-2" />
-        <span>Loading file...</span>
-      </div>
+      <EditorPreviewSplit
+        code={content || ""}
+        filePath={filePath}
+        onCodeChange={(content) => content && handleContentChange(content)}
+        detectLanguage={detectLanguage}
+        editorMode={'code'}
+        editorContentReady={!isLoading && !!content}
+      />
     );
   }
-  
-  if (content === undefined) {
+
+  if (activeTab === "visual" && isHtmlFile) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <span className="text-red-500">Error: file is empty or failed to load</span>
-      </div>
+      <EditorPreviewSplit
+        code={content || ""}
+        filePath={filePath}
+        onCodeChange={(content) => content && handleContentChange(content)}
+        detectLanguage={detectLanguage}
+        editorMode={'wysiwyg'}
+        editorContentReady={!isLoading && !!content}
+      />
     );
   }
-  
+
+  // Default view for all other tabs/file types
   return (
-    <div className="flex-1 grid grid-rows-[1fr_auto]">
-      <div className="flex flex-col md:flex-row h-full">
-        {/* Editor Section */}
-        <div className={`${activeTab === 'visual' ? 'hidden md:block' : ''} flex-1 h-full border-r`}>
-          <Editor
-            height="100%"
-            language={detectLanguage()}
-            theme="vs-dark"
-            value={content}
-            onChange={handleContentChange}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              wordWrap: 'on',
-              automaticLayout: true,
-            }}
-          />
-        </div>
-        
-        {/* Preview Section */}
-        <div className={`${activeTab === 'code' ? 'hidden md:block' : ''} flex-1 h-full bg-white`}>
-          <PreviewTab content={content} fileName={filePath} />
-        </div>
-      </div>
-    </div>
+    <FileEditorContent
+      filePath={filePath}
+      content={content}
+      onContentChange={handleContentChange}
+      readOnly={false}
+      isLoading={isLoading}
+    />
   );
 }

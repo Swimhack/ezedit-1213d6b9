@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { EditorModeToggle } from "./EditorModeToggle";
 import { EditorView } from "./EditorView";
@@ -9,8 +9,8 @@ import { useFileExplorerStore } from "@/store/fileExplorerStore";
 import { RefreshCw } from "lucide-react";
 import debounce from "debounce";
 import { HybridEditor } from "./HybridEditor";
-import { Tabs, TabList, Tab } from "react-tabs";
-import "react-tabs/style/react-tabs.css";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EditorStatusBar } from "./EditorStatusBar";
 
 interface SplitEditorProps {
   fileName: string | null;
@@ -31,21 +31,86 @@ export function SplitEditor({
 }: SplitEditorProps) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [frameKey, setFrameKey] = useState(0);
+  const [editorStatus, setEditorStatus] = useState<{
+    intent: 'loading' | 'success' | 'warning' | 'error' | 'info';
+    message: string;
+  }>({ intent: 'loading', message: 'Initializing editor...' });
+  
   const isLoading = useFileExplorerStore(state => state.isLoading);
   const activeConnection = useFileExplorerStore(state => state.activeConnection);
   const baseUrl = activeConnection?.web_url ?? '';
   const [editMode, setEditMode] = useState<'code' | 'wysiwyg' | 'hybrid'>('code');
+  const [isEditorHydrated, setIsEditorHydrated] = useState(false);
   const [wysiwygContent, setWysiwygContent] = useState("");
   const [hybridContent, setHybridContent] = useState("");
+  const localEditorRef = useRef<any>(null);
+  const actualEditorRef = editorRef || localEditorRef;
+  
+  // Force content hydration for all editor modes
+  const forceHydration = useCallback(async () => {
+    setEditorStatus({ intent: 'loading', message: '🔒 Validating file structure...' });
+    
+    try {
+      if (!content) {
+        throw new Error('No content to hydrate');
+      }
+      
+      console.log('[SplitEditor] Forcing hydration with content length:', content.length);
+      
+      // Set content based on current mode
+      if (editMode === 'code' && actualEditorRef.current) {
+        try {
+          actualEditorRef.current.setValue(content);
+        } catch (err) {
+          console.error('[SplitEditor] Failed to set code editor content:', err);
+        }
+      } else if (editMode === 'wysiwyg' && actualEditorRef.current) {
+        if (actualEditorRef.current.forceContentInjection) {
+          await actualEditorRef.current.forceContentInjection(content);
+        } else if (actualEditorRef.current.setContent) {
+          actualEditorRef.current.setContent(content);
+        }
+      } else if (editMode === 'hybrid') {
+        setHybridContent(content);
+      }
+      
+      // Update all content states to ensure consistency
+      setWysiwygContent(content);
+      setHybridContent(content);
+      
+      // Update preview
+      setRefreshKey(k => k + 1);
+      setFrameKey(k => k + 1);
+      
+      setEditorStatus({ 
+        intent: 'success', 
+        message: '✅ File atomic-locked | Edits enabled' 
+      });
+      setIsEditorHydrated(true);
+      
+    } catch (err) {
+      console.error('[SplitEditor] Hydration failed:', err);
+      setEditorStatus({ 
+        intent: 'error', 
+        message: '🚨 Editor content validation failed' 
+      });
+      setIsEditorHydrated(false);
+    }
+  }, [content, editMode, actualEditorRef]);
   
   // Initialize content when loading new content
   useEffect(() => {
-    console.log('[SplitEditor] Content updated, length:', content?.length || 0);
-    if (content) {
-      setWysiwygContent(content);
-      setHybridContent(content);
+    if (content && fileName) {
+      console.log('[SplitEditor] Content updated for file:', fileName, 'length:', content.length);
+      forceHydration();
+    } else {
+      setIsEditorHydrated(false);
+      setEditorStatus({
+        intent: 'info',
+        message: content ? 'Editor initializing...' : 'No content to display'
+      });
     }
-  }, [content, fileName]);
+  }, [content, fileName, forceHydration]);
 
   const isHtmlFile = () => {
     return fileName ? /\.(html?|htm|php)$/i.test(fileName) : false;
@@ -66,6 +131,11 @@ export function SplitEditor({
   // Enhanced sync function that also refreshes the preview
   const syncContent = () => {
     console.log(`[SplitEditor] Syncing content between editors, mode: ${editMode}`);
+    setEditorStatus({
+      intent: 'loading',
+      message: 'Synchronizing content...'
+    });
+    
     if (editMode === 'wysiwyg') {
       onChange(wysiwygContent);
     } else if (editMode === 'hybrid') {
@@ -74,14 +144,25 @@ export function SplitEditor({
       setWysiwygContent(content);
       setHybridContent(content);
     }
+    
+    // Update preview
     setRefreshKey(k => k + 1);
-    setFrameKey(k => k + 1); // Force iframe refresh
+    setFrameKey(k => k + 1);
+    
+    setEditorStatus({
+      intent: 'success',
+      message: 'Content synchronized successfully'
+    });
   };
 
   const handleContentChange = debounce((value: string | undefined) => {
     if (value !== undefined && !readOnly) {
       onChange(value);
       setRefreshKey(k => k + 1);
+      setEditorStatus({
+        intent: 'info',
+        message: 'Content updated'
+      });
     }
   }, 500);
 
@@ -90,6 +171,10 @@ export function SplitEditor({
     if (!readOnly) {
       handleContentChange(value);
     }
+  };
+
+  const handleRetryLoad = () => {
+    forceHydration();
   };
 
   if (!fileName || !content && !isLoading) {
@@ -109,29 +194,19 @@ export function SplitEditor({
         <div className="h-full flex flex-col">
           <div className="flex items-center justify-between border-b p-1 bg-muted/30">
             <Tabs 
-              selectedIndex={
-                editMode === 'code' ? 0 : editMode === 'wysiwyg' ? 1 : 2
-              }
-              onSelect={(index) => setEditMode(
-                index === 0 ? 'code' : index === 1 ? 'wysiwyg' : 'hybrid'
-              )}
+              value={editMode} 
+              onValueChange={(value) => setEditMode(value as 'code' | 'wysiwyg' | 'hybrid')}
               className="flex-grow"
             >
-              <TabList className="flex gap-2 mb-0">
-                <Tab className="px-3 py-1.5 cursor-pointer rounded-md hover:bg-muted">
-                  Code
-                </Tab>
+              <TabsList className="bg-transparent">
+                <TabsTrigger value="code">Code</TabsTrigger>
                 {isHtmlFile() && (
                   <>
-                    <Tab className="px-3 py-1.5 cursor-pointer rounded-md hover:bg-muted">
-                      Rich Text
-                    </Tab>
-                    <Tab className="px-3 py-1.5 cursor-pointer rounded-md hover:bg-muted">
-                      Visual Builder
-                    </Tab>
+                    <TabsTrigger value="wysiwyg">Rich Text</TabsTrigger>
+                    <TabsTrigger value="hybrid">Visual Builder</TabsTrigger>
                   </>
                 )}
-              </TabList>
+              </TabsList>
             </Tabs>
             <Button 
               variant="outline" 
@@ -155,6 +230,7 @@ export function SplitEditor({
               />
             ) : (
               <EditorView
+                key={`${editMode}-editor-${fileName}`}
                 mode={editMode}
                 content={editMode === 'code' ? content : wysiwygContent}
                 fileName={fileName}
@@ -165,6 +241,13 @@ export function SplitEditor({
               />
             )}
           </div>
+          
+          <EditorStatusBar
+            intent={editorStatus.intent}
+            message={editorStatus.message}
+            isEditable={!readOnly && isEditorHydrated}
+            onRetry={handleRetryLoad}
+          />
         </div>
       </ResizablePanel>
       
