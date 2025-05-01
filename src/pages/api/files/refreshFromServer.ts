@@ -1,5 +1,4 @@
 
-import { NextResponse } from "next/server";
 import { listDir } from "@/lib/ftp";
 
 export async function POST(req: Request) {
@@ -7,9 +6,12 @@ export async function POST(req: Request) {
     const { connectionId, path } = await req.json();
     
     if (!connectionId || !path) {
-      return NextResponse.json(
-        { error: "Missing connection ID or path" }, 
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: "Missing connection ID or path" }),
+        { 
+          status: 400, 
+          headers: { "Content-Type": "application/json" }
+        }
       );
     }
     
@@ -20,31 +22,43 @@ export async function POST(req: Request) {
       
       if (result && result.data && result.data.files) {
         console.log(`[API refreshFromServer] Success, received ${result.data.files.length} files`);
-        return NextResponse.json({
-          success: true,
-          data: {
-            files: result.data.files,
-            path
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              files: result.data.files,
+              path
+            }
+          }),
+          { 
+            status: 200,
+            headers: { "Content-Type": "application/json" }
           }
-        }, { status: 200 });
+        );
       } else {
         throw new Error("Invalid response format from FTP service");
       }
     } catch (err: any) {
       console.error("[API refreshFromServer] Error:", err);
-      return NextResponse.json(
-        { 
+      return new Response(
+        JSON.stringify({ 
           success: false,
           error: err.message || "Failed to refresh directory listing" 
-        }, 
-        { status: 500 }
+        }),
+        { 
+          status: 500,
+          headers: { "Content-Type": "application/json" }
+        }
       );
     }
   } catch (err: any) {
     console.error("[API refreshFromServer] Unexpected error:", err);
-    return NextResponse.json(
-      { error: err.message || "Unexpected error" }, 
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ error: err.message || "Unexpected error" }),
+      { 
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      }
     );
   }
 }
