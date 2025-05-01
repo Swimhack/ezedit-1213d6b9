@@ -105,7 +105,7 @@ export function FileEditorModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleEditorClose()}>
-      <DialogContent className="max-w-screen-xl w-[95vw] h-[90vh] p-0 flex flex-col">
+      <DialogContent className="max-w-screen-xl w-[95vw] h-[90vh] p-0 flex flex-col" hideCloseButton>
         <FileEditorHeader filePath={filePath} onClose={handleEditorClose} />
         
         <EditorModeTabs 

@@ -7,32 +7,54 @@ export function useTheme() {
   const [theme, setTheme] = useLocalStorage('theme', 'system');
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
 
+  // Watch for color scheme preference changes
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const handleChange = () => {
+      if (theme === 'system') {
+        updateTheme('system');
+      }
+    };
+    
+    // Add listener
+    mediaQuery.addEventListener('change', handleChange);
+    
+    // Cleanup
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, [theme]);
+
+  useEffect(() => {
+    updateTheme(theme);
+  }, [theme]);
+
+  // Function to update the theme in DOM
+  const updateTheme = (currentTheme: string) => {
     const root = window.document.documentElement;
     
-    // Remove dark mode class if present
-    root.classList.remove('dark');
+    // Remove both classes first
+    root.classList.remove('light', 'dark');
     
     // Determine actual theme based on preference
-    if (theme === 'system') {
+    if (currentTheme === 'system') {
       const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       setResolvedTheme(systemPrefersDark ? 'dark' : 'light');
       
-      if (systemPrefersDark) {
-        root.classList.add('dark');
-      }
+      // Add the appropriate class
+      root.classList.add(systemPrefersDark ? 'dark' : 'light');
     } else {
-      setResolvedTheme(theme as 'light' | 'dark');
+      const newTheme = currentTheme as 'light' | 'dark';
+      setResolvedTheme(newTheme);
       
-      // Only add dark class if explicitly set to dark
-      if (theme === 'dark') {
-        root.classList.add('dark');
-      }
+      // Add the theme class
+      root.classList.add(newTheme);
     }
     
     // Set a data attribute for components that might use it
     root.setAttribute('data-theme', resolvedTheme);
-  }, [theme, resolvedTheme]);
+  };
 
   return {
     theme,

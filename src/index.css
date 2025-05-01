@@ -36,7 +36,6 @@
     --radius: 0.5rem;
   }
 
-  /* Only apply dark mode styles when explicitly set */
   .dark {
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;
@@ -65,6 +64,11 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 199 85% 55%;
+  }
+
+  /* Add smooth theme transitions */
+  * {
+    @apply transition-colors duration-200 ease-in-out;
   }
 }
 
@@ -111,6 +115,11 @@
     --tw-prose-td-borders: theme(colors.slate.700);
   }
 
+  .dark .prose-invert {
+    --tw-prose-body: theme(colors.slate.200);
+    --tw-prose-headings: theme(colors.slate.100);
+  }
+
   /* Thin scrollbar for preview iframe */
   iframe::-webkit-scrollbar {
     width: 6px;
@@ -145,8 +154,16 @@
   @apply bg-eznavy-light text-ezblue px-1 py-0.5 rounded text-sm font-mono;
 }
 
+.dark .klein-pane code {
+  @apply bg-eznavy-dark text-ezblue-light;
+}
+
 .klein-pane pre {
   @apply bg-eznavy-light p-3 rounded-md text-sm font-mono my-2 overflow-auto;
+}
+
+.dark .klein-pane pre {
+  @apply bg-eznavy-dark;
 }
 
 /* File Browser Dark Theme Overrides */
@@ -168,4 +185,15 @@
 
 .ReactFileBrowser__file-icon {
   color: hsl(var(--foreground)) !important;
+}
+
+/* Dropdown menu specific overrides for dark mode */
+.dark .dropdown-menu {
+  @apply bg-background border-border;
+}
+
+/* Ensure alert and dialog components respect theme */
+.alert-dialog-content,
+.dialog-content {
+  @apply bg-background text-foreground border-border;
 }
