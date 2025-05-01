@@ -22,24 +22,17 @@ export function TinyMCEEditor({
   const editorRef = externalEditorRef || internalEditorRef;
   const { theme } = useTheme();
   const [editorInitialized, setEditorInitialized] = useState<boolean>(false);
-  const [localContent, setLocalContent] = useState<string>("");
   
   // Use the provided API key directly
   const apiKey = "q8smw06bbgh2t6wcki98o8ja4l5bco8g7k6tgfapjboh81tv";
 
-  // Update local content when prop changes
+  // Update editor content when prop changes
   useEffect(() => {
-    if (content && typeof content === 'string') {
-      console.log('[TinyMCE] Content prop updated, length:', content.length);
-      setLocalContent(content);
-      
-      // Update editor content if editor is already initialized
-      if (editorInitialized && editorRef.current) {
-        console.log('[TinyMCE] Updating editor content after prop change');
-        editorRef.current.setContent(content);
-      }
+    if (editorInitialized && editorRef.current && content) {
+      console.log('[TinyMCE] Content prop changed, updating editor content. Length:', content.length);
+      editorRef.current.setContent(content);
     }
-  }, [content, editorInitialized]);
+  }, [content, editorInitialized, editorRef]);
   
   // Check if content is valid
   if (!content || typeof content !== 'string') {
@@ -64,7 +57,6 @@ export function TinyMCEEditor({
         try {
           console.log('[TinyMCE] Setting initial content, length:', content.length);
           editor.setContent(content);
-          setLocalContent(content);
         } catch (err) {
           console.error('[TinyMCE] Error setting initial content:', err);
         }
@@ -72,7 +64,6 @@ export function TinyMCEEditor({
       initialValue={content}
       onEditorChange={(newContent, editor) => {
         console.log('[TinyMCE] Content changed via onEditorChange, new length:', newContent.length);
-        setLocalContent(newContent);
         onChange(newContent);
         
         // Update preview if selector provided

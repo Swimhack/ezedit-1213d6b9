@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useFileLoader } from "./useFileLoader";
@@ -53,7 +52,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
       setEditorContentReady(false);
       
       // Fetch file content with cache busting
-      const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${Date.now()}`, {
+      const response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
         method: "GET",
         cache: "no-store",
         headers: {
@@ -77,11 +76,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
       if (editorRef.current && typeof editorRef.current.setContent === 'function') {
         try {
           console.log("[useFileEditor] Forcing WYSIWYG editor update after load");
-          setTimeout(() => {
-            if (editorRef.current && typeof editorRef.current.setContent === 'function') {
-              editorRef.current.setContent(content);
-            }
-          }, 100);
+          editorRef.current.setContent(content);
         } catch (err) {
           console.error("[useFileEditor] Error updating WYSIWYG editor after load:", err);
         }
@@ -122,11 +117,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
         if (editorRef.current && typeof editorRef.current.setContent === 'function') {
           console.log("[useFileEditor] Forcing WYSIWYG editor update after save");
           try {
-            setTimeout(() => {
-              if (editorRef.current && typeof editorRef.current.setContent === 'function') {
-                editorRef.current.setContent(result.content);
-              }
-            }, 100);
+            editorRef.current.setContent(result.content);
           } catch (err) {
             console.error("[useFileEditor] Error updating WYSIWYG editor:", err);
           }
@@ -172,11 +163,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
                 if (editorRef.current && typeof editorRef.current.setContent === 'function') {
                   console.log("[useFileEditor] Forcing WYSIWYG editor update after autosave");
                   try {
-                    setTimeout(() => {
-                      if (editorRef.current && typeof editorRef.current.setContent === 'function') {
-                        editorRef.current.setContent(result.content);
-                      }
-                    }, 100);
+                    editorRef.current.setContent(result.content);
                   } catch (err) {
                     console.error("[useFileEditor] Error updating WYSIWYG editor after autosave:", err);
                   }
@@ -219,7 +206,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
     
     try {
       // Use cache busting technique
-      const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${Date.now()}`, {
+      const response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
         method: "GET",
         cache: "no-store",
         headers: {
@@ -242,11 +229,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
       if (editorRef.current && typeof editorRef.current.setContent === 'function') {
         console.log("[useFileEditor] Forcing WYSIWYG editor update after refresh");
         try {
-          setTimeout(() => {
-            if (editorRef.current && typeof editorRef.current.setContent === 'function') {
-              editorRef.current.setContent(content);
-            }
-          }, 100);
+          editorRef.current.setContent(content);
         } catch (err) {
           console.error("[useFileEditor] Error updating WYSIWYG editor after refresh:", err);
         }
