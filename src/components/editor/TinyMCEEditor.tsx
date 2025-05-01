@@ -27,7 +27,7 @@ export function TinyMCEEditor({
   // Use the provided API key directly
   const apiKey = "q8smw06bbgh2t6wcki98o8ja4l5bco8g7k6tgfapjboh81tv";
 
-  // Validate content on mount and when it changes
+  // Strictly validate content on mount and when it changes
   useEffect(() => {
     if (content && typeof content === 'string' && content.trim().length > 0) {
       console.log('[TinyMCE] Content validated, length:', content.length);
@@ -51,7 +51,7 @@ export function TinyMCEEditor({
     return (
       <div className="flex items-center justify-center h-full">
         <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
-        <span>Waiting for valid content...</span>
+        <span>Waiting for valid file content...</span>
       </div>
     );
   }

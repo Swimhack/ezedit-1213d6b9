@@ -71,7 +71,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
       
       const content = await response.text();
       
-      // Validate content before setting it
+      // Strictly validate content before setting it
       if (!content || typeof content !== 'string' || content.trim().length === 0) {
         throw new Error("File content is invalid or empty");
       }
@@ -114,7 +114,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
     }
     
     // Don't allow save if content is invalid
-    if (!contentValidated || code.trim().length === 0) {
+    if (!contentValidated || !code || code.trim().length === 0) {
       toast.error("Cannot save invalid or empty file content");
       return;
     }
@@ -150,7 +150,13 @@ export function useFileEditor(connectionId: string, filePath: string) {
    * Update code in editor with autosave
    */
   const handleCodeChange = (newCode: string | undefined) => {
-    if (newCode !== undefined && newCode !== code) {
+    // Validate the new content
+    if (newCode === undefined || typeof newCode !== 'string' || newCode.trim().length === 0) {
+      console.warn("[useFileEditor] Attempted to update with invalid content");
+      return;
+    }
+
+    if (newCode !== code) {
       console.log(`[useFileEditor] Code changed, new length: ${newCode.length}`);
       setCode(newCode);
       setHasUnsavedChanges(true);
@@ -254,7 +260,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
       
       const content = await response.text();
       
-      // Validate content before setting it
+      // Strictly validate content before setting it
       if (!content || typeof content !== 'string' || content.trim().length === 0) {
         throw new Error("File content is invalid or empty");
       }

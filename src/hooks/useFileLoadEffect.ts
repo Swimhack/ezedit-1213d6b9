@@ -26,7 +26,7 @@ export function useFileLoadEffect({
       
       loadFile()
         .then((content) => {
-          // Validate content
+          // Strictly validate content
           if (!content || typeof content !== 'string' || content.trim().length === 0) {
             throw new Error("Invalid or empty file content received");
           }
