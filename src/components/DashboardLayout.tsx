@@ -90,16 +90,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 </span>
               </div>
               
-              {/* Mobile Visible Logout Button */}
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={handleLogout}
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="sr-only">Log out</span>
-              </Button>
+              {/* Removed the Mobile Visible Logout Button */}
             </div>
           </>
         ) : (
