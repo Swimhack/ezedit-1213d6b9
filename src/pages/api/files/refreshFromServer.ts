@@ -1,53 +1,49 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { listDir } from "@/lib/ftp";
 
-/**
- * API endpoint to refresh directory listing directly from FTP server
- */
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { connectionId, path = "/" } = await req.json();
+    const { connectionId, path } = await req.json();
     
-    if (!connectionId) {
-      return NextResponse.json({ success: false, message: "Connection ID is required" }, { status: 400 });
+    if (!connectionId || !path) {
+      return NextResponse.json(
+        { error: "Missing connection ID or path" }, 
+        { status: 400 }
+      );
     }
     
-    console.log(`[API refreshFromServer] Refreshing directory: ${path} for connection: ${connectionId}`);
+    console.log(`[API refreshFromServer] Refreshing files for connection ${connectionId}, path: ${path}`);
     
-    // Call the Supabase Edge Function directly with no caching
-    const response = await supabase.functions.invoke("ftp-list", {
-      body: { 
-        siteId: connectionId, 
-        path,
-        refresh: true,  // Signal that this is a forced refresh
-        timestamp: Date.now()  // Cache-busting parameter
+    try {
+      const result = await listDir(connectionId, path);
+      
+      if (result && result.data && result.data.files) {
+        console.log(`[API refreshFromServer] Success, received ${result.data.files.length} files`);
+        return NextResponse.json({
+          success: true,
+          data: {
+            files: result.data.files,
+            path
+          }
+        }, { status: 200 });
+      } else {
+        throw new Error("Invalid response format from FTP service");
       }
-    });
-    
-    if (response.error) {
-      console.error("[API refreshFromServer] Error:", response.error);
+    } catch (err: any) {
+      console.error("[API refreshFromServer] Error:", err);
       return NextResponse.json(
         { 
-          success: false, 
-          message: response.error.message || "Failed to refresh from server" 
+          success: false,
+          error: err.message || "Failed to refresh directory listing" 
         }, 
         { status: 500 }
       );
     }
-    
-    // Return the fresh data
-    return NextResponse.json({
-      success: true,
-      data: response.data,
-      message: "Files refreshed successfully from server"
-    });
-    
-  } catch (error: any) {
-    console.error("[API refreshFromServer] Exception:", error);
+  } catch (err: any) {
+    console.error("[API refreshFromServer] Unexpected error:", err);
     return NextResponse.json(
-      { success: false, message: error.message || "Internal server error" }, 
+      { error: err.message || "Unexpected error" }, 
       { status: 500 }
     );
   }

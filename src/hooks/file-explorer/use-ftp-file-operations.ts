@@ -66,7 +66,6 @@ export function useFtpFileOperations() {
       let response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
         cache: "no-store",
         headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
-        signal: AbortSignal.timeout(30000) // 30 second timeout
       });
       
       let content = "";
@@ -80,7 +79,6 @@ export function useFtpFileOperations() {
         response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
           cache: "no-store",
           headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
-          signal: AbortSignal.timeout(30000) // 30 second timeout
         });
       }
       
@@ -105,7 +103,6 @@ export function useFtpFileOperations() {
         response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
           cache: "no-store",
           headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
-          signal: AbortSignal.timeout(30000) // 30 second timeout
         });
         
         if (!response.ok) {

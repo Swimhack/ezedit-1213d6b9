@@ -26,7 +26,7 @@ export function FTPConnectionModal({
   const [serverName, setServerName] = useState("");
   const [host, setHost] = useState("");
   const [port, setPort] = useState("21");
-  const [user, setUser] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [testResult, setTestResult] = useState<{
@@ -39,7 +39,7 @@ export function FTPConnectionModal({
       setServerName(editingConnection.server_name || "");
       setHost(editingConnection.host || "");
       setPort(editingConnection.port?.toString() || "21");
-      setUser(editingConnection.user || "");
+      setUsername(editingConnection.username || "");
       setPassword(editingConnection.password || "");
       setTestResult(null);
     } else if (isOpen) {
@@ -47,7 +47,7 @@ export function FTPConnectionModal({
       setServerName("");
       setHost("");
       setPort("21");
-      setUser("");
+      setUsername("");
       setPassword("");
       setTestResult(null);
     }
@@ -59,7 +59,7 @@ export function FTPConnectionModal({
     
     try {
       // Validate form
-      if (!host || !user || !password) {
+      if (!host || !username || !password) {
         toast.error("Please fill in all required fields");
         setIsLoading(false);
         return;
@@ -89,7 +89,7 @@ export function FTPConnectionModal({
           server_name: serverName,
           host,
           port: portNumber,
-          user,
+          username, // Use 'username' property instead of 'user'
           password,  // Note: In production, this would be encrypted
           user_id: currentUser.id
         })
@@ -119,7 +119,7 @@ export function FTPConnectionModal({
     
     try {
       // Validate inputs
-      if (!host || !user || !password) {
+      if (!host || !username || !password) {
         toast.error("Please fill in all required fields");
         setIsLoading(false);
         return;
@@ -133,7 +133,7 @@ export function FTPConnectionModal({
       }
 
       // Test connection
-      const result = await testFtpConnection(host, portNumber, user, password);
+      const result = await testFtpConnection(host, portNumber, username, password);
       
       if (result.data?.success) {
         setTestResult({
@@ -208,8 +208,8 @@ export function FTPConnectionModal({
             <Input
               id="username"
               placeholder="username"
-              value={user}
-              onChange={(e) => setUser(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>
