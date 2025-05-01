@@ -31,48 +31,52 @@ export function EditorPreviewSplit({
   const { src: previewSrc, isLoading: previewLoading } = useLivePreview(code, filePath || "");
   const previewIframeId = "preview-iframe-" + Math.random().toString(36).substring(2, 9);
   const [editorLoading, setEditorLoading] = useState(true);
-  const [contentReady, setContentReady] = useState(false);
   const [editorContent, setEditorContent] = useState<string>(code || '');
+  const [contentReady, setContentReady] = useState(false);
+  const [isEditorReady, setIsEditorReady] = useState(false);
   const [lastFilePath, setLastFilePath] = useState<string>(filePath);
   const [lastForceRefresh, setLastForceRefresh] = useState<number>(forceRefresh);
 
-  // Effect to load file content when path changes
+  // Effect to load file content when path changes or force refresh happens
   useEffect(() => {
-    if (filePath && filePath !== lastFilePath) {
-      console.log(`[EditorPreviewSplit] File path changed: ${filePath}`);
-      setLastFilePath(filePath);
+    const pathChanged = filePath && filePath !== lastFilePath;
+    const refreshTriggered = forceRefresh > 0 && forceRefresh !== lastForceRefresh;
+    
+    if (pathChanged || refreshTriggered) {
+      if (pathChanged) {
+        console.log(`[EditorPreviewSplit] File path changed: ${filePath}`);
+        setLastFilePath(filePath);
+      }
+      
+      if (refreshTriggered) {
+        console.log('[EditorPreviewSplit] Force refreshing content');
+        setLastForceRefresh(forceRefresh);
+      }
+      
       loadFileContent(filePath);
     }
-  }, [filePath]);
+  }, [filePath, forceRefresh]);
 
-  // Effect to track when content is ready to display and update internal state
+  // Effect to track when content is ready to display
   useEffect(() => {
-    console.log(`[EditorPreviewSplit] Code received, length: ${code?.length || 0}, filePath: ${filePath}`);
-    
-    if (code !== undefined) {
-      setContentReady(true);
+    if (typeof code === 'string') {
+      console.log(`[EditorPreviewSplit] Code received, length: ${code?.length || 0}, filePath: ${filePath}`);
       setEditorContent(code);
+      setContentReady(true);
+      setIsEditorReady(true);
+      
+      // Refresh preview when code changes
+      setPreviewKey(prev => prev + 1);
     } else {
-      console.warn(`[EditorPreviewSplit] Code is undefined for file: ${filePath}`);
+      console.warn(`[EditorPreviewSplit] Code is undefined or not a string for file: ${filePath}`);
       setContentReady(false);
     }
-    
-    // Refresh preview when code changes
-    setPreviewKey(prev => prev + 1);
   }, [code, filePath]);
-
-  // Force refresh preview when forceRefresh prop changes
-  useEffect(() => {
-    if (forceRefresh > 0 && forceRefresh !== lastForceRefresh) {
-      console.log('[EditorPreviewSplit] Force refreshing content');
-      setLastForceRefresh(forceRefresh);
-      loadFileContent(filePath);
-    }
-  }, [forceRefresh]);
 
   // Implement the exact file loading logic specified
   const loadFileContent = async (path: string) => {
     setEditorLoading(true);
+    setIsEditorReady(false);
     
     try {
       console.log(`[EditorPreviewSplit] Loading file content: ${path}`);
@@ -93,13 +97,19 @@ export function EditorPreviewSplit({
       console.log(`[EditorPreviewSplit] File content loaded, length: ${content.length}`);
       
       setEditorContent(content);
+      setContentReady(true);
+      setIsEditorReady(true);
       onCodeChange(content);
       
       // Force editor update if WYSIWYG mode
       if (editorMode === 'wysiwyg' && editorRef.current) {
         try {
           console.log('[EditorPreviewSplit] Applying content to WYSIWYG editor');
-          editorRef.current.setContent(content);
+          setTimeout(() => {
+            if (editorRef.current && editorRef.current.setContent) {
+              editorRef.current.setContent(content);
+            }
+          }, 100);
         } catch (err) {
           console.error('[EditorPreviewSplit] Error updating editor content:', err);
         }
@@ -187,6 +197,11 @@ export function EditorPreviewSplit({
           <div className="flex items-center justify-center h-full">
             <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
             <span>Loading editor...</span>
+          </div>
+        ) : !isEditorReady || !contentReady ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
+            <span>Preparing editor content...</span>
           </div>
         ) : showWysiwyg ? (
           <WysiwygWrapper

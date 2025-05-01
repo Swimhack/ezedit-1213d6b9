@@ -44,7 +44,23 @@ export function useFileSaver() {
       console.log('[useFileSaver] Save successful');
       toast.success("File saved successfully");
       
-      // Return the content that was saved to ensure consistency
+      // After successful save, fetch the latest version to ensure consistency
+      const refreshResponse = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Pragma": "no-cache",
+          "Cache-Control": "no-cache"
+        }
+      });
+      
+      if (refreshResponse.ok) {
+        const refreshedContent = await refreshResponse.text();
+        console.log(`[useFileSaver] Refreshed content after save, length: ${refreshedContent.length}`);
+        return { success: true, content: refreshedContent };
+      }
+      
+      // Return the content that was saved if refresh fails
       return { success: true, content: content };
     } catch (error: any) {
       console.error("[useFileSaver] Error saving file:", error);

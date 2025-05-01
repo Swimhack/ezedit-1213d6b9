@@ -22,6 +22,7 @@ export function TinyMCEEditor({
   const editorRef = externalEditorRef || internalEditorRef;
   const { theme } = useTheme();
   const [editorInitialized, setEditorInitialized] = useState<boolean>(false);
+  const [isEditorReady, setIsEditorReady] = useState<boolean>(false);
   const contentRef = useRef<string>(content || "");
 
   // Use the provided API key directly
@@ -31,7 +32,7 @@ export function TinyMCEEditor({
   useEffect(() => {
     contentRef.current = content || "";
     
-    // Update editor content if editor is initialized and content has changed
+    // If content is available and editor is initialized, set editor content
     if (editorRef.current && editorInitialized && content !== undefined) {
       try {
         console.log('[TinyMCE] External content updated, length:', content?.length || 0);
@@ -66,6 +67,22 @@ export function TinyMCEEditor({
     }
   }, [content, previewSelector]);
 
+  // Determine if we have valid content to show
+  useEffect(() => {
+    if (typeof content === 'string') {
+      setIsEditorReady(true);
+    }
+  }, [content]);
+
+  if (!isEditorReady || typeof content !== 'string') {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
+        <span>Loading editor content...</span>
+      </div>
+    );
+  }
+
   return (
     <Editor
       apiKey={apiKey}
@@ -86,8 +103,8 @@ export function TinyMCEEditor({
           }, 100);
         }
       }}
-      initialValue={content} // Set initial value directly
-      value={content} // Control the editor with value prop
+      initialValue={content} 
+      value={content}
       onEditorChange={(newContent, editor) => {
         console.log('[TinyMCE] Content changed via onEditorChange, new length:', newContent.length);
         onChange(newContent);
@@ -107,11 +124,9 @@ export function TinyMCEEditor({
         content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
         statusbar: false,
         resize: false,
-        // Always use the light skin
         skin: 'oxide',
         icons: 'default',
         branding: false,
-        // Add setup function to sync with preview
         setup: function(editor) {
           editor.on('Change KeyUp Paste', function() {
             if (editorInitialized) {

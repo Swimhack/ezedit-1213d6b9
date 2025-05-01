@@ -18,12 +18,14 @@ export function WysiwygWrapper({
   previewIframeId
 }: WysiwygWrapperProps) {
   const [editorContent, setEditorContent] = useState<string>(code || '');
+  const [isContentReady, setIsContentReady] = useState<boolean>(false);
 
   // Update internal state when code prop changes
   useEffect(() => {
     if (code !== undefined) {
       console.log('[WysiwygWrapper] Code prop updated, length:', code?.length || 0);
       setEditorContent(code);
+      setIsContentReady(true);
     }
   }, [code]);
 
@@ -32,6 +34,15 @@ export function WysiwygWrapper({
     setEditorContent(newContent);
     onCodeChange(newContent);
   }, [onCodeChange]);
+
+  if (!isContentReady || typeof editorContent !== 'string') {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
+        <span>Preparing editor content...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full">

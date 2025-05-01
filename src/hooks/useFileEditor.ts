@@ -13,6 +13,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [editorContentReady, setEditorContentReady] = useState(false);
   const editorRef = useRef<any>(null);
   
   const { isLoading, error, loadFile, setError, setIsLoading } = useFileLoader();
@@ -24,6 +25,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
   // Reset state when file path changes, but keep content until new content is loaded
   useEffect(() => {
     setHasUnsavedChanges(false);
+    setEditorContentReady(false);
     
     // Clear any pending autosave when file changes
     if (autoSaveTimerRef.current) {
@@ -48,6 +50,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
     
     try {
       setIsLoading(true);
+      setEditorContentReady(false);
       
       // Use the exact loading logic as specified
       const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${Date.now()}`, {
@@ -67,13 +70,18 @@ export function useFileEditor(connectionId: string, filePath: string) {
       
       console.log(`[useFileEditor] Content loaded successfully, length: ${content?.length || 0}`);
       setCode(content);
+      setEditorContentReady(true);
       setHasUnsavedChanges(false);
       
       // Force editor update if using WYSIWYG
       if (editorRef.current && typeof editorRef.current.setContent === 'function') {
         try {
           console.log("[useFileEditor] Forcing WYSIWYG editor update after load");
-          editorRef.current.setContent(content);
+          setTimeout(() => {
+            if (editorRef.current && typeof editorRef.current.setContent === 'function') {
+              editorRef.current.setContent(content);
+            }
+          }, 100);
         } catch (err) {
           console.error("[useFileEditor] Error updating WYSIWYG editor after load:", err);
         }
@@ -108,12 +116,17 @@ export function useFileEditor(connectionId: string, filePath: string) {
       // Always use the saved content to ensure consistency
       if (result.content) {
         setCode(result.content);
+        setEditorContentReady(true);
         
         // Force editor update if using WYSIWYG
         if (editorRef.current && typeof editorRef.current.setContent === 'function') {
           console.log("[useFileEditor] Forcing WYSIWYG editor update after save");
           try {
-            editorRef.current.setContent(result.content);
+            setTimeout(() => {
+              if (editorRef.current && typeof editorRef.current.setContent === 'function') {
+                editorRef.current.setContent(result.content);
+              }
+            }, 100);
           } catch (err) {
             console.error("[useFileEditor] Error updating WYSIWYG editor:", err);
           }
@@ -153,12 +166,17 @@ export function useFileEditor(connectionId: string, filePath: string) {
               // Ensure we use the saved content
               if (result.content) {
                 setCode(result.content);
+                setEditorContentReady(true);
                 
                 // Force editor update if using WYSIWYG
                 if (editorRef.current && typeof editorRef.current.setContent === 'function') {
                   console.log("[useFileEditor] Forcing WYSIWYG editor update after autosave");
                   try {
-                    editorRef.current.setContent(result.content);
+                    setTimeout(() => {
+                      if (editorRef.current && typeof editorRef.current.setContent === 'function') {
+                        editorRef.current.setContent(result.content);
+                      }
+                    }, 100);
                   } catch (err) {
                     console.error("[useFileEditor] Error updating WYSIWYG editor after autosave:", err);
                   }
@@ -197,6 +215,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
     console.log("[useFileEditor] Force refreshing file content");
     
     setIsLoading(true);
+    setEditorContentReady(false);
     
     try {
       // Use the exact loading logic as specified
@@ -216,13 +235,18 @@ export function useFileEditor(connectionId: string, filePath: string) {
       const content = await response.text();
       console.log(`[useFileEditor] Content refreshed successfully, length: ${content.length}`);
       setCode(content);
+      setEditorContentReady(true);
       setHasUnsavedChanges(false);
       
       // Force editor update if using WYSIWYG
       if (editorRef.current && typeof editorRef.current.setContent === 'function') {
         console.log("[useFileEditor] Forcing WYSIWYG editor update after refresh");
         try {
-          editorRef.current.setContent(content);
+          setTimeout(() => {
+            if (editorRef.current && typeof editorRef.current.setContent === 'function') {
+              editorRef.current.setContent(content);
+            }
+          }, 100);
         } catch (err) {
           console.error("[useFileEditor] Error updating WYSIWYG editor after refresh:", err);
         }
@@ -256,6 +280,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
     autoSaveEnabled,
     isAutoSaving,
     editorRef,
+    editorContentReady,
     handleCodeChange,
     handleSave,
     loadFile: loadFileContent,
