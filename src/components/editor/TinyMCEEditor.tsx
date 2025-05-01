@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Editor } from "@tinymce/tinymce-react";
 import { useTheme } from "@/hooks/use-theme";
+import { toast } from "sonner";
 
 interface TinyMCEEditorProps {
   content: string;
@@ -23,6 +24,7 @@ export function TinyMCEEditor({
   const { theme } = useTheme();
   const [editorInitialized, setEditorInitialized] = useState<boolean>(false);
   const [isContentValid, setIsContentValid] = useState<boolean>(false);
+  const [contentSynced, setContentSynced] = useState<boolean>(false);
   
   // Use the provided API key directly
   const apiKey = "q8smw06bbgh2t6wcki98o8ja4l5bco8g7k6tgfapjboh81tv";
@@ -31,6 +33,7 @@ export function TinyMCEEditor({
   useEffect(() => {
     if (content && typeof content === 'string' && content.trim().length > 0) {
       console.log('[TinyMCE] Content validated, length:', content.length);
+      console.log('[TinyMCE] Content preview:', content.slice(0, 100));
       setIsContentValid(true);
     } else {
       console.error('[TinyMCE] Invalid content provided:', content);
@@ -42,11 +45,18 @@ export function TinyMCEEditor({
   useEffect(() => {
     if (editorInitialized && editorRef.current && isContentValid) {
       console.log('[TinyMCE] Content prop changed, updating editor content. Length:', content.length);
-      editorRef.current.setContent(content);
+      try {
+        editorRef.current.setContent(content);
+        setContentSynced(true);
+        console.log('[TinyMCE] Editor content successfully updated');
+      } catch (err) {
+        console.error('[TinyMCE] Error updating editor content:', err);
+        toast.error("Error updating editor with file content");
+      }
     }
   }, [content, editorInitialized, editorRef, isContentValid]);
   
-  // Check if content is valid
+  // Check if content is valid before rendering editor
   if (!isContentValid) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -64,14 +74,19 @@ export function TinyMCEEditor({
         setEditorInitialized(true);
         console.log('[TinyMCE] Editor initialized');
         
-        // Set content right after initialization if it's valid
+        // Force set content right after initialization if it's valid
         try {
           if (isContentValid) {
             console.log('[TinyMCE] Setting initial content, length:', content.length);
-            editor.setContent(content);
+            setTimeout(() => {
+              editor.setContent(content);
+              setContentSynced(true);
+              console.log('[TinyMCE] Initial content set with timeout');
+            }, 50);
           }
         } catch (err) {
           console.error('[TinyMCE] Error setting initial content:', err);
+          toast.error("Error initializing editor with file content");
         }
       }}
       initialValue={isContentValid ? content : ""}

@@ -1,6 +1,7 @@
 
 import React, { useEffect, useCallback, useState } from "react";
 import { TinyMCEEditor } from "@/components/editor/TinyMCEEditor";
+import { toast } from "sonner";
 
 interface WysiwygWrapperProps {
   code: string;
@@ -25,6 +26,7 @@ export function WysiwygWrapper({
   const validateAndSetContent = useCallback((content: string | undefined) => {
     if (content && typeof content === 'string' && content.trim().length > 0) {
       console.log('[WysiwygWrapper] Content validated successfully, length:', content.length);
+      console.log('[WysiwygWrapper] Content preview:', content.slice(0, 100));
       setEditorContent(content);
       setIsContentValid(true);
       setIsContentReady(true);
@@ -48,7 +50,8 @@ export function WysiwygWrapper({
     }
   }, [code, validateAndSetContent]);
 
-  const updatePreview = (content: string) => {
+  // Update preview with content
+  const updatePreview = useCallback((content: string) => {
     if (!previewIframeId || !content || content.trim().length === 0) return;
     
     const previewFrame = document.querySelector(`#${previewIframeId}`) as HTMLIFrameElement;
@@ -58,10 +61,12 @@ export function WysiwygWrapper({
         previewFrame.srcdoc = content;
       } catch (err) {
         console.error('[WysiwygWrapper] Error updating preview:', err);
+        toast.error("Error updating preview");
       }
     }
-  };
+  }, [previewIframeId]);
 
+  // Handle editor content changes
   const handleEditorChange = useCallback((newContent: string) => {
     if (newContent && typeof newContent === 'string' && newContent.trim().length > 0) {
       console.log('[WysiwygWrapper] TinyMCE content changed, length:', newContent?.length || 0);
@@ -73,8 +78,9 @@ export function WysiwygWrapper({
     } else {
       console.warn('[WysiwygWrapper] Editor produced invalid content, not updating');
     }
-  }, [onCodeChange, previewIframeId]);
+  }, [onCodeChange, updatePreview]);
 
+  // Show loading state if content is not ready or valid
   if (!isContentReady || !isContentValid) {
     return (
       <div className="flex items-center justify-center h-full">

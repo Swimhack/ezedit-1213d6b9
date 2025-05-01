@@ -1,9 +1,10 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { CodeEditor } from "./CodeEditor";
 import { WysiwygWrapper } from "./WysiwygWrapper";
 import { Preview } from "./Preview";
+import { toast } from "sonner";
 
 interface EditorPreviewSplitProps {
   code: string;
@@ -26,29 +27,40 @@ export function EditorPreviewSplit({
 }: EditorPreviewSplitProps) {
   const [previewKey, setPreviewKey] = useState(0);
   const [isContentValid, setIsContentValid] = useState(false);
+  const [validatedContent, setValidatedContent] = useState<string | null>(null);
   
   // Validate content when it changes
-  useEffect(() => {
-    if (code && typeof code === 'string' && code.trim().length > 0) {
-      console.log(`[EditorPreviewSplit] Valid content received, length: ${code.length}`);
+  const validateContent = useCallback((content: string | undefined) => {
+    if (content && typeof content === 'string' && content.trim().length > 0) {
+      console.log(`[EditorPreviewSplit] Valid content received, length: ${content.length}`);
+      console.log(`[EditorPreviewSplit] Content preview: ${content.slice(0, 100)}`);
       setIsContentValid(true);
+      setValidatedContent(content);
+      return true;
     } else {
-      console.warn(`[EditorPreviewSplit] Invalid or empty content received`);
+      console.warn(`[EditorPreviewSplit] Invalid or empty content received:`, content);
       setIsContentValid(false);
+      setValidatedContent(null);
+      return false;
     }
-  }, [code]);
+  }, []);
   
-  // Force preview refresh when code changes or refresh is triggered
+  // Validate content when code prop changes
   useEffect(() => {
-    if (isContentValid && editorContentReady) {
+    validateContent(code);
+  }, [code, validateContent]);
+  
+  // Force preview refresh when valid content changes or refresh is triggered
+  useEffect(() => {
+    if (isContentValid && editorContentReady && validatedContent) {
       setPreviewKey(prev => prev + 1);
     }
-  }, [code, forceRefresh, editorContentReady, isContentValid]);
+  }, [validatedContent, forceRefresh, editorContentReady, isContentValid]);
   
   const previewIframeId = `preview-iframe-${filePath?.replace(/[^a-zA-Z0-9]/g, '-')}`;
   
   // Show loading state if content is not valid or not ready
-  if (!isContentValid || !editorContentReady) {
+  if (!isContentValid || !editorContentReady || !validatedContent) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="flex flex-col items-center">
@@ -65,14 +77,14 @@ export function EditorPreviewSplit({
         <div className="h-full">
           {editorMode === 'code' ? (
             <CodeEditor
-              content={code}
+              content={validatedContent}
               onChange={onCodeChange}
               language={detectLanguage()}
               readOnly={false}
             />
           ) : (
             <WysiwygWrapper
-              code={code}
+              code={validatedContent}
               filePath={filePath}
               onCodeChange={onCodeChange}
               previewIframeId={previewIframeId}
@@ -86,7 +98,7 @@ export function EditorPreviewSplit({
       <ResizablePanel defaultSize={50} minSize={30}>
         <Preview
           key={previewKey}
-          content={code}
+          content={validatedContent}
           iframeId={previewIframeId}
         />
       </ResizablePanel>

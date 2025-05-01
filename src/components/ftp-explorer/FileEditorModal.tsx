@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ClineChatDrawer } from "./ClineChatDrawer";
@@ -9,7 +9,6 @@ import { EditorStateDisplay } from "@/components/editor/EditorStateDisplay";
 import { FileEditorHeader } from "@/components/editor/FileEditorHeader";
 import { EditorModeTabs } from "@/components/editor/EditorModeTabs";
 import { useFileEditor } from "@/hooks/useFileEditor";
-import { useFileLoadEffect } from "@/hooks/useFileLoadEffect";
 
 interface FileEditorModalProps {
   isOpen: boolean;
@@ -48,15 +47,31 @@ export function FileEditorModal({
     detectLanguage
   } = useFileEditor(connectionId, filePath);
   
-  // Use our custom hook for file loading effect
-  useFileLoadEffect({
-    isOpen,
-    connectionId,
-    filePath,
-    loadFile,
-    forceRefresh,
-    setEditorMode
-  });
+  // Load file content when modal is opened or filePath changes
+  const loadContent = useCallback(async () => {
+    if (isOpen && connectionId && filePath) {
+      console.log(`[FileEditorModal] Loading file content: ${filePath}`);
+      
+      try {
+        const content = await loadFile();
+        
+        // Detect file type and set appropriate editor mode
+        if (content) {
+          const isHtml = /\.(html?|htm|php)$/i.test(filePath);
+          setEditorMode(isHtml ? 'wysiwyg' : 'code');
+          console.log(`[FileEditorModal] File type detected, setting editor mode to: ${isHtml ? 'wysiwyg' : 'code'}`);
+        }
+      } catch (err) {
+        console.error(`[FileEditorModal] Error loading file:`, err);
+        toast.error(`Failed to load file: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    }
+  }, [isOpen, connectionId, filePath, loadFile]);
+  
+  // Load file when modal opens or filePath changes
+  useEffect(() => {
+    loadContent();
+  }, [isOpen, connectionId, filePath, loadAttempts, loadContent]);
 
   // Handle manual refresh with cache busting
   const handleRefresh = () => {
