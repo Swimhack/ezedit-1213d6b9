@@ -140,7 +140,7 @@ export function WysiwygEditor({ content, onChange, previewSelector, editorRef, r
   // Render the editor in a container that can be visually disabled until content is hydrated
   return (
     <div className={`h-full editor-container ${isHydrated ? 'editor-active' : 'editor-frozen'}`}>
-      <style jsx>{`
+      <style>{`
         .editor-frozen {
           position: relative;
           pointer-events: ${readOnly ? 'none' : 'auto'};

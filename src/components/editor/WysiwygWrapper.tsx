@@ -108,7 +108,6 @@ export function WysiwygWrapper({
           key={`wysiwyg-${filePath}-${editorContent.slice(0, 20)}`} // Force remount on file or content change
           content={editorContent}
           onChange={handleEditorChange}
-          height="100%"
           previewSelector={`#${previewIframeId}`}
           editorRef={editorRef}
         />
