@@ -59,7 +59,8 @@ serve(async (req) => {
         // Correctly format the date from the server response
         modified: item.date instanceof Date ? item.date.toISOString() : new Date().toISOString(),
         type: item.isDirectory ? "directory" : "file",
-        isDirectory: item.isDirectory
+        isDirectory: item.isDirectory,
+        path: `${safePath === "/" ? "" : safePath}/${item.name}`.replace(/\/+/g, "/")
       }));
 
       return new Response(

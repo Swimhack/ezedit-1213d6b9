@@ -30,6 +30,8 @@ serve(async (req) => {
     }
 
     const client = new Client();
+    client.ftp.verbose = true; // Enable verbose logging
+    
     try {
       await client.access({
         host: creds.host,
@@ -51,7 +53,8 @@ serve(async (req) => {
         size: entry.size || 0,
         // Use the actual server-provided modification date
         modified: entry.modifiedAt ? entry.modifiedAt.toISOString() : (entry.date ? entry.date.toISOString() : null),
-        isDirectory: entry.isDirectory
+        isDirectory: entry.isDirectory,
+        path: `${path === "/" ? "" : path}/${entry.name}`.replace(/\/+/g, "/")
       }));
       
       return new Response(

@@ -1,67 +1,87 @@
 
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { FileItem } from "@/types/ftp";
+import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
+import { useFileTreeCache } from '@/store/fileExplorerStore';
+import { supabase } from '@/integrations/supabase/client';
+
+interface FileItem {
+  name: string;
+  type: string;
+  isDirectory: boolean;
+  path?: string;
+  size?: number;
+  modified?: string | Date;
+}
 
 interface TreeNode {
   name: string;
   path: string;
-  isDirectory: boolean;
-  children: TreeNode[];
-  isOpen?: boolean;
-  isLoaded?: boolean;
+  isFolder: boolean;
+  isOpen: boolean;
+  isLoaded: boolean;
   size?: number;
-  modified?: string;
+  modified?: string | Date | null;
 }
 
-interface UseFileTreeProps {
-  connection: {
-    host: string;
-    port: number;
-    username: string;
-    password: string;
-  };
-}
-
-export function useFileTree({ connection }: UseFileTreeProps) {
-  const [treeData, setTreeData] = useState<TreeNode[]>([]);
+export function useFileTree(connectionId: string) {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [treeData, setTreeData] = useState<TreeNode[]>([]);
+  const [currentPath, setCurrentPath] = useState<string>('/');
+  const { cacheTreeData, getCachedTreeData } = useFileTreeCache();
 
-  const fetchDirectoryContent = async (path: string) => {
-    if (!connection) return;
+  const loadDirectory = useCallback(async (path: string) => {
+    if (!connectionId) {
+      setError('No connection selected');
+      return;
+    }
     
-    // Ensure path is never empty; default to root path "/"
-    const safePath = path?.trim() === "" ? "/" : path;
+    // Sanitize path - ensure it starts with a slash
+    const safePath = path.startsWith('/') ? path : `/${path}`;
+    console.log(`[useFileTree] Loading directory: ${safePath} for connection: ${connectionId}`);
     
     setIsLoading(true);
-    try {
-      console.log(`Fetching directory content for path: ${safePath}`);
-      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-list-directory`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          host: connection.host,
-          port: connection.port,
-          username: connection.username,
-          password: connection.password,
-          path: safePath
-        }),
-      });
+    setError(null);
 
-      const data = await response.json();
+    try {
+      // Check cache first
+      const cachedData = getCachedTreeData(connectionId, safePath);
+      if (cachedData && cachedData.length > 0) {
+        console.log(`[useFileTree] Using cached data for ${safePath}`);
+        setTreeData(cachedData);
+        setCurrentPath(safePath);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Make API call to list directory with cache busting
+      console.time(`[FTP] List ${safePath}`);
+      const response = await supabase.functions.invoke('ftp-list', {
+        body: { 
+          siteId: connectionId, 
+          path: safePath
+        }
+      });
+      console.timeEnd(`[FTP] List ${safePath}`);
+      
+      const { data, error } = response;
+      
+      if (error) {
+        console.error("[useFileTree] Supabase function error:", error);
+        setError(error.message || "Failed to load directory");
+        toast.error(`Error loading directory: ${error.message}`);
+        setIsLoading(false);
+        return;
+      }
+      
       console.log("Directory listing response:", data);
       
       if (data.success) {
         // Create tree nodes from files using the exact metadata from server
         const nodes = data.files.map((file: FileItem) => ({
           name: file.name,
-          path: `${safePath === "/" ? "" : safePath}/${file.name}${file.isDirectory ? "/" : ""}`.replace(/\/+/g, "/"),
-          isDirectory: file.isDirectory,
-          children: [],
+          path: file.path || `${safePath === "/" ? "" : safePath}/${file.name}${file.isDirectory ? "/" : ""}`.replace(/\/+/g, "/"),
+          isFolder: file.isDirectory,
           isOpen: false,
           isLoaded: false,
           size: file.size,
@@ -69,61 +89,33 @@ export function useFileTree({ connection }: UseFileTreeProps) {
         }));
         
         setTreeData(nodes);
+        setCurrentPath(safePath);
+        
+        // Cache the result
+        cacheTreeData(connectionId, safePath, nodes);
       } else {
-        toast.error(`Failed to list directory: ${data.message}`);
+        setError(data.message || "Failed to load directory");
+        toast.error(`Error: ${data.message || "Unknown error"}`);
       }
-    } catch (error: any) {
-      toast.error(`Error listing directory: ${error.message}`);
-      console.error("Directory listing error:", error);
+    } catch (err: any) {
+      console.error("[useFileTree] Error loading directory:", err);
+      setError(err.message || "Failed to load directory");
+      toast.error(`Error loading directory: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [connectionId, cacheTreeData, getCachedTreeData]);
 
-  const toggleDirectory = async (node: TreeNode) => {
-    if (!node.isDirectory) return;
-
-    setTreeData(prevTree => {
-      const toggleNode = (nodes: TreeNode[]): TreeNode[] => {
-        return nodes.map(n => {
-          if (n.path === node.path) {
-            return { ...n, isOpen: !n.isOpen };
-          }
-          
-          if (n.children && n.children.length > 0) {
-            return { ...n, children: toggleNode(n.children) };
-          }
-          
-          return n;
-        });
-      };
-      
-      return toggleNode(prevTree);
-    });
-
-    // If not loaded yet, fetch the directory contents
-    if (!node.isLoaded) {
-      try {
-        // Ensure we're using a valid path
-        const safePath = node.path || "/";
-        await fetchDirectoryContent(safePath);
-      } catch (error) {
-        console.error("Error fetching directory contents:", error);
-      }
-    }
-  };
-
-  // Initial load of root directory
-  useEffect(() => {
-    if (connection) {
-      fetchDirectoryContent("/");
-    }
-  }, [connection]);
+  const refreshDirectory = useCallback(() => {
+    loadDirectory(currentPath);
+  }, [currentPath, loadDirectory]);
 
   return {
     treeData,
     isLoading,
-    toggleDirectory,
-    refreshDirectory: fetchDirectoryContent
+    error,
+    currentPath,
+    loadDirectory,
+    refreshDirectory
   };
 }

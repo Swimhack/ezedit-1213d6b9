@@ -1,19 +1,30 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePath, joinPath } from "@/utils/path";
 
 export async function listDir(id: string, path = "/") {
-  const { data, error } = await supabase.functions.invoke("ftp-list", { 
-    body: { siteId: id, path } 
-  });
+  console.log(`[ftp.listDir] Listing directory for connection ${id}, path: ${path}`);
   
-  if (error) {
-    throw new Error(error.message);
+  try {
+    const { data, error } = await supabase.functions.invoke("ftp-list", { 
+      body: { siteId: id, path } 
+    });
+    
+    if (error) {
+      console.error(`[ftp.listDir] Error:`, error);
+      throw new Error(error.message);
+    }
+    
+    console.log(`[ftp.listDir] Success, received ${data?.files?.length || 0} files`);
+    return { data };
+  } catch (err: any) {
+    console.error(`[ftp.listDir] Exception:`, err);
+    throw err;
   }
-  
-  return { data };
 }
 
 export async function getFile(id: string, filepath: string) {
+  console.log(`[ftp.getFile] Getting file ${filepath} for connection ${id}`);
   return supabase.functions.invoke("sftp-file", { body: { siteId: id, path: filepath } });
 }
 

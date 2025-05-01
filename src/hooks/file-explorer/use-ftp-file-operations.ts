@@ -10,18 +10,23 @@ export function useFtpFileOperations() {
   const [error, setError] = useState<string | null>(null);
 
   const loadDirectory = async (connectionId: string, path: string) => {
-    if (!connectionId) return;
+    if (!connectionId) {
+      console.error("[useFtpFileOperations] Missing connectionId");
+      return { files: [], path: path };
+    }
     
     setIsLoading(true);
     setError(null);
     try {
       const normalizedPath = normalizePath(path);
-      console.log(`[loadDirectory] Original: "${path}" → Normalized: "${normalizedPath}"`);
+      console.log(`[loadDirectory] Original: "${path}" → Normalized: "${normalizedPath}", connectionId: ${connectionId}`);
       
       const result = await listDir(connectionId, normalizedPath);
+      console.log("[loadDirectory] Result:", result);
       
       if (result && result.data && result.data.files) {
         // Pass through the exact server-provided file metadata without modification
+        console.log(`[loadDirectory] Files received: ${result.data.files.length}`);
         return {
           files: result.data.files,
           path: normalizedPath
@@ -53,7 +58,7 @@ export function useFtpFileOperations() {
       console.time(`[FTP] ${filePath}`);
       
       // Use the recommended fetch logic with cache busting
-      const response = await fetch(`/api/readFile?path=${encodeURIComponent(filePath)}&t=${Date.now()}`, {
+      const response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
         cache: "no-store",
         headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
       });
