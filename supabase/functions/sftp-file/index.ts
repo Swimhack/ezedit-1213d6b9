@@ -12,6 +12,11 @@ const corsHeaders = {
   'Surrogate-Control': 'no-store'
 };
 
+// Helper function to add delay between retries
+const sleep = (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -86,6 +91,38 @@ serve(async (req) => {
       
       await sftp.end();
       
+      // If content is empty or invalid, wait and retry
+      if (!contentString || contentString.trim().length === 0) {
+        console.warn("[SFTP] First attempt returned empty content, waiting 2 seconds before retry");
+        await sleep(2000);
+        
+        // Retry
+        const retryClient = new SftpClient();
+        await retryClient.connect({
+          host,
+          port,
+          username: user,
+          password
+        });
+        
+        const retryData = await retryClient.get(cleanPath);
+        await retryClient.end();
+        
+        if (Buffer.isBuffer(retryData)) {
+          contentString = retryData.toString('utf8');
+        } else if (typeof retryData === 'string') {
+          contentString = retryData;
+        } else {
+          contentString = JSON.stringify(retryData);
+        }
+        
+        if (!contentString || contentString.trim().length === 0) {
+          throw new Error("File content still empty after retry");
+        }
+        
+        console.log(`[SFTP] Retry successful, size: ${contentString.length} bytes`);
+      }
+      
       return new Response(
         JSON.stringify({ 
           success: true,
@@ -96,15 +133,62 @@ serve(async (req) => {
       );
     } catch (e) {
       console.error("[SFTP] Error:", e);
-      const msg = e.message || "Unknown error";
-      const status = /No such file/i.test(msg) ? 404 
-                  : /All configured/i.test(msg) ? 401 
-                  : 500;
       
-      return new Response(
-        JSON.stringify({ success: false, message: msg }),
-        { status, headers: corsHeaders }
-      );
+      // Wait 2 seconds and retry on error
+      console.log("[SFTP] Waiting 2 seconds before retry...");
+      await sleep(2000);
+      
+      try {
+        console.log("[SFTP] Retrying after error...");
+        const retryClient = new SftpClient();
+        await retryClient.connect({
+          host,
+          port,
+          username: user,
+          password
+        });
+        
+        const cleanPath = path.startsWith('/') && path !== '/' ? path.substring(1) : path;
+        const retryData = await retryClient.get(cleanPath);
+        await retryClient.end();
+        
+        let contentString = '';
+        if (Buffer.isBuffer(retryData)) {
+          contentString = retryData.toString('utf8');
+        } else if (typeof retryData === 'string') {
+          contentString = retryData;
+        } else {
+          contentString = JSON.stringify(retryData);
+        }
+        
+        if (!contentString || contentString.trim().length === 0) {
+          throw new Error("File content still empty after error retry");
+        }
+        
+        console.log(`[SFTP] Error retry successful, size: ${contentString.length} bytes`);
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            content: contentString,
+            timestamp: Date.now(),
+            retried: true
+          }),
+          { headers: corsHeaders }
+        );
+      } catch (retryError) {
+        const msg = retryError.message || "Unknown error";
+        const status = /No such file/i.test(msg) ? 404 
+                    : /All configured/i.test(msg) ? 401 
+                    : 500;
+        
+        console.error("[SFTP] Retry also failed:", retryError);
+        
+        return new Response(
+          JSON.stringify({ success: false, message: msg }),
+          { status, headers: corsHeaders }
+        );
+      }
     }
   } catch (error) {
     console.error("[SFTP] Request processing error:", error);
