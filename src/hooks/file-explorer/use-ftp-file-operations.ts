@@ -66,6 +66,7 @@ export function useFtpFileOperations() {
       let response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
         cache: "no-store",
         headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+        signal: AbortSignal.timeout(30000) // 30 second timeout
       });
       
       let content = "";
@@ -79,14 +80,15 @@ export function useFtpFileOperations() {
         response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
           cache: "no-store",
           headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+          signal: AbortSignal.timeout(30000) // 30 second timeout
         });
       }
       
       if (!response.ok) {
-        const errorMsg = `Error ${response.status}: ${response.statusText}`;
+        const errorMsg = `Live server connection failed. Please retry Refresh Files or check your Site settings. (${response.status}: ${response.statusText})`;
         console.log('[fetchFileContent] → status: error, bytes: 0, error:', errorMsg);
         setError(errorMsg);
-        toast.error(`Error loading file: ${errorMsg}`);
+        toast.error(errorMsg);
         setIsLoading(false);
         return Promise.reject(errorMsg);
       }
@@ -103,13 +105,14 @@ export function useFtpFileOperations() {
         response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
           cache: "no-store",
           headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+          signal: AbortSignal.timeout(30000) // 30 second timeout
         });
         
         if (!response.ok) {
-          const errorMsg = `Error on retry ${response.status}: ${response.statusText}`;
+          const errorMsg = `Live server connection failed. Please retry Refresh Files or check your Site settings. (${response.status}: ${response.statusText})`;
           console.log('[fetchFileContent] → retry status: error, bytes: 0, error:', errorMsg);
           setError(errorMsg);
-          toast.error(`Error loading file on retry: ${errorMsg}`);
+          toast.error(errorMsg);
           setIsLoading(false);
           return Promise.reject(errorMsg);
         }
@@ -128,6 +131,7 @@ export function useFtpFileOperations() {
       
       console.timeEnd(`[FTP] ${filePath}`);
       console.log(`[fetchFileContent] → status: success, bytes: ${content.length}`);
+      toast.success("✅ Live File Loaded");
       setError(null);
       setIsLoading(false);
       return content;
@@ -135,8 +139,9 @@ export function useFtpFileOperations() {
     } catch (error: any) {
       console.error("[fetchFileContent] File loading error:", error);
       console.log('[fetchFileContent] → status: exception, bytes: 0, error:', error.message);
-      setError(error.message || "Unknown error");
-      toast.error(`Error loading file: ${error.message}`);
+      const errorMsg = `Live server connection failed. Please retry Refresh Files or check your Site settings. (${error.message})`;
+      setError(errorMsg);
+      toast.error(errorMsg);
       setIsLoading(false);
       return Promise.reject(error);
     }

@@ -4,96 +4,109 @@ import { Client } from "npm:basic-ftp@5.0.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization,x-client-info,apikey,content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Content-Type': 'application/json'
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  let body = {};
-  try { 
-    body = await req.json(); 
-  } catch {
-    return new Response(
-      JSON.stringify({ success: false, message: "Bad JSON" }),
-      { status: 400, headers: corsHeaders }
-    );
-  }
-
-  // Accept either direct site connection params or siteId for credential lookup
-  const { siteId, path, host, user, username, password, port = 21, secure = false } = body;
-  
-  // Validate required parameters
-  if ((!siteId && (!host || (!user && !username) || !password)) || !path) {
-    return new Response(
-      JSON.stringify({ success: false, message: "Missing required connection parameters" }),
-      { status: 400, headers: corsHeaders }
-    );
-  }
-
-  console.log(`Attempting to download file from FTP: ${username || user || '(via siteId)'}@${host || '(via siteId)'}:${port}${path}`);
-  
-  const client = new Client();
-  client.ftp.verbose = true; // Log FTP commands for debugging
-  
   try {
-    // Connect to the FTP server
-    await client.access({ 
-      host: host || "", // If siteId is used, this will be populated server-side
-      port, 
-      user: username || user || "", 
-      password: password || "", 
-      secure
-    });
-
-    console.log(`FTP Connection established successfully, downloading: ${path}`);
-
-    // Download to a buffer for binary safety
-    const chunks = [];
-    const stream = new TransformStream({
-      transform(chunk, controller) {
-        chunks.push(chunk);
-        controller.enqueue(chunk);
-      }
-    });
+    const { site, path } = await req.json();
     
-    await client.downloadTo(stream.writable, path);
-    
-    // Convert chunks to string
-    const decoder = new TextDecoder("utf-8");
-    let fileContent = "";
-    for (const chunk of chunks) {
-      fileContent += decoder.decode(chunk, { stream: true });
+    if (!site || !path) {
+      return new Response(
+        JSON.stringify({ success: false, message: "Missing site or path parameter" }),
+        { status: 400, headers: corsHeaders }
+      );
     }
-    fileContent += decoder.decode(); // Flush any remaining data
+
+    if (!site.host || !site.user || !site.password) {
+      return new Response(
+        JSON.stringify({ success: false, message: "Missing required site connection details" }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    console.log(`[FTP-DOWNLOAD-FILE] Attempting to download: "${path}" from ${site.host}`);
+
+    const client = new Client();
+    client.ftp.verbose = true; // Enable verbose logging
     
-    // Convert to base64 for safe transport
-    const base64Content = btoa(fileContent);
-    
-    console.log(`File downloaded successfully, size: ${fileContent.length} bytes`);
-    
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        content: base64Content 
-      }),
-      { headers: corsHeaders }
-    );
+    try {
+      console.log(`[FTP-DOWNLOAD-FILE] Connecting to ${site.host}:${site.port || 21}`);
+      
+      await client.access({
+        host: site.host,
+        port: site.port || 21,
+        user: site.user,
+        password: site.password,
+        secure: site.secure || false
+      });
+      
+      console.log(`[FTP-DOWNLOAD-FILE] Connected successfully. Downloading file: "${path}"`);
+      
+      // Download file contents to memory
+      let content = "";
+      const chunks: Uint8Array[] = [];
+      
+      try {
+        await client.downloadTo(
+          new WritableStream({
+            write(chunk) {
+              chunks.push(new Uint8Array(chunk));
+            }
+          }),
+          path
+        );
+        
+        // Concatenate chunks and convert to string
+        const allBytes = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
+        let offset = 0;
+        for (const chunk of chunks) {
+          allBytes.set(chunk, offset);
+          offset += chunk.length;
+        }
+        
+        content = new TextDecoder().decode(allBytes);
+        console.log(`[FTP-DOWNLOAD-FILE] File downloaded successfully: ${path}, size: ${content.length} bytes`);
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            content: content,
+            size: content.length
+          }),
+          { headers: corsHeaders }
+        );
+      } catch (downloadError) {
+        console.error(`[FTP-DOWNLOAD-FILE] Error downloading file: ${downloadError.message}`);
+        throw downloadError; // Rethrow to be caught by the outer try-catch
+      }
+    } catch (error) {
+      console.error(`[FTP-DOWNLOAD-FILE] Error: ${error.message}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `Failed to download file: ${error.message}` 
+        }),
+        { status: 500, headers: corsHeaders }
+      );
+    } finally {
+      client.close();
+      console.log(`[FTP-DOWNLOAD-FILE] FTP connection closed`);
+    }
   } catch (error) {
-    console.error('FTP download error:', error);
+    console.error(`[FTP-DOWNLOAD-FILE] Request processing error: ${error.message}`);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: error.message || "Failed to download file",
-        error: String(error)
+        message: `Invalid request format: ${error.message}` 
       }),
-      { status: 500, headers: corsHeaders }
+      { status: 400, headers: corsHeaders }
     );
-  } finally {
-    client.close();
-    console.log("FTP connection closed");
   }
 });

@@ -1,161 +1,79 @@
 
-import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { ClineChatDrawer } from "./ClineChatDrawer";
-import { FileEditorToolbar } from "./FileEditorToolbar";
-import { EditorPreviewSplit } from "../editor/EditorPreviewSplit";
-import { EditorStateDisplay } from "@/components/editor/EditorStateDisplay";
-import { FileEditorHeader } from "@/components/editor/FileEditorHeader";
-import { EditorModeTabs } from "@/components/editor/EditorModeTabs";
-import { useFileEditor } from "@/hooks/useFileEditor";
+import { Badge } from "@/components/ui/badge";
+import { FileEditorContent } from "@/components/ftp-explorer/FileEditorContent";
+import { Button } from "@/components/ui/button";
+import { Loader2, Save, Wand2 } from "lucide-react";
 
 interface FileEditorModalProps {
   isOpen: boolean;
-  onClose: () => void;
-  connectionId: string;
   filePath: string;
+  fileContent: string;
+  onClose: () => void;
+  onContentChange: (content: string) => void;
+  onSave: () => Promise<void>;
+  hasUnsavedChanges: boolean;
+  isSaving: boolean;
+  onOpenAIAssistant: () => void;
 }
 
 export function FileEditorModal({
   isOpen,
-  onClose,
-  connectionId,
   filePath,
+  fileContent,
+  onClose,
+  onContentChange,
+  onSave,
+  hasUnsavedChanges,
+  isSaving,
+  onOpenAIAssistant
 }: FileEditorModalProps) {
-  const [editorMode, setEditorMode] = useState<'code' | 'wysiwyg'>('code');
-  const [loadAttempts, setLoadAttempts] = useState(0);
-  const [forceRefresh, setForceRefresh] = useState(0);
-  const editorRef = useRef<any>(null);
+  const filename = filePath.split('/').pop() || '';
   
-  // Use our enhanced file editor hook
-  const {
-    code,
-    isLoading,
-    isSaving,
-    error,
-    hasUnsavedChanges,
-    autoSaveEnabled,
-    isAutoSaving,
-    editorContentReady,
-    contentValidated,
-    handleCodeChange,
-    handleSave,
-    loadFile,
-    refreshFile,
-    toggleAutoSave,
-    detectLanguage
-  } = useFileEditor(connectionId, filePath);
-  
-  // Load file content when modal is opened or filePath changes
-  const loadContent = useCallback(async () => {
-    if (isOpen && connectionId && filePath) {
-      console.log(`[FileEditorModal] Loading file content: ${filePath}`);
-      
-      try {
-        const content = await loadFile();
-        
-        // Detect file type and set appropriate editor mode
-        if (content) {
-          const isHtml = /\.(html?|htm|php)$/i.test(filePath);
-          setEditorMode(isHtml ? 'wysiwyg' : 'code');
-          console.log(`[FileEditorModal] File type detected, setting editor mode to: ${isHtml ? 'wysiwyg' : 'code'}`);
-        }
-      } catch (err) {
-        console.error(`[FileEditorModal] Error loading file:`, err);
-        toast.error(`Failed to load file: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      }
-    }
-  }, [isOpen, connectionId, filePath, loadFile]);
-  
-  // Load file when modal opens or filePath changes
-  useEffect(() => {
-    loadContent();
-  }, [isOpen, connectionId, filePath, loadAttempts, loadContent]);
-
-  // Handle manual refresh with cache busting
-  const handleRefresh = () => {
-    setForceRefresh(prev => prev + 1);
-    toast.info("Refreshing file content...");
-    refreshFile().then(() => {
-      toast.success("File content refreshed");
-    }).catch(err => {
-      toast.error(`Failed to refresh: ${err.message}`);
-    });
-  };
-
-  // Fix the handleRetry function that was missing
-  const handleRetry = () => {
-    setLoadAttempts(prev => prev + 1);
-    toast.info("Retrying file load...");
-    loadContent().catch(err => {
-      toast.error(`Retry failed: ${err.message}`);
-    });
-  };
-
-  // Handle close with unsaved changes warning
-  const handleEditorClose = () => {
-    if (hasUnsavedChanges) {
-      if (confirm("You have unsaved changes. Are you sure you want to close?")) {
-        onClose();
-      }
-    } else {
-      onClose();
-    }
-  };
-
-  // Check if file can be edited in WYSIWYG mode
-  const supportsWysiwyg = /\.(html?|htm|php)$/i.test(filePath);
-
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleEditorClose()}>
-      <DialogContent className="max-w-screen-xl w-[95vw] h-[90vh] p-0 flex flex-col" hideCloseButton>
-        <FileEditorHeader filePath={filePath} onClose={handleEditorClose} />
-        
-        <EditorModeTabs 
-          editorMode={editorMode}
-          setEditorMode={setEditorMode}
-          supportsWysiwyg={supportsWysiwyg}
-          onRefresh={handleRefresh}
-        />
-        
-        <FileEditorToolbar
-          fileName={filePath}
-          onSave={handleSave}
-          isSaving={isSaving}
-          isAutoSaving={isAutoSaving} 
-          hasUnsavedChanges={hasUnsavedChanges}
-          onRefresh={handleRefresh}
-          autoSaveEnabled={autoSaveEnabled}
-          onToggleAutoSave={toggleAutoSave}
-        />
-        
-        <EditorStateDisplay 
-          isLoading={isLoading}
-          error={error}
-          onRetry={handleRetry}
-          filePath={filePath}
-        />
-        
-        {!isLoading && !error && (
-          <div className="modal-body h-full flex flex-col overflow-hidden">
-            <EditorPreviewSplit
-                code={code || ""} 
-                filePath={filePath}
-                onCodeChange={handleCodeChange}
-                detectLanguage={detectLanguage}
-                editorMode={editorMode}
-                forceRefresh={forceRefresh}
-                editorContentReady={editorContentReady && contentValidated}
-            />
-            
-            <ClineChatDrawer
-              filePath={filePath}
-              code={code || ""}
-              onInsert={handleCodeChange}
-            />
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0">
+        <div className="p-4 border-b flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-medium">{filename}</h2>
+            <Badge variant="outline" className="text-xs">
+              {fileContent ? "✅ Live File Loaded" : "Loading..."}
+            </Badge>
           </div>
-        )}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenAIAssistant}
+              disabled={isSaving}
+            >
+              <Wand2 className="h-4 w-4 mr-2" />
+              AI Edit
+            </Button>
+            <Button
+              size="sm"
+              onClick={onSave}
+              disabled={isSaving || !hasUnsavedChanges}
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex-grow overflow-auto p-0">
+          <FileEditorContent
+            filePath={filePath}
+            content={fileContent}
+            onContentChange={onContentChange}
+            readOnly={false}
+            isLoading={!fileContent}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );

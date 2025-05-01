@@ -1,152 +1,145 @@
 
 import { supabase } from "@/integrations/supabase/client";
-
-// Helper function to add delay between retries
-const sleep = (ms: number): Promise<void> => {
-  return new Promise(resolve => setTimeout(resolve, ms));
-};
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 /**
- * API endpoint for reading file content with robust FTP connection
+ * API endpoint to read a file from FTP
+ * Supports both GET (legacy) and POST (recommended) methods
  */
-export async function POST(request: Request) {
+export async function GET(req: NextRequest) {
   try {
-    // Parse request body for direct connection details
-    const { path, site } = await request.json();
+    const url = new URL(req.url);
+    const path = url.searchParams.get('path');
     
     if (!path) {
-      return new Response("Path parameter is required", { status: 400 });
+      return new NextResponse("Path parameter is required", { status: 400 });
     }
     
-    console.log(`[API readFile POST] Reading file: ${path} via direct connection`);
+    // Split the path to get connectionId and filepath
+    const [connectionId, ...pathParts] = path.split(':');
+    const filepath = pathParts.join(':');
     
-    // Call the Edge Function with direct connection details
-    const response = await supabase.functions.invoke("ftp-download-file", {
-      body: { 
-        host: site.host,
-        username: site.user,
-        password: site.password,
-        port: site.port || 21,
-        path: path,
-        secure: site.secure || false
+    console.log(`[API readFile GET] Reading file: ${filepath} for connection: ${connectionId}`);
+    
+    // Use AbortController to implement timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    try {
+      // Call the Edge Function to get the file
+      const { data, error } = await supabase.functions.invoke("ftp-get-file", {
+        body: { id: connectionId, filepath },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (error) {
+        console.error("[API readFile GET] Edge Function error:", error);
+        return new NextResponse(
+          `Live server connection failed. Please retry Refresh Files or check your Site settings. (${error.message})`, 
+          { status: 500 }
+        );
       }
-    });
-    
-    if (response.error) {
-      console.error("[API readFile POST] Error from Edge Function:", response.error);
-      return new Response(response.error.message, { status: 500 });
-    }
-    
-    if (!response.data || !response.data.content) {
-      return new Response("File not found or empty", { status: 404 });
-    }
-    
-    // The content comes base64 encoded from our edge function for safe transport
-    const decodedContent = atob(response.data.content);
-    
-    return new Response(decodedContent, {
-      status: 200,
-      headers: { 
-        "Content-Type": "text/plain",
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        "Pragma": "no-cache"
+      
+      if (!data || !data.content) {
+        return new NextResponse("File not found or empty", { status: 404 });
       }
-    });
+      
+      return new NextResponse(data.content, {
+        status: 200,
+        headers: { "Content-Type": "text/plain" }
+      });
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      
+      if (err.name === 'AbortError') {
+        console.error("[API readFile GET] Request timed out after 30 seconds");
+        return new NextResponse("Request timed out after 30 seconds", { status: 408 });
+      }
+      
+      console.error("[API readFile GET] Error fetching file:", err);
+      return new NextResponse(
+        `Live server connection failed. Please retry Refresh Files or check your Site settings. (${err.message})`, 
+        { status: 500 }
+      );
+    }
   } catch (err: any) {
-    console.error("[API readFile POST] Exception:", err);
-    return new Response(err.message || "Unknown error", { status: 500 });
+    console.error("[API readFile GET] Unexpected error:", err);
+    return new NextResponse(err.message || "Unknown error", { status: 500 });
   }
 }
 
-/**
- * API endpoint for reading file content with cache busting and retry mechanism (legacy GET method)
- */
-export async function GET(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const path = url.searchParams.get('path');
-    const timestamp = url.searchParams.get('t'); // Cache busting parameter
+    const { path, site } = await req.json();
     
     if (!path) {
-      return new Response("Path parameter is required", { status: 400 });
+      return NextResponse.json({ error: "Path parameter is required" }, { status: 400 });
     }
     
-    // Extract connection ID from path (assuming it's in the format "connectionId:/path/to/file")
-    const parts = path.split(':', 2);
-    const connectionId = parts[0];
-    const filePath = parts.length > 1 ? parts[1] : path;
-    
-    if (!connectionId) {
-      return new Response("Invalid path format, connection ID is required", { status: 400 });
+    if (!site || !site.host || !site.user || !site.password) {
+      return NextResponse.json({ error: "Valid site connection details are required" }, { status: 400 });
     }
     
-    console.log(`[API readFile GET] Reading file: ${filePath} from connection ${connectionId} (cache timestamp: ${timestamp || 'none'})`);
+    console.log(`[API readFile POST] Reading file: ${path} from host: ${site.host}`);
     
-    // First attempt to call the Supabase Edge Function
-    let response = await supabase.functions.invoke("ftp-download-file", {
-      body: { 
-        siteId: connectionId, 
-        path: filePath,
-        timestamp // Pass timestamp to edge function for its own cache control
-      }
-    });
+    // Use AbortController to implement timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    // Check if the first attempt failed or returned invalid data
-    if (response.error || !response.data || !response.data.content) {
-      console.warn(`[API readFile GET] First attempt failed or empty content, waiting 2 seconds before retry...`);
-      await sleep(2000); // 2-second delay before retry
-      
-      // Second attempt after delay
-      console.log(`[API readFile GET] Retrying file read: ${filePath} from connection ${connectionId}`);
-      response = await supabase.functions.invoke("ftp-download-file", {
+    try {
+      // Call the Edge Function with direct connection details
+      const { data, error } = await supabase.functions.invoke("ftp-download-file", {
         body: { 
-          siteId: connectionId, 
-          path: filePath,
-          timestamp: Date.now() // Fresh timestamp for retry
-        }
+          site: {
+            host: site.host,
+            user: site.user, 
+            password: site.password,
+            port: site.port || 21,
+            secure: site.secure || false
+          },
+          path 
+        },
+        signal: controller.signal
       });
-    }
-    
-    if (response.error) {
-      console.error("[API readFile GET] Error from Edge Function after retry:", response.error);
-      return new Response(response.error.message, { 
-        status: 500,
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-          "Pragma": "no-cache"
-        }
-      });
-    }
-    
-    if (!response.data || !response.data.content) {
-      return new Response("File not found or empty after retry", { 
-        status: 404,
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-          "Pragma": "no-cache"
-        } 
-      });
-    }
-    
-    // The content comes base64 encoded from our edge function for safe transport
-    const decodedContent = atob(response.data.content);
-    
-    return new Response(decodedContent, {
-      status: 200,
-      headers: { 
-        "Content-Type": "text/plain",
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        "Pragma": "no-cache"
+      
+      clearTimeout(timeoutId);
+      
+      if (error) {
+        console.error("[API readFile POST] Edge Function error:", error);
+        return NextResponse.json(
+          { error: `Live server connection failed. Please retry or check your Site settings. (${error.message})` }, 
+          { status: 500 }
+        );
       }
-    });
+      
+      if (!data || !data.content) {
+        return NextResponse.json({ error: "File not found or empty" }, { status: 404 });
+      }
+      
+      // Return file content directly
+      return new NextResponse(data.content, {
+        status: 200,
+        headers: { "Content-Type": "text/plain" }
+      });
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      
+      if (err.name === 'AbortError') {
+        console.error("[API readFile POST] Request timed out after 30 seconds");
+        return NextResponse.json({ error: "Request timed out after 30 seconds" }, { status: 408 });
+      }
+      
+      console.error("[API readFile POST] Error fetching file:", err);
+      return NextResponse.json(
+        { error: `Live server connection failed. Please retry or check your Site settings. (${err.message})` },
+        { status: 500 }
+      );
+    }
   } catch (err: any) {
-    console.error("[API readFile GET] Exception:", err);
-    return new Response(err.message || "Unknown error", { 
-      status: 500,
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        "Pragma": "no-cache"
-      }
-    });
+    console.error("[API readFile POST] Unexpected error:", err);
+    return NextResponse.json({ error: err.message || "Unknown error" }, { status: 500 });
   }
 }

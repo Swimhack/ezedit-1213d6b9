@@ -4,6 +4,7 @@ import { useFileSave } from "./file-explorer/use-file-save";
 import { useAiIntegration } from "./file-explorer/use-ai-integration";
 import { useFileExplorerStore } from "./file-explorer/use-file-explorer-store";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
+import { toast } from "sonner";
 
 export function useFileExplorer() {
   // Get all the store values and setters
@@ -33,24 +34,26 @@ export function useFileExplorer() {
   const { isSaving, saveFileContent } = useFileSave();
   const { applyAIResponse } = useAiIntegration();
 
-  const loadDirectory = async (path: string) => {
-    if (!activeConnection) return;
+  const loadDirectory = async (connectionId: string, path: string) => {
+    if (!connectionId) return { files: [], path };
     
     setIsLoading(true);
     try {
-      const result = await ftpLoadDirectory(activeConnection.id, path);
+      const result = await ftpLoadDirectory(connectionId, path);
       if (result) {
         setFiles(result.files);
         setCurrentPath(result.path);
       }
+      return result;
     } catch (error) {
       // Error is already handled in the hook
+      return { files: [], path };
     }
   };
 
   const selectFile = async (file: { key: string; isDir: boolean }): Promise<void> => {
     if (file.isDir) {
-      return loadDirectory(file.key);
+      return loadDirectory(activeConnection?.id || '', file.key).then(() => {});
     } else {
       setCurrentFilePath(file.key);
       if (activeConnection) {
@@ -75,17 +78,28 @@ export function useFileExplorer() {
     setHasUnsavedChanges(true);
   };
 
-  const saveFile = async () => {
-    if (!activeConnection || !currentFilePath) return false;
-    
-    const success = await saveFileContent(activeConnection.id, currentFilePath, fileContent);
-    if (success) {
-      setHasUnsavedChanges(false);
+  const saveFile = async (): Promise<void> => {
+    if (!activeConnection || !currentFilePath) {
+      toast.error("No active connection or file selected");
+      return Promise.resolve();
     }
-    return success;
+    
+    try {
+      const result = await saveFileContent(activeConnection.id, currentFilePath, fileContent);
+      if (result.success) {
+        setHasUnsavedChanges(false);
+        if (result.content) {
+          setFileContent(result.content);
+        }
+      }
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Error saving file:", error);
+      return Promise.resolve();
+    }
   };
 
-  const openConnection = async (connection: FtpConnection) => {
+  const openConnection = (connection: FtpConnection) => {
     setActiveConnection(connection);
     setShowFileBrowser(true);
   };

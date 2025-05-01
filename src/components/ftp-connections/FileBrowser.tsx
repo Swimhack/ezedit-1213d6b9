@@ -4,8 +4,6 @@ import { FTPFileList } from "@/components/FTPFileList";
 import { FileBrowserToolbar } from "@/components/ftp-explorer/FileBrowserToolbar";
 import { useFtpFileOperations } from "@/hooks/file-explorer/use-ftp-file-operations";
 import { FtpConnection } from "@/hooks/use-ftp-connections";
-import { refreshFilesFromServer } from "@/lib/ftp";
-import { toast } from "sonner";
 import { normalizePath } from "@/utils/path";
 
 interface FileBrowserProps {
@@ -70,10 +68,7 @@ export function FileBrowser({
 
   // Force refresh from server
   const handleRefresh = async () => {
-    if (!connection?.id) {
-      toast.error("No active connection");
-      return;
-    }
+    if (!connection?.id) return;
     
     setIsRefreshing(true);
     try {

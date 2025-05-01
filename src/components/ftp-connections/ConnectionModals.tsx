@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FTPConnectionModal } from "@/components/FTPConnectionModal";
+import { FTPConnectionModal } from "@/components/ftp-connections/FTPConnectionModal";
 import { FileBrowserModal } from "@/components/ftp-explorer/FileBrowserModal";
 import { FileEditorModal } from "@/components/ftp-explorer/FileEditorModal";
 import { AIAssistantModal } from "@/components/ftp-explorer/AIAssistantModal";
@@ -90,7 +90,7 @@ export function ConnectionModals({
       <FileEditorModal
         isOpen={showFileEditor}
         filePath={currentFilePath}
-        content={fileContent}
+        fileContent={fileContent}
         onClose={() => {
           if (hasUnsavedChanges) {
             if (window.confirm("You have unsaved changes. Discard changes?")) {
@@ -114,7 +114,7 @@ export function ConnectionModals({
       <AIAssistantModal
         isOpen={showAIAssistant}
         filePath={currentFilePath}
-        content={fileContent}
+        fileContent={fileContent}
         onClose={() => setShowAIAssistant(false)}
         onApplyResponse={onApplyAIResponse}
         onBack={() => {

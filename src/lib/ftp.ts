@@ -25,7 +25,7 @@ export async function listDir(id: string, path = "/") {
 
 export async function getFile(id: string, filepath: string) {
   console.log(`[ftp.getFile] Getting file ${filepath} for connection ${id}`);
-  return supabase.functions.invoke("sftp-file", { body: { siteId: id, path: filepath } });
+  return supabase.functions.invoke("ftp-get-file", { body: { id, filepath } });
 }
 
 export async function saveFile({ id, filepath, content, originalChecksum, username }: { 

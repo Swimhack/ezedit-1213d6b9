@@ -1,45 +1,71 @@
 
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export function useFileSave() {
   const [isSaving, setIsSaving] = useState(false);
 
-  const saveFileContent = async (connectionId: string, filePath: string, content: string) => {
-    if (!connectionId || !filePath) {
-      toast.error("No file selected");
-      return false;
+  const saveFileContent = async (
+    connectionId: string,
+    filePath: string,
+    content: string
+  ): Promise<{
+    success: boolean;
+    content: string;
+  }> => {
+    if (!connectionId || !filePath || content === undefined) {
+      toast.error('Missing required data for saving');
+      return { success: false, content: '' };
     }
 
     setIsSaving(true);
+
     try {
-      console.log(`[saveFileContent] Saving: ${filePath}`);
-      console.time(`[FTP Save] ${filePath}`);
-      
-      const { data, error } = await supabase.functions.invoke("saveFile", {
-        body: {
+      console.log(`[useFileSave] Saving file: ${filePath}, content length: ${content.length}`);
+
+      const response = await fetch(`/api/saveFile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           id: connectionId,
           filepath: filePath,
-          content: content,
-          username: "webapp-user"
-        }
+          content,
+          username: 'editor-user',
+        }),
       });
 
-      console.timeEnd(`[FTP Save] ${filePath}`);
-      
-      if (error) {
-        console.log('→ status: error saving, error:', error.message);
-        throw error;
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to save: ${response.status} ${errorText}`);
       }
-      
-      console.log('→ status: success saved');
-      toast.success("File saved successfully!");
-      return true;
+
+      toast.success('File saved successfully');
+
+      // After successful save, fetch the latest version to ensure consistency
+      const refreshResponse = await fetch(
+        `/api/readFile?path=${encodeURIComponent(connectionId + ':' + filePath)}&t=${Date.now()}`,
+        {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache',
+          },
+        }
+      );
+
+      if (refreshResponse.ok) {
+        const refreshedContent = await refreshResponse.text();
+        return { success: true, content: refreshedContent };
+      }
+
+      return { success: true, content };
     } catch (error: any) {
-      console.log('→ status: exception saving, error:', error.message);
-      toast.error(`Failed to save file: ${error.message}`);
-      return false;
+      console.error('[useFileSave] Error saving file:', error);
+      toast.error(`Error saving file: ${error.message}`);
+      return { success: false, content: '' };
     } finally {
       setIsSaving(false);
     }
@@ -47,6 +73,6 @@ export function useFileSave() {
 
   return {
     isSaving,
-    saveFileContent
+    saveFileContent,
   };
 }

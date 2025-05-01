@@ -1,92 +1,54 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 /**
- * API endpoint for forcing refresh of file listing from FTP server
+ * API endpoint to refresh directory listing directly from FTP server
  */
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { connectionId, path = "/" } = await request.json();
+    const { connectionId, path = "/" } = await req.json();
     
     if (!connectionId) {
-      return new Response(JSON.stringify({
-        success: false,
-        message: "Connection ID is required"
-      }), { 
-        status: 400,
-        headers: { "Content-Type": "application/json" }
-      });
+      return NextResponse.json({ success: false, message: "Connection ID is required" }, { status: 400 });
     }
     
-    console.log(`[API refreshFromServer] Forcing refresh for connection: ${connectionId}, path: ${path}`);
+    console.log(`[API refreshFromServer] Refreshing directory: ${path} for connection: ${connectionId}`);
     
-    // Force a fresh directory listing from the FTP server
+    // Call the Supabase Edge Function directly with no caching
     const response = await supabase.functions.invoke("ftp-list", {
       body: { 
         siteId: connectionId, 
-        path: path,
-        forceRefresh: true, // Signal that this is a forced refresh
-        timestamp: Date.now() // Add timestamp to bust any cache
+        path,
+        refresh: true,  // Signal that this is a forced refresh
+        timestamp: Date.now()  // Cache-busting parameter
       }
     });
     
     if (response.error) {
-      console.error("[API refreshFromServer] Error from Edge Function:", response.error);
-      return new Response(JSON.stringify({
-        success: false,
-        message: response.error.message || "Failed to refresh directory listing"
-      }), { 
-        status: 500,
-        headers: { "Content-Type": "application/json" }
-      });
+      console.error("[API refreshFromServer] Error:", response.error);
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: response.error.message || "Failed to refresh from server" 
+        }, 
+        { status: 500 }
+      );
     }
     
-    console.log(`[API refreshFromServer] Successfully refreshed directory listing, found ${response.data?.files?.length || 0} files`);
-    
-    return new Response(JSON.stringify({
+    // Return the fresh data
+    return NextResponse.json({
       success: true,
       data: response.data,
-      message: `Successfully refreshed directory listing, found ${response.data?.files?.length || 0} files`
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" }
+      message: "Files refreshed successfully from server"
     });
-  } catch (err: any) {
-    console.error("[API refreshFromServer] Exception:", err);
-    return new Response(JSON.stringify({
-      success: false,
-      message: err.message || "Failed to refresh directory listing"
-    }), { 
-      status: 500,
-      headers: { "Content-Type": "application/json" }
-    });
+    
+  } catch (error: any) {
+    console.error("[API refreshFromServer] Exception:", error);
+    return NextResponse.json(
+      { success: false, message: error.message || "Internal server error" }, 
+      { status: 500 }
+    );
   }
-}
-
-/**
- * API endpoint for GET requests (for convenience)
- */
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const connectionId = url.searchParams.get('connectionId');
-  const path = url.searchParams.get('path') || "/";
-  
-  if (!connectionId) {
-    return new Response(JSON.stringify({
-      success: false,
-      message: "Connection ID is required"
-    }), { 
-      status: 400,
-      headers: { "Content-Type": "application/json" }
-    });
-  }
-  
-  // Create a mock request body for the POST handler
-  const mockRequest = new Request("", {
-    method: "POST",
-    body: JSON.stringify({ connectionId, path })
-  });
-  
-  // Call the POST handler
-  return POST(mockRequest);
 }
