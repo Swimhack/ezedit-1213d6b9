@@ -4,6 +4,11 @@ import { toast } from "sonner";
 import { listDir, getFile } from "@/lib/ftp";
 import { normalizePath } from "@/utils/path";
 
+// Helper function to add delay between retries
+const sleep = (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
 export function useFtpFileOperations() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,32 +62,79 @@ export function useFtpFileOperations() {
       console.log(`[fetchFileContent] Loading: ${filePath} from connection: ${connectionId}`);
       console.time(`[FTP] ${filePath}`);
       
-      // Use the recommended fetch logic with cache busting
-      const response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
+      // First attempt to fetch the file
+      let response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
         cache: "no-store",
         headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
       });
       
-      console.timeEnd(`[FTP] ${filePath}`);
+      let content = "";
+      
+      if (!response.ok) {
+        console.warn(`[fetchFileContent] First attempt failed with status ${response.status}, waiting 2 seconds before retry...`);
+        await sleep(2000); // 2-second delay before retry
+        
+        // Second attempt after delay
+        console.log(`[fetchFileContent] Retrying: ${filePath} from connection: ${connectionId}`);
+        response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+        });
+      }
       
       if (!response.ok) {
         const errorMsg = `Error ${response.status}: ${response.statusText}`;
-        console.log('→ status: error, bytes: 0, error:', errorMsg);
+        console.log('[fetchFileContent] → status: error, bytes: 0, error:', errorMsg);
         setError(errorMsg);
         toast.error(`Error loading file: ${errorMsg}`);
         setIsLoading(false);
         return Promise.reject(errorMsg);
       }
       
-      const content = await response.text();
-      console.log(`→ status: success, bytes: ${content.length}`);
+      content = await response.text();
+      
+      // If content is empty or invalid, retry after delay
+      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        console.warn('[fetchFileContent] Received empty or invalid content, waiting 2 seconds before retry...');
+        await sleep(2000); // 2-second delay before retry
+        
+        // Retry with fresh cache-busting
+        console.log(`[fetchFileContent] Retrying content fetch: ${filePath}`);
+        response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+        });
+        
+        if (!response.ok) {
+          const errorMsg = `Error on retry ${response.status}: ${response.statusText}`;
+          console.log('[fetchFileContent] → retry status: error, bytes: 0, error:', errorMsg);
+          setError(errorMsg);
+          toast.error(`Error loading file on retry: ${errorMsg}`);
+          setIsLoading(false);
+          return Promise.reject(errorMsg);
+        }
+        
+        content = await response.text();
+        
+        if (!content || typeof content !== 'string' || content.trim().length === 0) {
+          const errorMsg = "Failed to fetch valid file content after retry";
+          console.error('[fetchFileContent]', errorMsg);
+          setError(errorMsg);
+          toast.error(errorMsg);
+          setIsLoading(false);
+          return Promise.reject(new Error(errorMsg));
+        }
+      }
+      
+      console.timeEnd(`[FTP] ${filePath}`);
+      console.log(`[fetchFileContent] → status: success, bytes: ${content.length}`);
       setError(null);
       setIsLoading(false);
       return content;
       
     } catch (error: any) {
-      console.error("[useFtpFileOperations] File loading error:", error);
-      console.log('→ status: exception, bytes: 0, error:', error.message);
+      console.error("[fetchFileContent] File loading error:", error);
+      console.log('[fetchFileContent] → status: exception, bytes: 0, error:', error.message);
       setError(error.message || "Unknown error");
       toast.error(`Error loading file: ${error.message}`);
       setIsLoading(false);

@@ -1,8 +1,13 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+// Helper function to add delay between retries
+const sleep = (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
 /**
- * API endpoint for reading file content with cache busting
+ * API endpoint for reading file content with cache busting and retry mechanism
  */
 export async function GET(request: Request) {
   try {
@@ -25,8 +30,8 @@ export async function GET(request: Request) {
     
     console.log(`[API readFile] Reading file: ${filePath} from connection ${connectionId} (cache timestamp: ${timestamp || 'none'})`);
     
-    // Call the Supabase Edge Function to read the file
-    const { data, error } = await supabase.functions.invoke("sftp-file", {
+    // First attempt to call the Supabase Edge Function
+    let response = await supabase.functions.invoke("sftp-file", {
       body: { 
         siteId: connectionId, 
         path: filePath,
@@ -34,9 +39,25 @@ export async function GET(request: Request) {
       }
     });
     
-    if (error) {
-      console.error("[API readFile] Error from Edge Function:", error);
-      return new Response(error.message, { 
+    // Check if the first attempt failed or returned invalid data
+    if (response.error || !response.data || !response.data.content) {
+      console.warn(`[API readFile] First attempt failed or empty content, waiting 2 seconds before retry...`);
+      await sleep(2000); // 2-second delay before retry
+      
+      // Second attempt after delay
+      console.log(`[API readFile] Retrying file read: ${filePath} from connection ${connectionId}`);
+      response = await supabase.functions.invoke("sftp-file", {
+        body: { 
+          siteId: connectionId, 
+          path: filePath,
+          timestamp: Date.now() // Fresh timestamp for retry
+        }
+      });
+    }
+    
+    if (response.error) {
+      console.error("[API readFile] Error from Edge Function after retry:", response.error);
+      return new Response(response.error.message, { 
         status: 500,
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -45,8 +66,8 @@ export async function GET(request: Request) {
       });
     }
     
-    if (!data || !data.content) {
-      return new Response("File not found or empty", { 
+    if (!response.data || !response.data.content) {
+      return new Response("File not found or empty after retry", { 
         status: 404,
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -55,7 +76,7 @@ export async function GET(request: Request) {
       });
     }
     
-    return new Response(data.content, {
+    return new Response(response.data.content, {
       status: 200,
       headers: { 
         "Content-Type": "text/plain",
