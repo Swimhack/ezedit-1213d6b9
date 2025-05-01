@@ -1,18 +1,31 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader } from "lucide-react";
+import { useEffect } from "react";
+import { useTinyMCELogs } from "@/hooks/useTinyMCELogs";
 
 interface EditorStateDisplayProps {
   isLoading: boolean;
   error: string | null;
   onRetry?: () => void;
+  filePath?: string;
 }
 
 export function EditorStateDisplay({ 
   isLoading, 
   error, 
-  onRetry 
+  onRetry,
+  filePath
 }: EditorStateDisplayProps) {
+  const { addLog } = useTinyMCELogs();
+  
+  useEffect(() => {
+    if (error) {
+      // Log errors to both local storage and server
+      addLog(`Editor loading error: ${error} ${filePath ? `for file: ${filePath}` : ''}`, "error", "content");
+    }
+  }, [error, filePath, addLog]);
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8">
@@ -41,6 +54,9 @@ export function EditorStateDisplay({
               <li>File permissions on the FTP server</li>
               <li>The file may be too large or have special characters</li>
             </ul>
+            <p className="mt-2 text-xs">
+              This error has been logged for troubleshooting.
+            </p>
           </div>
         </div>
       </div>

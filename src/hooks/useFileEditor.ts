@@ -1,9 +1,9 @@
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useFileLoader } from "./useFileLoader";
 import { useFileSaver } from "./useFileSaver";
 import { detectLanguage } from "@/utils/file-language-detector";
+import { useTinyMCELogs } from "./useTinyMCELogs";
 
 /**
  * Main hook for file editing functionality
@@ -19,6 +19,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
   
   const { isLoading, error, loadFile, setError, setIsLoading } = useFileLoader();
   const { isSaving, saveFileContent } = useFileSaver();
+  const { addLog } = useTinyMCELogs();
   
   // Autosave timer reference
   const autoSaveTimerRef = useRef<number | null>(null);
@@ -46,7 +47,9 @@ export function useFileEditor(connectionId: string, filePath: string) {
    */
   const loadFileContent = useCallback(async () => {
     if (!connectionId || !filePath) {
-      setError("Missing connection ID or file path");
+      const errorMsg = "Missing connection ID or file path";
+      setError(errorMsg);
+      addLog(errorMsg, "error", "content");
       return "";
     }
     
@@ -54,6 +57,8 @@ export function useFileEditor(connectionId: string, filePath: string) {
       setIsLoading(true);
       setEditorContentReady(false);
       setContentValidated(false);
+      
+      addLog(`Attempting to load file: ${filePath} for connection: ${connectionId}`, "info", "content");
       
       // Fetch file content with cache busting
       const response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
@@ -66,17 +71,21 @@ export function useFileEditor(connectionId: string, filePath: string) {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+        const errorMsg = `HTTP error ${response.status}: ${response.statusText}`;
+        addLog(errorMsg, "error", "content");
+        throw new Error(errorMsg);
       }
       
       const content = await response.text();
       
       // Strictly validate content before setting it
       if (!content || typeof content !== 'string' || content.trim().length === 0) {
-        throw new Error("File content is invalid or empty");
+        const errorMsg = "File content is invalid or empty";
+        addLog(errorMsg, "error", "content");
+        throw new Error(errorMsg);
       }
       
-      console.log(`[useFileEditor] Content loaded successfully, length: ${content?.length || 0}`);
+      addLog(`Content loaded successfully, length: ${content?.length || 0}`, "info", "content");
       setCode(content);
       setEditorContentReady(true);
       setContentValidated(true);
@@ -85,16 +94,19 @@ export function useFileEditor(connectionId: string, filePath: string) {
       // Force editor update if using WYSIWYG
       if (editorRef.current && typeof editorRef.current.setContent === 'function') {
         try {
-          console.log("[useFileEditor] Forcing WYSIWYG editor update after load");
+          addLog("Forcing WYSIWYG editor update after load", "log", "content");
           editorRef.current.setContent(content);
         } catch (err) {
-          console.error("[useFileEditor] Error updating WYSIWYG editor after load:", err);
+          const errorMsg = `Error updating WYSIWYG editor after load: ${err instanceof Error ? err.message : String(err)}`;
+          addLog(errorMsg, "error", "content");
         }
       }
       
       return content;
     } catch (error: any) {
-      console.error(`[useFileEditor] Error loading file: ${filePath}`, error);
+      const errorMsg = `Error loading file: ${filePath} - ${error.message || "Unknown error"}`;
+      console.error(`[useFileEditor] ${errorMsg}`, error);
+      addLog(errorMsg, "error", "content");
       setError(error.message || "Failed to load file");
       setEditorContentReady(false);
       setContentValidated(false);
@@ -102,7 +114,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [connectionId, filePath, setError, setIsLoading]);
+  }, [connectionId, filePath, setError, setIsLoading, addLog]);
   
   /**
    * Save file content to FTP connection

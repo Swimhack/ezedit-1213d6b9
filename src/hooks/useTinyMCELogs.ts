@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface TinyMCELog {
   message: string;
@@ -21,7 +22,7 @@ export function useTinyMCELogs() {
     
     setLogs(prevLogs => {
       const updatedLogs = [newLog, ...prevLogs].slice(0, 100);
-      localStorage.setItem("tinyMCELogs", JSON.stringify(updatedLogs));
+      localStorage.setItem("tinymce_logs", JSON.stringify(updatedLogs));
       return updatedLogs;
     });
     
@@ -39,11 +40,29 @@ export function useTinyMCELogs() {
       default:
         console.log(`[TinyMCE-${source}]`, message);
     }
+    
+    // Send critical errors to the edge function logs
+    if (type === "error" && source === "content") {
+      sendLogToServer(message, type, source)
+        .catch(err => console.error("Failed to send log to server:", err));
+    }
+  };
+  
+  // Function to send logs to Supabase edge function
+  const sendLogToServer = async (message: string, level: string, source: string) => {
+    try {
+      await supabase.functions.invoke('wysiwyg-ai-logs', {
+        method: 'POST',
+        body: { message, level, source }
+      });
+    } catch (error) {
+      console.error("Error sending log to server:", error);
+    }
   };
   
   useEffect(() => {
     // Load any existing logs from localStorage
-    const storedLogs = localStorage.getItem("tinyMCELogs");
+    const storedLogs = localStorage.getItem("tinymce_logs");
     if (storedLogs) {
       try {
         setLogs(JSON.parse(storedLogs));
@@ -55,7 +74,7 @@ export function useTinyMCELogs() {
   
   const clearLogs = () => {
     setLogs([]);
-    localStorage.removeItem("tinyMCELogs");
+    localStorage.removeItem("tinymce_logs");
   };
   
   return { logs, addLog, clearLogs };

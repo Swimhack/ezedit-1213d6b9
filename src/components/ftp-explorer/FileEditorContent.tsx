@@ -2,7 +2,7 @@
 import React from "react";
 import { SplitEditor } from "@/components/editor/SplitEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EditorStateDisplay } from "./EditorStateDisplay";
+import { EditorStateDisplay } from "@/components/editor/EditorStateDisplay";
 
 interface FileEditorContentProps {
   filePath: string;
@@ -39,6 +39,7 @@ export function FileEditorContent({
         isLoading={isLoading}
         error={error}
         onRetry={onRetry}
+        filePath={filePath}
       />
     );
   }

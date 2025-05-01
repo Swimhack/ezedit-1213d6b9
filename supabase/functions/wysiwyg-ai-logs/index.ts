@@ -1,10 +1,13 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// In-memory cache of recent logs (for quick retrieval without DB calls)
+const recentLogs = [];
+const MAX_LOGS = 100;
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -55,7 +58,8 @@ serve(async (req) => {
           event_type: "Log", 
           level: "log",
           function_id: "wysiwyg-ai"
-        }
+        },
+        ...recentLogs // Add any collected real-time logs
       ];
 
       return new Response(JSON.stringify(mockLogs), {
@@ -63,11 +67,26 @@ serve(async (req) => {
       });
     }
     
-    // For POST requests, log the data (in a real implementation you'd store in a database)
+    // For POST requests, log the data
     if (req.method === 'POST') {
-      const { message, level, source } = await req.json();
+      const { message, level = "log", source = "editor" } = await req.json();
       
-      console.log(`[WYSIWYG-${source || 'editor'}] ${message}`);
+      console.log(`[WYSIWYG-${source}] ${message}`);
+      
+      // Store in our in-memory cache
+      recentLogs.unshift({
+        id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        timestamp: new Date().toISOString(),
+        event_message: message,
+        event_type: "Log",
+        level: level,
+        function_id: source || "wysiwyg-ai"
+      });
+      
+      // Keep only the last MAX_LOGS entries
+      if (recentLogs.length > MAX_LOGS) {
+        recentLogs.length = MAX_LOGS;
+      }
       
       return new Response(JSON.stringify({ 
         success: true, 

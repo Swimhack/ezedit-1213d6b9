@@ -95,11 +95,6 @@ export function FileEditorModal({
     }
   };
 
-  const handleRetry = () => {
-    toast.info("Retrying file load...");
-    setLoadAttempts(prev => prev + 1);
-  };
-
   // Check if file can be edited in WYSIWYG mode
   const supportsWysiwyg = /\.(html?|htm|php)$/i.test(filePath);
 
@@ -130,6 +125,7 @@ export function FileEditorModal({
           isLoading={isLoading}
           error={error}
           onRetry={handleRetry}
+          filePath={filePath}
         />
         
         {!isLoading && !error && (
