@@ -49,6 +49,14 @@ interface FileExplorerState {
   resetStore: () => void;
 }
 
+// Define the file tree cache state interface
+interface FileTreeCacheState {
+  cache: Record<string, Record<string, any[]>>;
+  cacheTreeData: (connectionId: string, path: string, data: any[]) => void;
+  getCachedTreeData: (connectionId: string, path: string) => any[] | null;
+  clearCache: (connectionId?: string) => void;
+}
+
 const initialState = {
   activeConnection: null,
   currentPath: "/",
@@ -79,4 +87,32 @@ export const useFileExplorerStore = create<FileExplorerState>((set) => ({
   setShowAIAssistant: (showAIAssistant) => set({ showAIAssistant }),
 
   resetStore: () => set(initialState),
+}));
+
+// Create and export the file tree cache store
+export const useFileTreeCache = create<FileTreeCacheState>((set, get) => ({
+  cache: {},
+  
+  cacheTreeData: (connectionId, path, data) => set(state => {
+    const newCache = { ...state.cache };
+    if (!newCache[connectionId]) {
+      newCache[connectionId] = {};
+    }
+    newCache[connectionId][path] = data;
+    return { cache: newCache };
+  }),
+  
+  getCachedTreeData: (connectionId, path) => {
+    const cache = get().cache;
+    return cache[connectionId]?.[path] || null;
+  },
+  
+  clearCache: (connectionId) => set(state => {
+    if (connectionId) {
+      const newCache = { ...state.cache };
+      delete newCache[connectionId];
+      return { cache: newCache };
+    }
+    return { cache: {} };
+  })
 }));

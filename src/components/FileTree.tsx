@@ -39,7 +39,7 @@ export default function FileTree({ connection, onSelectFile, activeFilePath }: F
                   key={node.path}
                   node={node}
                   activeFilePath={activeFilePath}
-                  onToggle={toggleDirectory}
+                  onToggle={() => toggleDirectory(node.path)}
                   onSelectFile={onSelectFile}
                 />
               ))}

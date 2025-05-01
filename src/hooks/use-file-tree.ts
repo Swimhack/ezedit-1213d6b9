@@ -19,16 +19,25 @@ interface TreeNode {
   isFolder: boolean;
   isOpen: boolean;
   isLoaded: boolean;
+  children?: TreeNode[];
   size?: number;
   modified?: string | Date | null;
+  isDirectory?: boolean; // Add this for compatibility
 }
 
-export function useFileTree(connectionId: string) {
+interface UseFileTreeProps {
+  connection: {
+    id: string;
+  };
+}
+
+export function useFileTree({ connection }: UseFileTreeProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('/');
   const { cacheTreeData, getCachedTreeData } = useFileTreeCache();
+  const connectionId = connection?.id;
 
   const loadDirectory = useCallback(async (path: string) => {
     if (!connectionId) {
@@ -84,6 +93,7 @@ export function useFileTree(connectionId: string) {
           isFolder: file.isDirectory,
           isOpen: false,
           isLoaded: false,
+          isDirectory: file.isDirectory, // Add this for compatibility
           size: file.size,
           modified: file.modified // Use the server-provided modification date
         }));
@@ -106,6 +116,24 @@ export function useFileTree(connectionId: string) {
     }
   }, [connectionId, cacheTreeData, getCachedTreeData]);
 
+  const toggleDirectory = useCallback((nodeId: string) => {
+    setTreeData(prevData => {
+      return prevData.map(node => {
+        if (node.path === nodeId) {
+          // Toggle the open state
+          return { ...node, isOpen: !node.isOpen };
+        }
+        return node;
+      });
+    });
+    
+    // If this is a directory, load its contents
+    const node = treeData.find(node => node.path === nodeId);
+    if (node && node.isFolder && !node.isLoaded) {
+      loadDirectory(nodeId);
+    }
+  }, [treeData, loadDirectory]);
+
   const refreshDirectory = useCallback(() => {
     loadDirectory(currentPath);
   }, [currentPath, loadDirectory]);
@@ -116,6 +144,7 @@ export function useFileTree(connectionId: string) {
     error,
     currentPath,
     loadDirectory,
-    refreshDirectory
+    refreshDirectory,
+    toggleDirectory
   };
 }
