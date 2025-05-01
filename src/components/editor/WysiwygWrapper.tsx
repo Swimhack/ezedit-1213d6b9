@@ -33,8 +33,25 @@ export function WysiwygWrapper({
       console.log('[WysiwygWrapper] Code prop updated, length:', code?.length || 0);
       setEditorContent(code);
       setIsContentReady(true);
+      
+      // Update preview
+      updatePreview(code);
     }
   }, [code]);
+
+  const updatePreview = (content: string) => {
+    if (!previewIframeId) return;
+    
+    const previewFrame = document.querySelector(`#${previewIframeId}`) as HTMLIFrameElement;
+    if (previewFrame) {
+      try {
+        console.log('[WysiwygWrapper] Updating preview iframe with content');
+        previewFrame.srcdoc = content;
+      } catch (err) {
+        console.error('[WysiwygWrapper] Error updating preview:', err);
+      }
+    }
+  };
 
   const loadFileContent = async (path: string) => {
     console.log(`[WysiwygWrapper] Loading file content: ${path}`);
@@ -57,6 +74,9 @@ export function WysiwygWrapper({
       setEditorContent(content);
       setIsContentReady(true);
       onCodeChange(content); // Update parent component
+      
+      // Update preview
+      updatePreview(content);
     } catch (err) {
       console.error(`[WysiwygWrapper] Error loading file: ${path}`, err);
       setIsContentReady(false);
@@ -67,7 +87,10 @@ export function WysiwygWrapper({
     console.log('[WysiwygWrapper] TinyMCE content changed, length:', newContent?.length || 0);
     setEditorContent(newContent);
     onCodeChange(newContent);
-  }, [onCodeChange]);
+    
+    // Update preview
+    updatePreview(newContent);
+  }, [onCodeChange, previewIframeId]);
 
   if (!isContentReady || !editorContent || typeof editorContent !== 'string') {
     return (

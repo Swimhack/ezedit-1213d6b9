@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from "react";
 
 interface PreviewFrameProps {
   previewSrc: string;
@@ -18,31 +18,48 @@ export function PreviewFrame({
   isLoading,
   code
 }: PreviewFrameProps) {
+  // Effect to update iframe content directly when code changes
+  useEffect(() => {
+    if (!contentReady || !code || isLoading) return;
+    
+    const iframe = document.getElementById(previewIframeId) as HTMLIFrameElement;
+    if (iframe) {
+      try {
+        console.log('[PreviewFrame] Updating iframe with new content');
+        iframe.srcdoc = code;
+      } catch (err) {
+        console.error('[PreviewFrame] Error updating iframe:', err);
+      }
+    }
+  }, [code, contentReady, previewKey]);
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mr-3"></div>
-        <span>Loading file...</span>
+      <div className="flex items-center justify-center h-full bg-white">
+        <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
+        <span>Loading preview...</span>
       </div>
     );
   }
 
-  if (!contentReady || !code) {
+  if (!contentReady) {
     return (
-      <div className="flex items-center justify-center h-full text-red-500">
-        <span>Error: file is empty or failed to load</span>
+      <div className="flex items-center justify-center h-full bg-white">
+        <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
+        <span>Preparing preview...</span>
       </div>
     );
   }
 
+  // For HTML content, directly use the code as srcdoc
   return (
-    <iframe 
+    <iframe
       id={previewIframeId}
       key={previewKey}
-      srcDoc={previewSrc}
+      srcDoc={code || previewSrc}
       className="w-full h-full border-0"
-      sandbox="allow-scripts"
       title="Preview"
+      sandbox="allow-same-origin allow-scripts allow-forms"
     />
   );
 }

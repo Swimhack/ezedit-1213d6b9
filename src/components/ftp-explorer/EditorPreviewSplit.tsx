@@ -32,6 +32,7 @@ export function EditorPreviewSplit({
   const previewIframeId = "preview-iframe-" + Math.random().toString(36).substring(2, 9);
   const [editorLoading, setEditorLoading] = useState(true);
   const [editorContent, setEditorContent] = useState<string>('');
+  const [previewContent, setPreviewContent] = useState<string>('');
   const [contentReady, setContentReady] = useState(false);
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [lastFilePath, setLastFilePath] = useState<string>('');
@@ -62,11 +63,23 @@ export function EditorPreviewSplit({
     if (typeof code === 'string') {
       console.log(`[EditorPreviewSplit] Code received, length: ${code?.length || 0}, filePath: ${filePath}`);
       setEditorContent(code);
+      setPreviewContent(code);
       setContentReady(true);
       setIsEditorReady(true);
       
       // Refresh preview when code changes
       setPreviewKey(prev => prev + 1);
+      
+      // Update preview iframe directly if it exists
+      const previewFrame = document.getElementById(previewIframeId) as HTMLIFrameElement;
+      if (previewFrame && code) {
+        try {
+          console.log('[EditorPreviewSplit] Directly updating preview iframe');
+          previewFrame.srcdoc = code;
+        } catch (err) {
+          console.error('[EditorPreviewSplit] Error directly updating preview:', err);
+        }
+      }
     } else {
       console.warn(`[EditorPreviewSplit] Code is undefined or not a string for file: ${filePath}`);
       setContentReady(false);
@@ -100,15 +113,27 @@ export function EditorPreviewSplit({
       console.log(`[EditorPreviewSplit] File content loaded, length: ${content.length}`);
       
       setEditorContent(content);
+      setPreviewContent(content);
       setContentReady(true);
       setIsEditorReady(true);
+      setEditorLoading(false);
       onCodeChange(content);
       
       // Force preview update
       setPreviewKey(prev => prev + 1);
+      
+      // Update preview iframe directly if it exists
+      const previewFrame = document.getElementById(previewIframeId) as HTMLIFrameElement;
+      if (previewFrame && content) {
+        try {
+          console.log('[EditorPreviewSplit] Directly updating preview iframe after load');
+          previewFrame.srcdoc = content;
+        } catch (err) {
+          console.error('[EditorPreviewSplit] Error directly updating preview after load:', err);
+        }
+      }
     } catch (err) {
       console.error(`[EditorPreviewSplit] Error loading file: ${path}`, err);
-    } finally {
       setEditorLoading(false);
     }
   };
@@ -135,7 +160,19 @@ export function EditorPreviewSplit({
     if (newContent !== undefined) {
       console.log('[EditorPreviewSplit] Editor content changed, length:', newContent.length);
       setEditorContent(newContent);
+      setPreviewContent(newContent);
       onCodeChange(newContent);
+      
+      // Update preview iframe directly if it exists
+      const previewFrame = document.getElementById(previewIframeId) as HTMLIFrameElement;
+      if (previewFrame && newContent) {
+        try {
+          console.log('[EditorPreviewSplit] Directly updating preview iframe after content change');
+          previewFrame.srcdoc = newContent;
+        } catch (err) {
+          console.error('[EditorPreviewSplit] Error directly updating preview after content change:', err);
+        }
+      }
     }
   };
 
@@ -215,11 +252,11 @@ export function EditorPreviewSplit({
       <div className="preview flex-1 min-h-0 overflow-auto bg-white">
         <PreviewToolbar onManualRefresh={handleManualRefresh} />
         <PreviewFrame
-          previewSrc={previewSrc}
+          previewSrc={previewContent || previewSrc}
           previewKey={previewKey}
           previewIframeId={previewIframeId}
           contentReady={contentReady}
-          isLoading={previewLoading}
+          isLoading={previewLoading && !previewContent}
           code={editorContent}
         />
       </div>

@@ -30,7 +30,19 @@ export function WysiwygEditor({ content, onChange, previewSelector, editorRef }:
     console.log('[WysiwygEditor] Content changed, length:', newContent?.length || 0);
     setEditorContent(newContent);
     onChange(newContent);
-  }, [onChange]);
+    
+    // Update preview if selector is provided
+    if (previewSelector) {
+      const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
+      if (previewFrame) {
+        try {
+          previewFrame.srcdoc = newContent;
+        } catch (err) {
+          console.error('[WysiwygEditor] Error updating preview:', err);
+        }
+      }
+    }
+  }, [onChange, previewSelector]);
 
   if (!isEditorReady || !editorContent || typeof editorContent !== 'string') {
     return (
