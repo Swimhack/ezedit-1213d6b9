@@ -1,5 +1,6 @@
 
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 interface FileLoadEffectProps {
   isOpen: boolean;
@@ -23,13 +24,25 @@ export function useFileLoadEffect({
     if (isOpen && connectionId && filePath) {
       console.log(`[useFileLoadEffect] Loading file ${filePath} (refresh: ${forceRefresh})`);
       
-      loadFile().then(() => {
-        // Detect file type and set appropriate editor mode if handler is provided
-        if (setEditorMode) {
-          const isHtml = /\.(html?|htm|php)$/i.test(filePath);
-          setEditorMode(isHtml ? 'wysiwyg' : 'code');
-        }
-      });
+      loadFile()
+        .then((content) => {
+          // Validate content
+          if (!content || typeof content !== 'string' || content.trim().length === 0) {
+            throw new Error("Invalid or empty file content received");
+          }
+          
+          console.log(`[useFileLoadEffect] File loaded successfully, content length: ${content.length}`);
+          
+          // Detect file type and set appropriate editor mode if handler is provided
+          if (setEditorMode) {
+            const isHtml = /\.(html?|htm|php)$/i.test(filePath);
+            setEditorMode(isHtml ? 'wysiwyg' : 'code');
+          }
+        })
+        .catch((error) => {
+          console.error(`[useFileLoadEffect] Error loading file: ${error.message}`);
+          toast.error(`Failed to load file: ${error.message}`);
+        });
     }
   }, [isOpen, connectionId, filePath, forceRefresh, loadFile, setEditorMode]);
 }

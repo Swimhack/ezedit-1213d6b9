@@ -39,6 +39,7 @@ export function FileEditorModal({
     autoSaveEnabled,
     isAutoSaving,
     editorContentReady,
+    contentValidated,
     handleCodeChange,
     handleSave,
     loadFile,
@@ -125,7 +126,7 @@ export function FileEditorModal({
                 detectLanguage={detectLanguage}
                 editorMode={editorMode}
                 forceRefresh={forceRefresh}
-                editorContentReady={editorContentReady}
+                editorContentReady={editorContentReady && contentValidated}
             />
             
             <ClineChatDrawer

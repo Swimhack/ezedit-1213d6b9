@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useFileLoader } from "./useFileLoader";
@@ -13,6 +14,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [editorContentReady, setEditorContentReady] = useState(false);
+  const [contentValidated, setContentValidated] = useState(false);
   const editorRef = useRef<any>(null);
   
   const { isLoading, error, loadFile, setError, setIsLoading } = useFileLoader();
@@ -25,6 +27,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
   useEffect(() => {
     setHasUnsavedChanges(false);
     setEditorContentReady(false);
+    setContentValidated(false);
     
     // Clear any pending autosave when file changes
     if (autoSaveTimerRef.current) {
@@ -50,6 +53,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
     try {
       setIsLoading(true);
       setEditorContentReady(false);
+      setContentValidated(false);
       
       // Fetch file content with cache busting
       const response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
@@ -67,9 +71,15 @@ export function useFileEditor(connectionId: string, filePath: string) {
       
       const content = await response.text();
       
+      // Validate content before setting it
+      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        throw new Error("File content is invalid or empty");
+      }
+      
       console.log(`[useFileEditor] Content loaded successfully, length: ${content?.length || 0}`);
       setCode(content);
       setEditorContentReady(true);
+      setContentValidated(true);
       setHasUnsavedChanges(false);
       
       // Force editor update if using WYSIWYG
@@ -86,6 +96,8 @@ export function useFileEditor(connectionId: string, filePath: string) {
     } catch (error: any) {
       console.error(`[useFileEditor] Error loading file: ${filePath}`, error);
       setError(error.message || "Failed to load file");
+      setEditorContentReady(false);
+      setContentValidated(false);
       return "";
     } finally {
       setIsLoading(false);
@@ -98,6 +110,12 @@ export function useFileEditor(connectionId: string, filePath: string) {
   const handleSave = async () => {
     if (!connectionId || !filePath || code === undefined) {
       toast.error("Missing data for saving");
+      return;
+    }
+    
+    // Don't allow save if content is invalid
+    if (!contentValidated || code.trim().length === 0) {
+      toast.error("Cannot save invalid or empty file content");
       return;
     }
     
@@ -137,8 +155,8 @@ export function useFileEditor(connectionId: string, filePath: string) {
       setCode(newCode);
       setHasUnsavedChanges(true);
       
-      // Trigger autosave if enabled
-      if (autoSaveEnabled) {
+      // Only trigger autosave if content is validated and editor is ready
+      if (autoSaveEnabled && contentValidated && editorContentReady) {
         // Clear any existing timer
         if (autoSaveTimerRef.current) {
           clearTimeout(autoSaveTimerRef.current);
@@ -148,7 +166,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
         setIsAutoSaving(true);
         autoSaveTimerRef.current = window.setTimeout(async () => {
           console.log("[useFileEditor] Autosaving...");
-          if (connectionId && filePath && newCode !== undefined) {
+          if (connectionId && filePath && newCode !== undefined && newCode.trim().length > 0) {
             const result = await saveFileContent(connectionId, filePath, newCode);
             
             if (result.success) {
@@ -176,7 +194,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
               });
             }
           } else {
-            console.error("[useFileEditor] Cannot autosave - missing data");
+            console.error("[useFileEditor] Cannot autosave - missing data or invalid content");
           }
           setIsAutoSaving(false);
           autoSaveTimerRef.current = null;
@@ -193,6 +211,13 @@ export function useFileEditor(connectionId: string, filePath: string) {
     toast.info(`Autosave ${!autoSaveEnabled ? 'enabled' : 'disabled'}`, {
       duration: 2000,
     });
+    
+    // Clear any pending autosave when disabled
+    if (autoSaveEnabled && autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+      setIsAutoSaving(false);
+    }
   };
   
   /**
@@ -203,8 +228,16 @@ export function useFileEditor(connectionId: string, filePath: string) {
     
     setIsLoading(true);
     setEditorContentReady(false);
+    setContentValidated(false);
     
     try {
+      // Clear any pending autosave
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+        setIsAutoSaving(false);
+      }
+      
       // Use cache busting technique
       const response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
         method: "GET",
@@ -220,9 +253,16 @@ export function useFileEditor(connectionId: string, filePath: string) {
       }
       
       const content = await response.text();
+      
+      // Validate content before setting it
+      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        throw new Error("File content is invalid or empty");
+      }
+      
       console.log(`[useFileEditor] Content refreshed successfully, length: ${content.length}`);
       setCode(content);
       setEditorContentReady(true);
+      setContentValidated(true);
       setHasUnsavedChanges(false);
       
       // Force editor update if using WYSIWYG
@@ -239,6 +279,8 @@ export function useFileEditor(connectionId: string, filePath: string) {
     } catch (error: any) {
       console.error(`[useFileEditor] Error refreshing file: ${filePath}`, error);
       setError(error.message || "Failed to refresh file");
+      setEditorContentReady(false);
+      setContentValidated(false);
       throw error;
     } finally {
       setIsLoading(false);
@@ -264,6 +306,7 @@ export function useFileEditor(connectionId: string, filePath: string) {
     isAutoSaving,
     editorRef,
     editorContentReady,
+    contentValidated,
     handleCodeChange,
     handleSave,
     loadFile: loadFileContent,

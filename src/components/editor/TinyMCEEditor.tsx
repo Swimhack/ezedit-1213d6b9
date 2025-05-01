@@ -22,21 +22,32 @@ export function TinyMCEEditor({
   const editorRef = externalEditorRef || internalEditorRef;
   const { theme } = useTheme();
   const [editorInitialized, setEditorInitialized] = useState<boolean>(false);
+  const [isContentValid, setIsContentValid] = useState<boolean>(false);
   
   // Use the provided API key directly
   const apiKey = "q8smw06bbgh2t6wcki98o8ja4l5bco8g7k6tgfapjboh81tv";
 
-  // Update editor content when prop changes
+  // Validate content on mount and when it changes
   useEffect(() => {
-    if (editorInitialized && editorRef.current && content) {
+    if (content && typeof content === 'string' && content.trim().length > 0) {
+      console.log('[TinyMCE] Content validated, length:', content.length);
+      setIsContentValid(true);
+    } else {
+      console.error('[TinyMCE] Invalid content provided:', content);
+      setIsContentValid(false);
+    }
+  }, [content]);
+
+  // Update editor content when prop changes and content is valid
+  useEffect(() => {
+    if (editorInitialized && editorRef.current && isContentValid) {
       console.log('[TinyMCE] Content prop changed, updating editor content. Length:', content.length);
       editorRef.current.setContent(content);
     }
-  }, [content, editorInitialized, editorRef]);
+  }, [content, editorInitialized, editorRef, isContentValid]);
   
   // Check if content is valid
-  if (!content || typeof content !== 'string') {
-    console.error('[TinyMCE] Invalid content provided:', content);
+  if (!isContentValid) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="h-6 w-6 animate-spin mr-2 rounded-full border-2 border-b-transparent border-primary"></div>
@@ -53,27 +64,31 @@ export function TinyMCEEditor({
         setEditorInitialized(true);
         console.log('[TinyMCE] Editor initialized');
         
-        // Set content right after initialization
+        // Set content right after initialization if it's valid
         try {
-          console.log('[TinyMCE] Setting initial content, length:', content.length);
-          editor.setContent(content);
+          if (isContentValid) {
+            console.log('[TinyMCE] Setting initial content, length:', content.length);
+            editor.setContent(content);
+          }
         } catch (err) {
           console.error('[TinyMCE] Error setting initial content:', err);
         }
       }}
-      initialValue={content}
+      initialValue={isContentValid ? content : ""}
       onEditorChange={(newContent, editor) => {
-        console.log('[TinyMCE] Content changed via onEditorChange, new length:', newContent.length);
-        onChange(newContent);
-        
-        // Update preview if selector provided
-        if (previewSelector && editorInitialized) {
-          const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
-          if (previewFrame) {
-            try {
-              previewFrame.srcdoc = newContent;
-            } catch (err) {
-              console.error('[TinyMCE] Error updating preview:', err);
+        if (newContent && newContent.trim().length > 0) {
+          console.log('[TinyMCE] Content changed via onEditorChange, new length:', newContent.length);
+          onChange(newContent);
+          
+          // Update preview if selector provided
+          if (previewSelector && editorInitialized) {
+            const previewFrame = document.querySelector(previewSelector) as HTMLIFrameElement;
+            if (previewFrame) {
+              try {
+                previewFrame.srcdoc = newContent;
+              } catch (err) {
+                console.error('[TinyMCE] Error updating preview:', err);
+              }
             }
           }
         }
