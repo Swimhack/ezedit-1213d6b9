@@ -78,30 +78,30 @@ export type Database = {
       ftp_credentials: {
         Row: {
           created_at: string
-          host: string
+          encrypted_password: string
           id: string
-          password: string
           port: number
+          server_url: string
           updated_at: string
           user_id: string
           username: string
         }
         Insert: {
           created_at?: string
-          host: string
+          encrypted_password: string
           id?: string
-          password: string
           port?: number
+          server_url: string
           updated_at?: string
           user_id: string
           username: string
         }
         Update: {
           created_at?: string
-          host?: string
+          encrypted_password?: string
           id?: string
-          password?: string
           port?: number
+          server_url?: string
           updated_at?: string
           user_id?: string
           username?: string
