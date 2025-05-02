@@ -51,22 +51,37 @@ export function FTPFileList({
 
   const formatDate = (dateValue: any) => {
     try {
+      if (!dateValue) return "Unknown date";
+      
       // Handle different date formats that might come from the server
       if (dateValue instanceof Date) {
+        if (isNaN(dateValue.getTime())) {
+          return "Unknown date";
+        }
         return format(dateValue, "MMM d, yyyy HH:mm");
       }
       
       // If it's a string that can be parsed as a date
       if (typeof dateValue === 'string') {
+        // Prevent invalid date strings from being parsed
+        if (!dateValue.trim()) return "Unknown date";
+        
         const date = new Date(dateValue);
         if (!isNaN(date.getTime())) {
           return format(date, "MMM d, yyyy HH:mm");
         }
+        return "Unknown date";
       }
       
       // If it's a number (timestamp)
       if (typeof dateValue === 'number') {
-        return format(new Date(dateValue), "MMM d, yyyy HH:mm");
+        if (isNaN(dateValue) || dateValue < 0) return "Unknown date";
+        
+        const date = new Date(dateValue);
+        if (!isNaN(date.getTime())) {
+          return format(date, "MMM d, yyyy HH:mm");
+        }
+        return "Unknown date";
       }
       
       return "Unknown date";
@@ -160,3 +175,4 @@ export function FTPFileList({
     </div>
   );
 }
+

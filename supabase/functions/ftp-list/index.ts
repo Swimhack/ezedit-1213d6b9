@@ -26,20 +26,39 @@ function safeFormatDate(dateInput: any): string | null {
     
     // Handle Date objects
     if (dateInput instanceof Date) {
-      return dateInput.toISOString();
+      if (!isNaN(dateInput.getTime())) {
+        return dateInput.toISOString();
+      }
+      return new Date().toISOString(); // Use current date as fallback for invalid dates
     }
     
     // Handle timestamps
     if (typeof dateInput === 'number') {
-      return new Date(dateInput).toISOString();
+      if (isNaN(dateInput) || dateInput < 0) {
+        return new Date().toISOString();
+      }
+      const date = new Date(dateInput);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+      return new Date().toISOString();
     }
     
     // If it's an object with a toString method
     if (dateInput && typeof dateInput.toString === 'function') {
-      return dateInput.toString();
+      try {
+        const dateStr = dateInput.toString();
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString();
+        }
+      } catch (e) {
+        // Fall through to default
+      }
     }
     
-    return null;
+    // Return current date as fallback
+    return new Date().toISOString();
   } catch (e) {
     console.error("[FTP-LIST] Date formatting error:", e, "Value:", dateInput);
     // Return current date as fallback
@@ -94,7 +113,7 @@ serve(async (req) => {
         console.log(`[FTP-LIST] Successfully listed directory "${path}" with LIST. Found ${list.length} entries`);
       }
       
-      // Format entries using the exact server-provided values
+      // Format entries using the exact server-provided values but with safer date handling
       const formattedEntries = list.map(entry => {
         // Handle modification date safely
         let modifiedDate = null;

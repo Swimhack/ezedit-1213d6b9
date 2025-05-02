@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { listDir } from "@/lib/ftp";
 import { normalizePath } from "@/utils/path";
+import { safeFormatDate } from "@/utils/ftp-utils";
 
 export function useFtpDirectoryOperations() {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,10 +28,16 @@ export function useFtpDirectoryOperations() {
       console.log("[loadDirectory] Result:", result);
       
       if (result && result.data && result.data.files) {
-        // Pass through the exact server-provided file metadata without modification
-        console.log(`[loadDirectory] Files received: ${result.data.files.length}`);
+        // Process file data to ensure valid dates before passing it on
+        const processedFiles = result.data.files.map(file => ({
+          ...file,
+          // Ensure modified date is always valid
+          modified: safeFormatDate(file.modified) || new Date().toISOString()
+        }));
+        
+        console.log(`[loadDirectory] Files received: ${processedFiles.length}`);
         return {
-          files: result.data.files,
+          files: processedFiles,
           path: normalizedPath
         };
       } else {
@@ -77,9 +84,16 @@ export function useFtpDirectoryOperations() {
       const result = await response.json();
       
       if (result.success && result.data && result.data.files) {
+        // Process file data to ensure valid dates before passing it on
+        const processedFiles = result.data.files.map(file => ({
+          ...file,
+          // Ensure modified date is always valid
+          modified: safeFormatDate(file.modified) || new Date().toISOString()
+        }));
+        
         toast.success("Files refreshed from server");
         return {
-          files: result.data.files,
+          files: processedFiles,
           path: normalizedPath
         };
       } else {
