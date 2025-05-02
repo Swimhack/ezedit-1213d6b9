@@ -29,11 +29,14 @@ export function useFtpDirectoryOperations() {
       
       if (result && result.data && result.data.files) {
         // Process file data to ensure valid dates before passing it on
-        const processedFiles = result.data.files.map(file => ({
-          ...file,
-          // Ensure modified date is always valid
-          modified: safeFormatDate(file.modified) || new Date().toISOString()
-        }));
+        const processedFiles = result.data.files.map(file => {
+          // Ensure we have valid dates to prevent "Invalid time value" errors
+          const safeDate = safeFormatDate(file.modified);
+          return {
+            ...file,
+            modified: safeDate
+          };
+        });
         
         console.log(`[loadDirectory] Files received: ${processedFiles.length}`);
         return {
@@ -85,11 +88,14 @@ export function useFtpDirectoryOperations() {
       
       if (result.success && result.data && result.data.files) {
         // Process file data to ensure valid dates before passing it on
-        const processedFiles = result.data.files.map(file => ({
-          ...file,
-          // Ensure modified date is always valid
-          modified: safeFormatDate(file.modified) || new Date().toISOString()
-        }));
+        const processedFiles = result.data.files.map(file => {
+          // Ensure we have valid dates
+          const safeDate = safeFormatDate(file.modified);
+          return {
+            ...file,
+            modified: safeDate
+          };
+        });
         
         toast.success("Files refreshed from server");
         return {

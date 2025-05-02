@@ -34,20 +34,40 @@ export const createCacheBuster = (): string => {
 
 /**
  * Safely format date values, catching and handling invalid date inputs
+ * This enhanced version handles all edge cases like invalid dates, undefined values,
+ * and various date formats
+ * 
  * @param dateInput Any potential date value
- * @returns ISO string date or null if invalid
+ * @returns ISO string date or fallback date if invalid
  */
-export const safeFormatDate = (dateInput: any): string | null => {
-  if (!dateInput) return null;
+export const safeFormatDate = (dateInput: any): string => {
+  // Return current date as fallback if input is falsy
+  if (!dateInput) {
+    return new Date().toISOString();
+  }
   
   try {
     // Handle string dates
     if (typeof dateInput === 'string') {
+      // If it looks like a timestamp, try to parse it as a number
+      if (/^\d+$/.test(dateInput)) {
+        const timestamp = parseInt(dateInput, 10);
+        if (!isNaN(timestamp)) {
+          const date = new Date(timestamp);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString();
+          }
+        }
+      }
+      
+      // Try parsing as date string
       const date = new Date(dateInput);
       if (!isNaN(date.getTime())) {
         return date.toISOString();
       }
-      return dateInput; // Return original string if it can't be parsed
+      
+      // If we couldn't parse it, return current date
+      return new Date().toISOString();
     }
     
     // Handle Date objects
@@ -55,23 +75,28 @@ export const safeFormatDate = (dateInput: any): string | null => {
       if (!isNaN(dateInput.getTime())) {
         return dateInput.toISOString();
       }
-      return null; // Return null for invalid Date objects
+      return new Date().toISOString();
     }
     
-    // Handle timestamps
+    // Handle timestamps (numbers)
     if (typeof dateInput === 'number') {
-      if (isNaN(dateInput) || dateInput < 0) return null;
+      if (isNaN(dateInput) || dateInput < 0) {
+        return new Date().toISOString();
+      }
+      
       const date = new Date(dateInput);
       if (!isNaN(date.getTime())) {
         return date.toISOString();
       }
-      return null;
+      
+      return new Date().toISOString();
     }
     
-    return null;
+    // Default fallback
+    return new Date().toISOString();
   } catch (e) {
     console.error("Date formatting error:", e, "Value:", dateInput);
-    return null;
+    // Return current date as fallback in case of any error
+    return new Date().toISOString();
   }
 };
-

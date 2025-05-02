@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FTPPageHeader } from "@/components/FTPPageHeader";
@@ -62,6 +63,17 @@ const MySites = () => {
     setIsModalOpen(true);
   };
 
+  // Handle viewing files - ensure the explorer is opened and directory loaded
+  const handleViewFiles = async (connection: FtpConnection) => {
+    try {
+      openConnection(connection);
+      // Immediately load the root directory
+      await loadDirectory(connection.id, '/');
+    } catch (error) {
+      console.error("Error opening connection:", error);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="container py-4 md:py-6 space-y-4 md:space-y-6">
@@ -87,7 +99,7 @@ const MySites = () => {
                 connection={connection}
                 testResult={testResults[connection.id]}
                 onTest={() => handleTestConnection(connection)}
-                onViewFiles={() => openConnection(connection)}
+                onViewFiles={() => handleViewFiles(connection)}
                 onEdit={() => handleEdit(connection)}
               />
             ))
