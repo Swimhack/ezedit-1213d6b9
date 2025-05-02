@@ -16,12 +16,13 @@ import {
 } from "lucide-react";
 import { logEvent } from "@/utils/ftp-utils";
 
-interface LogEntry {
+export interface LogEntry {
   timestamp: number;
   message: string;
   level: string;
   source?: string;
   details?: any;
+  type?: string; // Optional to handle ConsoleLog compatibility
 }
 
 interface LogViewerProps {

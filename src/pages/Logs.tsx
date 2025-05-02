@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { LogViewer } from '@/components/ui/log-viewer';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +20,7 @@ interface ConsoleLog {
   timestamp: number;
   type: ConsoleLogType;
   source?: string;
+  level?: string; // Add level property to match LogEntry requirements
 }
 
 interface EdgeFunctionLog {
@@ -71,7 +73,8 @@ const Logs = () => {
             message: log.message,
             timestamp: log.timestamp,
             type: validateLogType(log.type),
-            source: log.source || 'editor'
+            source: log.source || 'editor',
+            level: log.type // Map type to level for compatibility with LogEntry
           })));
           logEvent(`Loaded ${parsedLogs.length} editor logs`, 'info', 'logs');
         } catch (err) {
@@ -89,7 +92,8 @@ const Logs = () => {
             message: log.message,
             timestamp: log.timestamp,
             type: validateLogType(log.type),
-            source: log.source || 'ftp'
+            source: log.source || 'ftp',
+            level: log.type // Map type to level for compatibility with LogEntry
           })));
           logEvent(`Loaded ${parsedLogs.length} FTP logs`, 'info', 'logs');
         } catch (err) {
@@ -110,7 +114,8 @@ const Logs = () => {
               message: log.message,
               timestamp: log.timestamp,
               type: validateLogType(log.type),
-              source: log.source || source
+              source: log.source || source,
+              level: log.type // Map type to level for compatibility with LogEntry
             }))]);
             logEvent(`Loaded ${parsedLogs.length} ${source} logs`, 'info', 'logs');
           } catch (err) {
