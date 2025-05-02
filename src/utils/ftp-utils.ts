@@ -1,4 +1,3 @@
-
 /**
  * Helper utilities for FTP operations
  */
@@ -33,6 +32,43 @@ export const createCacheBuster = (): string => {
 };
 
 /**
+ * Log utility for centralized logging
+ * This ensures all logs are captured for the /logs view
+ */
+export const logEvent = (message: string, level: 'log' | 'info' | 'warn' | 'error' = 'log', source = 'ftp') => {
+  // Log to console first
+  console[level](`[${source}] ${message}`);
+  
+  // Store in localStorage for persistence
+  try {
+    const storageKey = `${source}_logs`;
+    const existingLogs = localStorage.getItem(storageKey);
+    let logs = [];
+    
+    if (existingLogs) {
+      logs = JSON.parse(existingLogs);
+    }
+    
+    // Add new log entry
+    logs.unshift({
+      message,
+      timestamp: Date.now(),
+      type: level,
+      source
+    });
+    
+    // Keep only the latest 100 logs
+    if (logs.length > 100) {
+      logs = logs.slice(0, 100);
+    }
+    
+    localStorage.setItem(storageKey, JSON.stringify(logs));
+  } catch (err) {
+    console.error('Failed to store log:', err);
+  }
+};
+
+/**
  * Safely format date values, catching and handling invalid date inputs
  * This enhanced version handles all edge cases like invalid dates, undefined values,
  * and various date formats
@@ -43,6 +79,7 @@ export const createCacheBuster = (): string => {
 export const safeFormatDate = (dateInput: any): string => {
   // Return current date as fallback if input is falsy
   if (!dateInput) {
+    logEvent(`safeFormatDate received falsy value: ${dateInput}`, 'warn', 'dateUtils');
     return new Date().toISOString();
   }
   
@@ -66,7 +103,8 @@ export const safeFormatDate = (dateInput: any): string => {
         return date.toISOString();
       }
       
-      // If we couldn't parse it, return current date
+      // If we couldn't parse it, log and return current date
+      logEvent(`safeFormatDate could not parse string: ${dateInput}`, 'warn', 'dateUtils');
       return new Date().toISOString();
     }
     
@@ -75,12 +113,14 @@ export const safeFormatDate = (dateInput: any): string => {
       if (!isNaN(dateInput.getTime())) {
         return dateInput.toISOString();
       }
+      logEvent(`safeFormatDate received invalid Date object`, 'warn', 'dateUtils');
       return new Date().toISOString();
     }
     
     // Handle timestamps (numbers)
     if (typeof dateInput === 'number') {
       if (isNaN(dateInput) || dateInput < 0) {
+        logEvent(`safeFormatDate received invalid numeric timestamp: ${dateInput}`, 'warn', 'dateUtils');
         return new Date().toISOString();
       }
       
@@ -89,13 +129,16 @@ export const safeFormatDate = (dateInput: any): string => {
         return date.toISOString();
       }
       
+      logEvent(`safeFormatDate could not create valid date from number: ${dateInput}`, 'warn', 'dateUtils');
       return new Date().toISOString();
     }
     
     // Default fallback
+    logEvent(`safeFormatDate received unexpected type: ${typeof dateInput}`, 'warn', 'dateUtils');
     return new Date().toISOString();
   } catch (e) {
-    console.error("Date formatting error:", e, "Value:", dateInput);
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    logEvent(`Date formatting error: ${errorMessage}, Value: ${JSON.stringify(dateInput)}`, 'error', 'dateUtils');
     // Return current date as fallback in case of any error
     return new Date().toISOString();
   }

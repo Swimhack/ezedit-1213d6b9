@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FTPPageHeader } from "@/components/FTPPageHeader";
 import { ConnectionsGrid } from "@/components/ftp-connections/ConnectionsGrid";
@@ -10,9 +10,12 @@ import type { FtpConnection } from "@/hooks/use-ftp-connections";
 import { SiteCard } from "@/components/SiteCard";
 import { SkeletonSiteCard } from "@/components/SkeletonSiteCard";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, FileText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { logEvent } from "@/utils/ftp-utils";
 
 const MySites = () => {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<FtpConnection | null>(null);
   
@@ -47,30 +50,40 @@ const MySites = () => {
     applyAIResponse
   } = useFileExplorer();
 
+  // Log page view for tracking
+  useEffect(() => {
+    logEvent("Viewing MySites page", "info", "navigation");
+  }, []);
+
   const handleSaveConnection = () => {
     fetchConnections();
     setIsModalOpen(false);
     setEditingConnection(null);
+    logEvent("Connection saved", "info", "siteConfig");
   };
 
   const handleConnect = () => {
     setEditingConnection(null);
     setIsModalOpen(true);
+    logEvent("Opening connection dialog", "log", "siteConfig");
   };
 
   const handleEdit = (connection: FtpConnection) => {
     setEditingConnection(connection);
     setIsModalOpen(true);
+    logEvent(`Editing connection: ${connection.server_name}`, "log", "siteConfig");
   };
 
   // Handle viewing files - ensure the explorer is opened and directory loaded
   const handleViewFiles = async (connection: FtpConnection) => {
     try {
+      logEvent(`Opening file explorer for: ${connection.server_name}`, "info", "fileExplorer");
       openConnection(connection);
       // Immediately load the root directory
       await loadDirectory(connection.id, '/');
     } catch (error) {
-      console.error("Error opening connection:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logEvent(`Error opening connection: ${errorMessage}`, "error", "fileExplorer");
     }
   };
 
@@ -104,6 +117,18 @@ const MySites = () => {
               />
             ))
           )}
+        </div>
+
+        <div className="flex justify-end">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate('/logs')}
+            className="flex items-center gap-2"
+          >
+            <FileText size={16} />
+            View System Logs
+          </Button>
         </div>
 
         <ConnectionModals

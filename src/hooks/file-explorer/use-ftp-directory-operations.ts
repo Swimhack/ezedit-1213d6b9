@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { listDir } from "@/lib/ftp";
 import { normalizePath } from "@/utils/path";
-import { safeFormatDate } from "@/utils/ftp-utils";
+import { safeFormatDate, logEvent } from "@/utils/ftp-utils";
 
 export function useFtpDirectoryOperations() {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,7 +14,8 @@ export function useFtpDirectoryOperations() {
    */
   const loadDirectory = async (connectionId: string, path: string) => {
     if (!connectionId) {
-      console.error("[useFtpDirectoryOperations] Missing connectionId");
+      const errorMsg = "[useFtpDirectoryOperations] Missing connectionId";
+      logEvent(errorMsg, 'error', 'ftpDirectory');
       return { files: [], path: path };
     }
     
@@ -22,35 +23,45 @@ export function useFtpDirectoryOperations() {
     setError(null);
     try {
       const normalizedPath = normalizePath(path);
-      console.log(`[loadDirectory] Original: "${path}" → Normalized: "${normalizedPath}", connectionId: ${connectionId}`);
+      logEvent(`Loading directory: "${normalizedPath}" for connection: ${connectionId}`, 'info', 'ftpDirectory');
       
       const result = await listDir(connectionId, normalizedPath);
-      console.log("[loadDirectory] Result:", result);
+      logEvent(`Directory response received for ${normalizedPath}`, 'log', 'ftpDirectory');
       
       if (result && result.data && result.data.files) {
         // Process file data to ensure valid dates before passing it on
         const processedFiles = result.data.files.map(file => {
-          // Ensure we have valid dates to prevent "Invalid time value" errors
-          const safeDate = safeFormatDate(file.modified);
-          return {
-            ...file,
-            modified: safeDate
-          };
+          try {
+            // Ensure we have valid dates to prevent "Invalid time value" errors
+            const safeDate = safeFormatDate(file.modified);
+            return {
+              ...file,
+              modified: safeDate
+            };
+          } catch (err) {
+            logEvent(`Failed to process file date: ${err instanceof Error ? err.message : String(err)}`, 'error', 'ftpDirectory');
+            return {
+              ...file,
+              modified: new Date().toISOString() // Safe fallback
+            };
+          }
         });
         
-        console.log(`[loadDirectory] Files received: ${processedFiles.length}`);
+        logEvent(`Successfully loaded ${processedFiles.length} files from directory`, 'info', 'ftpDirectory');
         return {
           files: processedFiles,
           path: normalizedPath
         };
       } else {
-        console.error("[useFtpDirectoryOperations] Invalid response format:", result);
-        throw new Error("Invalid response format from server");
+        const errorMsg = "Invalid response format from server";
+        logEvent(errorMsg, 'error', 'ftpDirectory');
+        throw new Error(errorMsg);
       }
     } catch (error: any) {
-      console.error("[useFtpDirectoryOperations] Directory loading error:", error);
-      setError(error.message || "Failed to load directory");
-      toast.error(`Failed to load directory: ${error.message}`);
+      const errorMsg = error.message || "Failed to load directory";
+      logEvent(`Directory loading error: ${errorMsg}`, 'error', 'ftpDirectory');
+      setError(errorMsg);
+      toast.error(`Failed to load directory: ${errorMsg}`);
       throw error;
     } finally {
       setIsLoading(false);
@@ -62,7 +73,8 @@ export function useFtpDirectoryOperations() {
    */
   const refreshDirectoryFromServer = async (connectionId: string, path: string) => {
     if (!connectionId) {
-      console.error("[refreshDirectoryFromServer] Missing connectionId");
+      const errorMsg = "[refreshDirectoryFromServer] Missing connectionId";
+      logEvent(errorMsg, 'error', 'ftpDirectory');
       return { files: [], path: path };
     }
 
@@ -71,7 +83,7 @@ export function useFtpDirectoryOperations() {
     
     try {
       const normalizedPath = normalizePath(path);
-      console.log(`[refreshDirectoryFromServer] Forcing refresh for path: "${normalizedPath}", connectionId: ${connectionId}`);
+      logEvent(`Forcing refresh for path: "${normalizedPath}", connectionId: ${connectionId}`, 'info', 'ftpDirectory');
       
       const response = await fetch('/api/files/refreshFromServer', {
         method: 'POST',
@@ -89,15 +101,24 @@ export function useFtpDirectoryOperations() {
       if (result.success && result.data && result.data.files) {
         // Process file data to ensure valid dates before passing it on
         const processedFiles = result.data.files.map(file => {
-          // Ensure we have valid dates
-          const safeDate = safeFormatDate(file.modified);
-          return {
-            ...file,
-            modified: safeDate
-          };
+          try {
+            // Ensure we have valid dates
+            const safeDate = safeFormatDate(file.modified);
+            return {
+              ...file,
+              modified: safeDate
+            };
+          } catch (err) {
+            logEvent(`Failed to process file date during refresh: ${err instanceof Error ? err.message : String(err)}`, 'error', 'ftpDirectory');
+            return {
+              ...file,
+              modified: new Date().toISOString() // Safe fallback
+            };
+          }
         });
         
         toast.success("Files refreshed from server");
+        logEvent(`Successfully refreshed ${processedFiles.length} files from server`, 'info', 'ftpDirectory');
         return {
           files: processedFiles,
           path: normalizedPath
@@ -106,9 +127,10 @@ export function useFtpDirectoryOperations() {
         throw new Error(result.message || "Failed to refresh directory listing");
       }
     } catch (error: any) {
-      console.error("[refreshDirectoryFromServer] Error:", error);
-      setError(error.message || "Failed to refresh directory");
-      toast.error(`Failed to refresh directory: ${error.message}`);
+      const errorMsg = error.message || "Failed to refresh directory";
+      logEvent(`Refresh directory error: ${errorMsg}`, 'error', 'ftpDirectory');
+      setError(errorMsg);
+      toast.error(`Failed to refresh directory: ${errorMsg}`);
       throw error;
     } finally {
       setIsLoading(false);

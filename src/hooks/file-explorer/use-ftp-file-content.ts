@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { sleep, createConnectionErrorMessage } from "@/utils/ftp-utils";
+import { sleep, createConnectionErrorMessage, logEvent } from "@/utils/ftp-utils";
 
 export function useFtpFileContent() {
   const [isLoading, setIsLoading] = useState(false);
@@ -13,6 +13,8 @@ export function useFtpFileContent() {
    */
   const fetchFileContent = async (connectionId: string, filePath: string): Promise<string> => {
     if (!connectionId || !filePath) {
+      const errorMsg = "Missing connectionId or filePath for fetchFileContent";
+      logEvent(errorMsg, 'error', 'ftpContent');
       return Promise.resolve("");
     }
     
@@ -20,8 +22,7 @@ export function useFtpFileContent() {
     setError(null);
     
     try {
-      console.log(`[fetchFileContent] Loading: ${filePath} from connection: ${connectionId}`);
-      console.time(`[FTP] ${filePath}`);
+      logEvent(`Loading file: ${filePath} from connection: ${connectionId}`, 'info', 'ftpContent');
       
       // First attempt to fetch the file
       let response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
@@ -32,11 +33,11 @@ export function useFtpFileContent() {
       let content = "";
       
       if (!response.ok) {
-        console.warn(`[fetchFileContent] First attempt failed with status ${response.status}, waiting 2 seconds before retry...`);
+        logEvent(`First attempt failed with status ${response.status}, retrying...`, 'warn', 'ftpContent');
         await sleep(2000); // 2-second delay before retry
         
         // Second attempt after delay
-        console.log(`[fetchFileContent] Retrying: ${filePath} from connection: ${connectionId}`);
+        logEvent(`Retrying file: ${filePath} from connection: ${connectionId}`, 'info', 'ftpContent');
         response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
           cache: "no-store",
           headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
@@ -45,7 +46,7 @@ export function useFtpFileContent() {
       
       if (!response.ok) {
         const errorMsg = createConnectionErrorMessage(`${response.status}: ${response.statusText}`);
-        console.log('[fetchFileContent] → status: error, bytes: 0, error:', errorMsg);
+        logEvent(`File fetch error: ${errorMsg}`, 'error', 'ftpContent');
         setError(errorMsg);
         toast.error(errorMsg);
         setIsLoading(false);
@@ -56,11 +57,11 @@ export function useFtpFileContent() {
       
       // If content is empty or invalid, retry after delay
       if (!content || typeof content !== 'string' || content.trim().length === 0) {
-        console.warn('[fetchFileContent] Received empty or invalid content, waiting 2 seconds before retry...');
+        logEvent('Received empty or invalid content, retrying...', 'warn', 'ftpContent');
         await sleep(2000); // 2-second delay before retry
         
         // Retry with fresh cache-busting
-        console.log(`[fetchFileContent] Retrying content fetch: ${filePath}`);
+        logEvent(`Retrying content fetch for: ${filePath}`, 'info', 'ftpContent');
         response = await fetch(`/api/readFile?path=${encodeURIComponent(connectionId + ":" + filePath)}&t=${Date.now()}`, {
           cache: "no-store",
           headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
@@ -68,7 +69,7 @@ export function useFtpFileContent() {
         
         if (!response.ok) {
           const errorMsg = createConnectionErrorMessage(`${response.status}: ${response.statusText}`);
-          console.log('[fetchFileContent] → retry status: error, bytes: 0, error:', errorMsg);
+          logEvent(`Retry failed: ${errorMsg}`, 'error', 'ftpContent');
           setError(errorMsg);
           toast.error(errorMsg);
           setIsLoading(false);
@@ -79,7 +80,7 @@ export function useFtpFileContent() {
         
         if (!content || typeof content !== 'string' || content.trim().length === 0) {
           const errorMsg = "Failed to fetch valid file content after retry";
-          console.error('[fetchFileContent]', errorMsg);
+          logEvent(errorMsg, 'error', 'ftpContent');
           setError(errorMsg);
           toast.error(errorMsg);
           setIsLoading(false);
@@ -87,19 +88,17 @@ export function useFtpFileContent() {
         }
       }
       
-      console.timeEnd(`[FTP] ${filePath}`);
-      console.log(`[fetchFileContent] → status: success, bytes: ${content.length}`);
+      logEvent(`Successfully loaded file: ${filePath}, content length: ${content.length}`, 'info', 'ftpContent');
       toast.success("✅ Live File Loaded");
       setError(null);
       setIsLoading(false);
       return content;
       
     } catch (error: any) {
-      console.error("[fetchFileContent] File loading error:", error);
-      console.log('[fetchFileContent] → status: exception, bytes: 0, error:', error.message);
-      const errorMsg = createConnectionErrorMessage(error.message);
-      setError(errorMsg);
-      toast.error(errorMsg);
+      const errorMsg = error.message || "Unknown error fetching file";
+      logEvent(`Exception during file fetch: ${errorMsg}`, 'error', 'ftpContent');
+      setError(createConnectionErrorMessage(error));
+      toast.error(createConnectionErrorMessage(error));
       setIsLoading(false);
       return Promise.reject(error);
     }
