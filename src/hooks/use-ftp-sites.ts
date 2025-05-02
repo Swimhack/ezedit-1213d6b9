@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type FTPSite = {
   id: string;
-  site_name: string;
+  site_name?: string; // Made optional since it might not exist in the database
   server_url: string;
   port: number;
   username: string;

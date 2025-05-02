@@ -83,19 +83,26 @@ export function SiteFormModal({
       // For updates, only include password if provided new one
       const passwordField = password ? { encrypted_password: password } : {};
 
+      // Prepare the data object for upsert
+      const upsertData: any = {
+        id: site?.id,
+        server_url: serverUrl,
+        port: portNumber,
+        username,
+        ...passwordField,
+        user_id: session.user.id,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Only add site_name if it's not empty
+      if (siteName) {
+        upsertData.site_name = siteName;
+      }
+
       // Save or update site
       const { error } = await supabase
         .from("ftp_credentials")
-        .upsert({
-          id: site?.id,
-          site_name: siteName,
-          server_url: serverUrl,
-          port: portNumber,
-          username,
-          ...passwordField,
-          user_id: session.user.id,
-          updated_at: new Date().toISOString()
-        })
+        .upsert(upsertData)
         .select().single();
 
       if (error) {
