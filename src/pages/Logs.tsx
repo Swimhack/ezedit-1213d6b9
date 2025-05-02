@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { LogViewer } from '@/components/ui/log-viewer';
+import { LogViewer, LogEntry } from '@/components/ui/log-viewer';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +20,7 @@ interface ConsoleLog {
   timestamp: number;
   type: ConsoleLogType;
   source?: string;
-  level?: string; // Add level property to match LogEntry requirements
+  level: string; // Changed from optional to required to match LogEntry
 }
 
 interface EdgeFunctionLog {
@@ -69,13 +69,16 @@ const Logs = () => {
       if (storedEditorLogs) {
         try {
           const parsedLogs = JSON.parse(storedEditorLogs);
-          setEditorLogs(parsedLogs.map((log: any) => ({
-            message: log.message,
-            timestamp: log.timestamp,
-            type: validateLogType(log.type),
-            source: log.source || 'editor',
-            level: log.type // Map type to level for compatibility with LogEntry
-          })));
+          setEditorLogs(parsedLogs.map((log: any) => {
+            const logType = validateLogType(log.type);
+            return {
+              message: log.message,
+              timestamp: log.timestamp,
+              type: logType,
+              source: log.source || 'editor',
+              level: logType // Ensure level is always set
+            };
+          }));
           logEvent(`Loaded ${parsedLogs.length} editor logs`, 'info', 'logs');
         } catch (err) {
           console.error('Failed to parse editor logs:', err);
@@ -88,13 +91,16 @@ const Logs = () => {
       if (storedFtpLogs) {
         try {
           const parsedLogs = JSON.parse(storedFtpLogs);
-          setFtpLogs(parsedLogs.map((log: any) => ({
-            message: log.message,
-            timestamp: log.timestamp,
-            type: validateLogType(log.type),
-            source: log.source || 'ftp',
-            level: log.type // Map type to level for compatibility with LogEntry
-          })));
+          setFtpLogs(parsedLogs.map((log: any) => {
+            const logType = validateLogType(log.type);
+            return {
+              message: log.message,
+              timestamp: log.timestamp,
+              type: logType,
+              source: log.source || 'ftp',
+              level: logType // Ensure level is always set
+            };
+          }));
           logEvent(`Loaded ${parsedLogs.length} FTP logs`, 'info', 'logs');
         } catch (err) {
           console.error('Failed to parse FTP logs:', err);
@@ -110,13 +116,19 @@ const Logs = () => {
         if (storedLogs) {
           try {
             const parsedLogs = JSON.parse(storedLogs);
-            setFtpLogs(prevLogs => [...prevLogs, ...parsedLogs.map((log: any) => ({
-              message: log.message,
-              timestamp: log.timestamp,
-              type: validateLogType(log.type),
-              source: log.source || source,
-              level: log.type // Map type to level for compatibility with LogEntry
-            }))]);
+            setFtpLogs(prevLogs => [
+              ...prevLogs, 
+              ...parsedLogs.map((log: any) => {
+                const logType = validateLogType(log.type);
+                return {
+                  message: log.message,
+                  timestamp: log.timestamp,
+                  type: logType,
+                  source: log.source || source,
+                  level: logType // Ensure level is always set
+                };
+              })
+            ]);
             logEvent(`Loaded ${parsedLogs.length} ${source} logs`, 'info', 'logs');
           } catch (err) {
             console.error(`Failed to parse ${source} logs:`, err);

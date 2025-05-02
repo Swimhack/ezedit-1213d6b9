@@ -19,7 +19,7 @@ import { logEvent } from "@/utils/ftp-utils";
 export interface LogEntry {
   timestamp: number;
   message: string;
-  level: string;
+  level: string; // Required field
   source?: string;
   details?: any;
   type?: string; // Optional to handle ConsoleLog compatibility
