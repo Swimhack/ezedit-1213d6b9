@@ -1,14 +1,13 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
-import { testFtpConnection } from "@/lib/ftp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
+import { FTPConnectionForm, getFormData } from "./FTPConnectionForm";
+import { FTPConnectionTestButton, testFtpConnectionHandler } from "./FTPConnectionTest";
 
 interface FTPConnectionModalProps {
   isOpen: boolean;
@@ -23,41 +22,20 @@ export function FTPConnectionModal({
   onClose,
   onSave
 }: FTPConnectionModalProps) {
-  const [serverName, setServerName] = useState("");
-  const [host, setHost] = useState("");
-  const [port, setPort] = useState("21");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
   } | null>(null);
 
-  useEffect(() => {
-    if (isOpen && editingConnection) {
-      setServerName(editingConnection.server_name || "");
-      setHost(editingConnection.host || "");
-      setPort(editingConnection.port?.toString() || "21");
-      setUsername(editingConnection.username || "");
-      setPassword(editingConnection.password || "");
-      setTestResult(null);
-    } else if (isOpen) {
-      // Reset form when opening for a new connection
-      setServerName("");
-      setHost("");
-      setPort("21");
-      setUsername("");
-      setPassword("");
-      setTestResult(null);
-    }
-  }, [isOpen, editingConnection]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
+      const form = e.target as HTMLFormElement;
+      const { serverName, host, port, username, password } = getFormData(form);
+      
       // Validate form
       if (!host || !username || !password) {
         toast.error("Please fill in all required fields");
@@ -65,9 +43,7 @@ export function FTPConnectionModal({
         return;
       }
 
-      // Convert port to number
-      const portNumber = parseInt(port, 10);
-      if (isNaN(portNumber) || portNumber <= 0 || portNumber > 65535) {
+      if (isNaN(port) || port <= 0 || port > 65535) {
         toast.error("Please enter a valid port number");
         setIsLoading(false);
         return;
@@ -88,9 +64,9 @@ export function FTPConnectionModal({
           id: editingConnection?.id || undefined,
           server_name: serverName,
           host,
-          port: portNumber,
-          username, // Use 'username' property instead of 'user'
-          password,  // Note: In production, this would be encrypted
+          port,
+          username,
+          password,
           user_id: currentUser.id
         })
         .select();
@@ -117,47 +93,19 @@ export function FTPConnectionModal({
     setIsLoading(true);
     setTestResult(null);
     
-    try {
-      // Validate inputs
-      if (!host || !username || !password) {
-        toast.error("Please fill in all required fields");
+    const form = document.querySelector('form')!;
+    const { host, port, username, password } = getFormData(form);
+    
+    await testFtpConnectionHandler(
+      host, 
+      port, 
+      username, 
+      password, 
+      (result) => {
+        setTestResult(result);
         setIsLoading(false);
-        return;
       }
-
-      const portNumber = parseInt(port, 10);
-      if (isNaN(portNumber) || portNumber <= 0 || portNumber > 65535) {
-        toast.error("Please enter a valid port number");
-        setIsLoading(false);
-        return;
-      }
-
-      // Test connection
-      const result = await testFtpConnection(host, portNumber, username, password);
-      
-      if (result.data?.success) {
-        setTestResult({
-          success: true,
-          message: "Connection successful!"
-        });
-        toast.success("Connection test successful!");
-      } else {
-        setTestResult({
-          success: false,
-          message: result.data?.message || "Connection failed"
-        });
-        toast.error(`Connection test failed: ${result.data?.message || "Unknown error"}`);
-      }
-    } catch (error: any) {
-      console.error("Error testing connection:", error);
-      setTestResult({
-        success: false,
-        message: error.message || "Connection failed"
-      });
-      toast.error(`Connection test failed: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
+    );
   };
 
   return (
@@ -169,98 +117,42 @@ export function FTPConnectionModal({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="server_name">Server Name (Optional)</Label>
-            <Input
-              id="server_name"
-              placeholder="My Website"
-              value={serverName}
-              onChange={(e) => setServerName(e.target.value)}
-            />
-          </div>
+        <FTPConnectionForm
+          editingConnection={editingConnection}
+          isLoading={isLoading}
+          testResult={testResult}
+          onSubmit={handleSubmit}
+        />
 
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="host">Host *</Label>
-            <Input
-              id="host"
-              placeholder="ftp.example.com"
-              value={host}
-              onChange={(e) => setHost(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="port">Port *</Label>
-            <Input
-              id="port"
-              type="number"
-              placeholder="21"
-              value={port}
-              onChange={(e) => setPort(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="username">Username *</Label>
-            <Input
-              id="username"
-              placeholder="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="password">Password *</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          {testResult && (
-            <div className={`p-3 rounded-md ${testResult.success ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-              {testResult.message}
-            </div>
-          )}
-
-          <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
+        <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
+          <FTPConnectionTestButton
+            isLoading={isLoading}
+            onStartTest={handleTest}
+          />
+          <div className="flex gap-2">
             <Button 
               type="button" 
               variant="outline" 
-              onClick={handleTest} 
+              onClick={onClose}
               disabled={isLoading}
             >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Test Connection
+              Cancel
             </Button>
-            <div className="flex gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={onClose}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isLoading}
-              >
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {editingConnection ? "Update" : "Save"}
-              </Button>
-            </div>
-          </DialogFooter>
-        </form>
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              onClick={(e) => {
+                const form = document.querySelector('form');
+                if (form) {
+                  form.dispatchEvent(new Event('submit', { cancelable: true }));
+                }
+              }}
+            >
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {editingConnection ? "Update" : "Save"}
+            </Button>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
