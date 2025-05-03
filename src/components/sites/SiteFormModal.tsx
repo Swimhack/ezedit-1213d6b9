@@ -1,13 +1,13 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { FTPSite } from "@/hooks/use-ftp-sites";
+import { SiteFormForm, getFormData } from "./SiteFormForm";
+import { SiteConnectionTestButton, testSiteConnection } from "./SiteConnectionTest";
 
 interface SiteFormModalProps {
   isOpen: boolean;
@@ -22,41 +22,21 @@ export function SiteFormModal({
   onClose,
   onSave
 }: SiteFormModalProps) {
-  const [siteName, setSiteName] = useState("");
-  const [serverUrl, setServerUrl] = useState("");
-  const [port, setPort] = useState("21");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
   } | null>(null);
 
-  useEffect(() => {
-    if (isOpen && site) {
-      setSiteName(site.site_name || "");
-      setServerUrl(site.server_url || "");
-      setPort(site.port?.toString() || "21");
-      setUsername(site.username || "");
-      setPassword(""); // Don't prefill password for security
-      setTestResult(null);
-    } else if (isOpen) {
-      // Reset form when opening for a new site
-      setSiteName("");
-      setServerUrl("");
-      setPort("21");
-      setUsername("");
-      setPassword("");
-      setTestResult(null);
-    }
-  }, [isOpen, site]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
+      // Get form data
+      const form = e.target as HTMLFormElement;
+      const { siteName, serverUrl, port, username, password } = getFormData(form);
+      
       // Validate form
       if (!serverUrl || !username || (!password && !site)) {
         toast.error("Please fill in all required fields");
@@ -64,9 +44,7 @@ export function SiteFormModal({
         return;
       }
 
-      // Convert port to number
-      const portNumber = parseInt(port, 10);
-      if (isNaN(portNumber) || portNumber <= 0 || portNumber > 65535) {
+      if (isNaN(port) || port <= 0 || port > 65535) {
         toast.error("Please enter a valid port number");
         setIsLoading(false);
         return;
@@ -87,7 +65,7 @@ export function SiteFormModal({
       const upsertData: any = {
         id: site?.id,
         server_url: serverUrl,
-        port: portNumber,
+        port: port,
         username,
         ...passwordField,
         user_id: session.user.id,
@@ -127,41 +105,26 @@ export function SiteFormModal({
     setTestResult(null);
     
     try {
-      // Validate inputs
-      if (!serverUrl || !username || (!password && !site)) {
-        toast.error("Please fill in all required fields");
+      // Get form data without submitting the form
+      const form = document.querySelector('form') as HTMLFormElement;
+      if (!form) {
+        toast.error("Form not found");
         setIsLoading(false);
         return;
       }
-
-      const portNumber = parseInt(port, 10);
-      if (isNaN(portNumber) || portNumber <= 0 || portNumber > 65535) {
-        toast.error("Please enter a valid port number");
-        setIsLoading(false);
-        return;
-      }
-
+      
+      const { serverUrl, port, username, password } = getFormData(form);
+      
       // Test connection
-      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/test-ftp-connection`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          server: serverUrl,
-          port: portNumber,
-          user: username,
-          password: password || (site?.encrypted_password || "")
-        }),
-      });
+      const result = await testSiteConnection(
+        serverUrl, 
+        port, 
+        username, 
+        password,
+        site?.encrypted_password
+      );
       
-      const result = await response.json();
-      
-      setTestResult({
-        success: result.success || false,
-        message: result.message || "Connection test failed"
-      });
+      setTestResult(result);
       
       if (result.success) {
         toast.success("Connection test successful!");
@@ -189,84 +152,18 @@ export function SiteFormModal({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="site_name">Site Name (Optional)</Label>
-            <Input
-              id="site_name"
-              placeholder="My Website"
-              value={siteName}
-              onChange={(e) => setSiteName(e.target.value)}
-            />
-          </div>
-
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="server_url">Server URL *</Label>
-            <Input
-              id="server_url"
-              placeholder="ftp.example.com"
-              value={serverUrl}
-              onChange={(e) => setServerUrl(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="port">Port *</Label>
-            <Input
-              id="port"
-              type="number"
-              placeholder="21"
-              value={port}
-              onChange={(e) => setPort(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="username">Username *</Label>
-            <Input
-              id="username"
-              placeholder="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="password">
-              {site ? "Password (leave blank to keep current)" : "Password *"}
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required={!site}
-            />
-          </div>
-
-          {testResult && (
-            <div className={`p-3 rounded-md ${
-              testResult.success ? 'bg-green-50 text-green-800 border border-green-200' : 
-              'bg-red-50 text-red-800 border border-red-200'
-            }`}>
-              {testResult.message}
-            </div>
-          )}
+        <form onSubmit={handleSubmit}>
+          <SiteFormForm
+            site={site}
+            isLoading={isLoading}
+            testResult={testResult}
+          />
 
           <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={handleTest} 
-              disabled={isLoading}
-            >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Test Connection
-            </Button>
+            <SiteConnectionTestButton
+              isLoading={isLoading}
+              onTestConnection={handleTest}
+            />
             <div className="flex gap-2">
               <Button 
                 type="button" 
