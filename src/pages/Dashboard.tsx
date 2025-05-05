@@ -166,7 +166,7 @@ const Dashboard = () => {
                 setIsEditModalOpen(false);
                 setSelectedSite(null);
               }}
-              connection={selectedSite}
+              initialData={selectedSite}
               onSave={loadSites}
             />
           )}

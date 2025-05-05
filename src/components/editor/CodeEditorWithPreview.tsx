@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import MonacoEditor from 'react-monaco-editor';
-import { TinyMCE } from '@tinymce/tinymce-react';
+import { Editor } from '@tinymce/tinymce-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -125,7 +125,7 @@ const CodeEditorWithPreview: React.FC<CodeEditorWithPreviewProps> = ({
     selectOnLineNumbers: true,
     roundedSelection: true,
     readOnly: readOnly,
-    cursorStyle: 'line' as 'line' | 'block' | 'underline' | 'line-thin' | 'block-outline' | 'underline-thin',
+    cursorStyle: 'line' as const,
     automaticLayout: true,
     minimap: {
       enabled: false
@@ -192,16 +192,7 @@ const CodeEditorWithPreview: React.FC<CodeEditorWithPreviewProps> = ({
               <MonacoEditor
                 language={getLanguage(filePath)}
                 value={content}
-                options={{
-                  selectOnLineNumbers: true,
-                  roundedSelection: true,
-                  readOnly: readOnly,
-                  cursorStyle: 'line' as 'line' | 'block' | 'underline' | 'line-thin' | 'block-outline' | 'underline-thin',
-                  automaticLayout: true,
-                  minimap: {
-                    enabled: false
-                  }
-                }}
+                options={editorOptions}
                 onChange={handleEditorChange}
                 editorDidMount={(editor) => {
                   editorRef.current = editor;
@@ -229,7 +220,7 @@ const CodeEditorWithPreview: React.FC<CodeEditorWithPreviewProps> = ({
         )
       ) : (
         <div className="flex-grow">
-          <TinyMCE
+          <Editor
             apiKey="your-tinymce-api-key"
             init={{
               height: '100%',

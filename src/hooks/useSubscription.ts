@@ -70,7 +70,7 @@ export function useSubscription(userEmail?: string) {
         }
 
         // First check local database for cached subscription info
-        const { data: subscription, error } = await supabase
+        const { data: subscription } = await supabase
           .from('subscriptions')
           .select('status, tier, end_date')
           .eq('user_id', session.user.id)

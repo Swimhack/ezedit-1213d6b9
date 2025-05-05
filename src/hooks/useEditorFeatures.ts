@@ -10,11 +10,7 @@ export const useEditorFeatures = () => {
 
   const handleSave = async (content: string, filePath: string) => {
     if (!isPremium) {
-      toast({
-        title: "Premium Feature Required",
-        description: "Saving changes requires a premium subscription.",
-        duration: 3000,
-      });
+      toast.error("Premium Feature Required: Saving changes requires a premium subscription.");
       return Promise.reject(new Error("Premium subscription required"));
     }
 
@@ -28,11 +24,7 @@ export const useEditorFeatures = () => {
 
   const handleAIAssist = () => {
     if (!isPremium) {
-      toast({
-        title: "Premium Feature Required",
-        description: "AI assistance requires a premium subscription.",
-        duration: 3000,
-      });
+      toast.error("Premium Feature Required: AI assistance requires a premium subscription.");
       return;
     }
     
