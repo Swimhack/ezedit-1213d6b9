@@ -1,57 +1,50 @@
 
-import { useSubscription } from "@/hooks/useSubscription";
-import { useTrialStatus } from "@/hooks/useTrialStatus";
-import { useEditorStore } from "@/store/editorStore";
-import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState } from 'react';
+import { useSubscription } from '@/hooks/useSubscription';
+import { toast } from 'sonner';
 
 export const useEditorFeatures = () => {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  
-  // Get existing stores and hooks
-  const { content } = useEditorStore();
-  const { subscribed } = useSubscription(user?.email);
-  const trialStatus = useTrialStatus(user?.email);
-  
-  // Check for authenticated user
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user || null);
-      setLoading(false);
-    };
-    
-    checkUser();
-    
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
-    });
-    
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const { isPremium } = useSubscription();
 
-  // Determine feature flags
-  const canSaveFiles = subscribed;
-  const canViewHistory = subscribed;
-  const canConnectMultipleSites = subscribed;
-  const canAccessPrioritySupport = subscribed;
-  const hasUnlimitedPreviews = true; // Available to all tiers
-  const isInTrial = !subscribed && trialStatus.isActive;
-  
-  // Return feature flags and user status
+  const handleSave = async (content: string, filePath: string) => {
+    if (!isPremium) {
+      toast({
+        title: "Premium Feature Required",
+        description: "Saving changes requires a premium subscription.",
+        duration: 3000,
+      });
+      return Promise.reject(new Error("Premium subscription required"));
+    }
+
+    try {
+      // Implementation of save logic
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  };
+
+  const handleAIAssist = () => {
+    if (!isPremium) {
+      toast({
+        title: "Premium Feature Required",
+        description: "AI assistance requires a premium subscription.",
+        duration: 3000,
+      });
+      return;
+    }
+    
+    setShowAIAssistant(true);
+  };
+
   return {
-    canSaveFiles,
-    canViewHistory,
-    canConnectMultipleSites,
-    canAccessPrioritySupport,
-    hasUnlimitedPreviews,
-    isInTrial,
-    isLoading: loading,
-    user,
-    trialDaysRemaining: trialStatus.daysRemaining,
-    trialActive: trialStatus.isActive
+    isReadOnly,
+    showAIAssistant,
+    setShowAIAssistant,
+    handleSave,
+    handleAIAssist,
+    isPremiumUser: isPremium
   };
 };

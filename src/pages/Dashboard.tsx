@@ -9,7 +9,7 @@ import { FTPConnectionCard } from '@/components/FTPConnectionCard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AddSiteModal } from '@/components/sites/AddSiteModal';
-import { FTPConnectionModal } from '@/components/FTPConnectionModal';
+import FTPConnectionModal from '@/components/FTPConnectionModal';
 import TrialProtection from '@/components/TrialProtection';
 import { useSubscription } from '@/hooks/useSubscription';
 

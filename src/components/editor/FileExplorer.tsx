@@ -1,195 +1,251 @@
 
-import React, { useEffect, useState } from 'react';
-import { Tree } from 'react-arborist';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Tree, NodeRendererProps } from 'react-arborist';
 import { Folder, File, ChevronRight, ChevronDown } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface FileNode {
   id: string;
   name: string;
-  type: 'directory' | 'file';
+  type: 'file' | 'dir';
+  size?: number;
+  modified?: string;
   children?: FileNode[];
-  isOpen?: boolean;
-  path: string;
 }
 
 interface FileExplorerProps {
-  connection: any;
-  onSelectFile: (file: FileNode) => void;
+  connectionId: string;
+  onSelectFile: (path: string) => void;
 }
 
-export function FileExplorer({ connection, onSelectFile }: FileExplorerProps) {
-  const [treeData, setTreeData] = useState<FileNode[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+const FileExplorer: React.FC<FileExplorerProps> = ({ connectionId, onSelectFile }) => {
+  const [files, setFiles] = useState<FileNode[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPath, setCurrentPath] = useState('/');
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+
+  const loadFiles = useCallback(async (path = '/') => {
+    if (!connectionId) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('https://natjhcqynqziccssnwim.supabase.co/functions/v1/listFtpFiles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          connectionId,
+          path
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to load files: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to load files');
+      }
+      
+      // Transform the flat list into a tree structure
+      const fileNodes: FileNode[] = data.files.map((file: any) => ({
+        id: `${path === '/' ? '' : path}/${file.name}`,
+        name: file.name,
+        type: file.isDir ? 'dir' : 'file',
+        size: file.size,
+        modified: file.modified,
+        children: file.isDir ? [] : undefined
+      }));
+      
+      setFiles(fileNodes);
+      setCurrentPath(path);
+    } catch (err: any) {
+      console.error('Error loading files:', err);
+      setError(err.message);
+      toast.error(`Error loading files: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [connectionId]);
 
   useEffect(() => {
-    if (connection) {
-      loadRootDirectory();
-    }
-  }, [connection]);
+    loadFiles();
+  }, [loadFiles]);
 
-  const loadRootDirectory = async () => {
+  const handleExpandNode = async (node: FileNode) => {
+    if (node.type !== 'dir') return;
+    
+    const nodePath = node.id;
+    
+    if (expandedNodes.has(nodePath)) {
+      // Node is already expanded, just toggle it
+      const newExpanded = new Set(expandedNodes);
+      newExpanded.delete(nodePath);
+      setExpandedNodes(newExpanded);
+      return;
+    }
+    
+    // Load children for this directory
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('listFtpFiles', {
-        body: {
-          host: connection.host,
-          user: connection.username,
-          pass: connection.password,
-          dir: '/',
-          port: connection.port || 21,
-          sftp: false // Add SFTP support later
-        }
+      const response = await fetch('https://natjhcqynqziccssnwim.supabase.co/functions/v1/listFtpFiles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          connectionId,
+          path: nodePath
+        })
       });
-
-      if (error) {
-        toast.error(`Error loading files: ${error.message}`);
-        return;
+      
+      if (!response.ok) {
+        throw new Error('Failed to load directory contents');
       }
-
-      if (data.success && data.files) {
-        // Transform the files into a tree structure
-        const files = data.files.map((file: any) => ({
-          id: file.path,
-          name: file.name,
-          type: file.type,
-          path: file.path,
-          isDirectory: file.isDirectory
-        }));
-
-        setTreeData(files);
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to load directory contents');
       }
+      
+      // Update the tree by adding children to the expanded node
+      setFiles(prevFiles => {
+        const updateNodeChildren = (nodes: FileNode[]): FileNode[] => {
+          return nodes.map(n => {
+            if (n.id === nodePath) {
+              const children = data.files.map((file: any) => ({
+                id: `${nodePath === '/' ? '' : nodePath}/${file.name}`,
+                name: file.name,
+                type: file.isDir ? 'dir' : 'file',
+                size: file.size,
+                modified: file.modified,
+                children: file.isDir ? [] : undefined
+              }));
+              return { ...n, children };
+            } 
+            if (n.children) {
+              return { ...n, children: updateNodeChildren(n.children) };
+            }
+            return n;
+          });
+        };
+        
+        return updateNodeChildren(prevFiles);
+      });
+      
+      // Mark this node as expanded
+      setExpandedNodes(prev => new Set(prev).add(nodePath));
     } catch (err: any) {
-      toast.error(`Failed to load directory: ${err.message}`);
+      console.error('Error expanding directory:', err);
+      toast.error(`Error loading directory: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const loadDirectory = async (node: FileNode) => {
-    if (node.type !== 'directory') return;
-
-    try {
-      const { data, error } = await supabase.functions.invoke('listFtpFiles', {
-        body: {
-          host: connection.host,
-          user: connection.username,
-          pass: connection.password,
-          dir: node.path,
-          port: connection.port || 21,
-          sftp: false
-        }
-      });
-
-      if (error) {
-        toast.error(`Error loading directory: ${error.message}`);
-        return;
-      }
-
-      if (data.success && data.files) {
-        // Transform the files into nodes
-        const newChildren = data.files.map((file: any) => ({
-          id: file.path,
-          name: file.name,
-          type: file.type,
-          path: file.path,
-          isDirectory: file.isDirectory
-        }));
-
-        // Update the tree with new children
-        setTreeData(prevData => {
-          // Create a map for quick lookup
-          const map = new Map();
-          prevData.forEach(item => map.set(item.id, { ...item }));
-
-          // Update the node with children
-          const node = map.get(node.id);
-          if (node) {
-            node.children = newChildren;
-          }
-
-          // Convert map back to array
-          return Array.from(map.values());
-        });
-      }
-    } catch (err: any) {
-      toast.error(`Failed to load directory: ${err.message}`);
-    }
-  };
-
-  const handleNodeClick = (node: FileNode) => {
-    if (node.type === 'directory') {
-      // Toggle expanded state
-      setExpandedNodes(prev => ({
-        ...prev,
-        [node.id]: !prev[node.id]
-      }));
-      
-      // Load contents if not already loaded
-      if (!node.children && !expandedNodes[node.id]) {
-        loadDirectory(node);
-      }
+  const handleSelectFile = (node: FileNode) => {
+    if (node.type === 'file') {
+      onSelectFile(node.id);
     } else {
-      // Handle file selection
-      onSelectFile(node);
+      handleExpandNode(node);
     }
   };
 
-  const renderNode = ({ node, isOpen, onToggle }: any) => {
-    const isDirectory = node.data.type === 'directory';
+  const NodeRenderer = ({ node, style, dragHandle }: NodeRendererProps<FileNode>) => {
+    const isExpanded = expandedNodes.has(node.data.id);
     
     return (
-      <div
-        className="flex items-center py-1 px-2 hover:bg-gray-100 rounded cursor-pointer"
-        onClick={() => handleNodeClick(node.data)}
+      <div 
+        style={style} 
+        ref={dragHandle}
+        className={`flex items-center p-1 hover:bg-gray-100 cursor-pointer ${node.isSelected ? 'bg-blue-100' : ''}`}
+        onClick={() => handleSelectFile(node.data)}
       >
         <div className="mr-1">
-          {isDirectory ? (
-            isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />
+          {node.data.type === 'dir' ? (
+            isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
           ) : null}
         </div>
         <div className="mr-2">
-          {isDirectory ? (
-            <Folder className="w-4 h-4 text-yellow-500" />
+          {node.data.type === 'dir' ? (
+            <Folder size={16} className="text-yellow-500" />
           ) : (
-            <File className="w-4 h-4 text-blue-500" />
+            <File size={16} className="text-blue-500" />
           )}
         </div>
-        <span className="truncate text-sm">{node.data.name}</span>
+        <div className="text-sm truncate">{node.data.name}</div>
       </div>
     );
   };
 
-  if (isLoading) {
+  const handleNavigateUp = () => {
+    if (currentPath === '/') return;
+    
+    const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
+    loadFiles(parentPath);
+  };
+
+  const refreshFiles = () => {
+    loadFiles(currentPath);
+  };
+
+  if (error) {
     return (
-      <Card className="h-full p-4 overflow-auto">
-        <Skeleton className="h-6 w-3/4 mb-2" />
-        <Skeleton className="h-6 w-1/2 mb-2" />
-        <Skeleton className="h-6 w-2/3 mb-2" />
-        <Skeleton className="h-6 w-3/5 mb-2" />
-        <Skeleton className="h-6 w-1/3" />
-      </Card>
+      <div className="p-4 text-center">
+        <p className="text-red-500 mb-4">{error}</p>
+        <Button onClick={refreshFiles}>Try Again</Button>
+      </div>
+    );
+  }
+
+  if (isLoading && files.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
     );
   }
 
   return (
-    <Card className="h-full p-2 overflow-auto">
-      <Tree
-        data={treeData}
-        openByDefault={false}
-        width="100%"
-        height="100%"
-        indent={16}
-        rowHeight={28}
-        overscanCount={10}
-        className="file-explorer"
-      >
-        {renderNode}
-      </Tree>
-    </Card>
+    <div className="h-full flex flex-col">
+      <div className="flex items-center justify-between p-2 border-b">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleNavigateUp}
+          disabled={currentPath === '/'}
+        >
+          Up
+        </Button>
+        <span className="text-sm truncate flex-1 mx-2">{currentPath}</span>
+        <Button variant="ghost" size="sm" onClick={refreshFiles}>Refresh</Button>
+      </div>
+      <div className="flex-1 overflow-auto">
+        <Tree
+          data={files}
+          openByDefault={false}
+          width="100%"
+          height={400}
+          indent={16}
+          rowHeight={24}
+          paddingTop={0}
+          paddingBottom={0}
+          className="h-full"
+        >
+          {NodeRenderer}
+        </Tree>
+      </div>
+    </div>
   );
-}
+};
+
+export default FileExplorer;
