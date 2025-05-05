@@ -39,3 +39,18 @@ path = "supabase/functions/customer-portal"
 verify_jwt = false
 name = "send-email"
 path = "supabase/functions/send-email"
+
+[[functions]]
+verify_jwt = false
+name = "listFtpFiles"
+path = "supabase/functions/listFtpFiles"
+
+[[functions]]
+verify_jwt = false
+name = "getFtpFile"
+path = "supabase/functions/getFtpFile"
+
+[[functions]]
+verify_jwt = true
+name = "saveFtpFile"
+path = "supabase/functions/saveFtpFile"

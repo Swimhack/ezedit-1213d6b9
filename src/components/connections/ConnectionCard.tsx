@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConnectionBadge } from "./ConnectionBadge";
 import { ConnectionActions } from "./ConnectionActions";
 import { ConnectionWebUrl } from "./ConnectionWebUrl";
+import { FolderOpen } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
 
 interface ConnectionCardProps {
@@ -22,7 +24,10 @@ export function ConnectionCard({
 }: ConnectionCardProps) {
   return (
     <Card 
-      className="border-gray-200 bg-white hover:bg-gray-50 transition-colors cursor-pointer relative group"
+      className={cn(
+        "border-gray-200 bg-white hover:bg-gray-50 transition-colors cursor-pointer relative group",
+        testResult && "border-l-4 border-l-green-500"
+      )}
       onClick={onViewFiles}
     >
       <ConnectionActions 
@@ -50,6 +55,11 @@ export function ConnectionCard({
           url={connection.web_url}
           onClick={(e) => e.stopPropagation()}
         />
+        
+        <div className="mt-4 flex items-center text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+          <FolderOpen size={16} className="mr-1" />
+          <span className="text-sm font-medium">Browse Files</span>
+        </div>
       </CardContent>
     </Card>
   );
