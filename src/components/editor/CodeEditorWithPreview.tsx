@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import MonacoEditor from 'react-monaco-editor';
 import { Editor } from '@tinymce/tinymce-react';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/useSubscription';

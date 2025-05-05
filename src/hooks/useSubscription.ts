@@ -70,17 +70,17 @@ export function useSubscription(userEmail?: string) {
         }
 
         // First check local database for cached subscription info
-        const { data: subscription } = await supabase
+        const { data: subscription, error } = await supabase
           .from('subscriptions')
-          .select('status, tier, end_date')
+          .select('status, canceled_at, trial_end')
           .eq('user_id', session.user.id)
           .single();
 
-        if (subscription) {
+        if (subscription && !error) {
           setIsPremium(subscription.status === 'active');
           setSubscribed(subscription.status === 'active');
-          setSubscriptionTier(subscription.tier || 'free_trial');
-          setSubscriptionEnd(subscription.end_date);
+          setSubscriptionTier(subscription.status === 'active' ? 'business_pro' : 'free_trial');
+          setSubscriptionEnd(subscription.trial_end);
         }
 
         // Check remote subscription status via edge function

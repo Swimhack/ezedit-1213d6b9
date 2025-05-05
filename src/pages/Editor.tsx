@@ -19,6 +19,8 @@ const EditorPage = () => {
   const [connection, setConnection] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [fileContent, setFileContent] = useState<string>('');
+  const [isFileLoading, setIsFileLoading] = useState(false);
   const { isPremium } = useSubscription();
   
   // Store panel sizes in localStorage
@@ -60,9 +62,59 @@ const EditorPage = () => {
     fetchConnection();
   }, [connectionId, navigate]);
 
+  const loadFileContent = async (filePath: string) => {
+    if (!connectionId || !filePath) return;
+    
+    setIsFileLoading(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('getFtpFile', {
+        body: {
+          connectionId,
+          filePath
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.content) {
+        setFileContent(data.content);
+      } else {
+        throw new Error('Failed to load file content');
+      }
+    } catch (error: any) {
+      toast.error(`Error loading file: ${error.message}`);
+    } finally {
+      setIsFileLoading(false);
+    }
+  };
+
   const handleFileSelect = (file: any) => {
     if (file.type === 'file') {
       setSelectedFile(file);
+      loadFileContent(file.id);
+    }
+  };
+
+  const handleSaveFile = async (content: string) => {
+    if (!connectionId || !selectedFile) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('saveFtpFile', {
+        body: {
+          connectionId,
+          filePath: selectedFile.id,
+          content
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success('File saved successfully');
+      return Promise.resolve();
+    } catch (error: any) {
+      toast.error(`Error saving file: ${error.message}`);
+      return Promise.reject(error);
     }
   };
 
@@ -104,7 +156,7 @@ const EditorPage = () => {
               {/* File Explorer Panel */}
               <ResizablePanel defaultSize={panelSizes.explorer} minSize={15}>
                 <FileExplorer 
-                  connection={connection} 
+                  connectionId={connection?.id}
                   onSelectFile={handleFileSelect} 
                 />
               </ResizablePanel>
@@ -113,10 +165,18 @@ const EditorPage = () => {
               
               {/* Code Editor Panel */}
               <ResizablePanel defaultSize={panelSizes.editor}>
-                <CodeEditorWithPreview 
-                  connection={connection} 
-                  file={selectedFile} 
-                />
+                {selectedFile ? (
+                  <CodeEditorWithPreview 
+                    filePath={selectedFile.id}
+                    initialContent={fileContent}
+                    readOnly={!isPremium}
+                    onSave={handleSaveFile}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    Select a file to edit
+                  </div>
+                )}
               </ResizablePanel>
             </ResizablePanelGroup>
           </div>

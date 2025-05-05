@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -166,7 +165,7 @@ const Dashboard = () => {
                 setIsEditModalOpen(false);
                 setSelectedSite(null);
               }}
-              initialData={selectedSite}
+              editConnection={selectedSite}
               onSave={loadSites}
             />
           )}

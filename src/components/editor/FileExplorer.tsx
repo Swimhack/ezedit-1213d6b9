@@ -4,6 +4,7 @@ import { Tree, NodeRendererProps } from 'react-arborist';
 import { Folder, File, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FileNode {
   id: string;
@@ -16,7 +17,7 @@ interface FileNode {
 
 interface FileExplorerProps {
   connectionId: string;
-  onSelectFile: (path: string) => void;
+  onSelectFile: (file: FileNode) => void;
 }
 
 const FileExplorer: React.FC<FileExplorerProps> = ({ connectionId, onSelectFile }) => {
@@ -33,23 +34,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ connectionId, onSelectFile 
     setError(null);
     
     try {
-      const response = await fetch('https://natjhcqynqziccssnwim.supabase.co/functions/v1/listFtpFiles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('listFtpFiles', {
+        body: {
           connectionId,
           path
-        })
+        }
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to load files: ${errorText}`);
+      if (error) {
+        throw new Error(`Failed to load files: ${error.message}`);
       }
-      
-      const data = await response.json();
       
       if (!data.success) {
         throw new Error(data.message || 'Failed to load files');
@@ -96,22 +90,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ connectionId, onSelectFile 
     // Load children for this directory
     setIsLoading(true);
     try {
-      const response = await fetch('https://natjhcqynqziccssnwim.supabase.co/functions/v1/listFtpFiles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('listFtpFiles', {
+        body: {
           connectionId,
           path: nodePath
-        })
+        }
       });
       
-      if (!response.ok) {
+      if (error) {
         throw new Error('Failed to load directory contents');
       }
-      
-      const data = await response.json();
       
       if (!data.success) {
         throw new Error(data.message || 'Failed to load directory contents');
@@ -154,7 +142,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ connectionId, onSelectFile 
 
   const handleSelectFile = (node: FileNode) => {
     if (node.type === 'file') {
-      onSelectFile(node.id);
+      onSelectFile(node);
     } else {
       handleExpandNode(node);
     }
