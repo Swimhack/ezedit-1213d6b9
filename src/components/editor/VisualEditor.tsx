@@ -69,7 +69,8 @@ export function VisualEditor({
                   active: gjsView === 'design',
                   attributes: { title: 'Switch to Design View' },
                   className: 'gjs-pn-btn',
-                  content: 'Design'  // Use content instead of label
+                  // Using a simple label string instead of content/text property
+                  label: 'Design'
                 },
                 {
                   id: 'code-btn',
@@ -77,7 +78,8 @@ export function VisualEditor({
                   active: gjsView === 'code',
                   attributes: { title: 'Switch to Code View' },
                   className: 'gjs-pn-btn',
-                  content: 'Code'  // Use content instead of label
+                  // Using a simple label string instead of content/text property
+                  label: 'Code'
                 }
               ]
             }
