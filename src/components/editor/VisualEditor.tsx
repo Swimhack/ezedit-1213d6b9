@@ -69,8 +69,9 @@ export function VisualEditor({
                   active: gjsView === 'design',
                   attributes: { title: 'Switch to Design View' },
                   className: 'gjs-pn-btn',
-                  // Using a simple label string instead of content/text property
-                  label: 'Design'
+                  // We need to use a property that actually exists in the ButtonProps type
+                  // According to GrapesJS docs, html can be used for button content
+                  html: 'Design'
                 },
                 {
                   id: 'code-btn',
@@ -78,8 +79,8 @@ export function VisualEditor({
                   active: gjsView === 'code',
                   attributes: { title: 'Switch to Code View' },
                   className: 'gjs-pn-btn',
-                  // Using a simple label string instead of content/text property
-                  label: 'Code'
+                  // Using html property for button content
+                  html: 'Code'
                 }
               ]
             }
