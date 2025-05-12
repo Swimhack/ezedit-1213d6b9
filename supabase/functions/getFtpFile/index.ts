@@ -1,27 +1,13 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Client } from "npm:basic-ftp@5.0.4";
-import * as SFTP from "npm:ssh2-sftp-client@9.1.0";
+import { getFtpCreds } from "../_shared/creds.ts";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Content-Type": "application/json",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Content-Type': 'application/json'
 };
-
-// Helper function to detect if a file is binary
-function isBinaryFile(buffer: Uint8Array): boolean {
-  // Check for null bytes which are common in binary files
-  for (let i = 0; i < Math.min(buffer.length, 1024); i++) {
-    if (buffer[i] === 0) return true;
-  }
-  
-  // Check for non-text characters
-  const nonTextChars = buffer.filter(byte => (byte < 32 || byte > 127) && ![9, 10, 13].includes(byte));
-  const ratio = nonTextChars.length / Math.min(buffer.length, 1024);
-  
-  return ratio > 0.3; // If more than 30% are non-text, consider it binary
-}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -30,119 +16,90 @@ serve(async (req) => {
   }
 
   try {
-    const { host, user, pass, path, port = 21, sftp = false } = await req.json();
+    const { connectionId, filePath } = await req.json();
     
-    if (!host || !user || !pass || !path) {
+    if (!connectionId || !filePath) {
       return new Response(
-        JSON.stringify({ error: "Missing required parameters" }),
+        JSON.stringify({ success: false, message: "Missing connectionId or filePath" }),
         { status: 400, headers: corsHeaders }
       );
     }
-
-    console.log(`Fetching file ${path} from ${host}${sftp ? " via SFTP" : ""}`);
     
-    let fileData;
-    let isBinary = false;
+    console.log(`[getFtpFile] Getting file: ${filePath} for connection: ${connectionId}`);
     
-    if (sftp) {
-      // Use SFTP client
-      const sftpClient = new SFTP.default();
-      
-      try {
-        await sftpClient.connect({
-          host,
-          port: Number(port),
-          username: user,
-          password: pass,
-        });
-        
-        // Get file as buffer
-        const buffer = await sftpClient.get(path);
-        
-        // Detect if binary and convert accordingly
-        if (buffer instanceof Uint8Array) {
-          isBinary = isBinaryFile(buffer);
-          if (isBinary) {
-            fileData = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-          } else {
-            fileData = new TextDecoder().decode(buffer);
-          }
-        } else {
-          fileData = buffer.toString();
-        }
-        
-        await sftpClient.end();
-      } catch (error) {
-        console.error("SFTP error:", error);
-        throw error;
-      }
-    } else {
-      // Use FTP client
+    // Get FTP credentials
+    const creds = await getFtpCreds(connectionId);
+    if (!creds) {
+      return new Response(
+        JSON.stringify({ success: false, message: "Invalid connection ID" }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    
+    // Create a temporary file to store the downloaded content
+    const tempFile = await Deno.makeTempFile();
+    
+    try {
+      // Create FTP client
       const client = new Client();
       client.ftp.verbose = true;
       
       try {
         await client.access({
-          host,
-          port: Number(port),
-          user,
-          password: pass,
+          host: creds.host,
+          user: creds.user,
+          password: creds.password,
+          port: creds.port || 21,
           secure: false
         });
         
-        // Create a writable stream
-        const chunks: Uint8Array[] = [];
-        const writable = new WritableStream({
-          write(chunk) {
-            chunks.push(chunk);
-          }
-        });
+        console.log(`[getFtpFile] Connected to FTP server. Downloading file: "${filePath}"`);
         
-        // Download file to the stream
-        await client.downloadTo(writable, path);
+        // Download the file to a temporary location
+        await client.downloadTo(tempFile, filePath);
         
-        // Convert chunks to a single buffer
-        const buffer = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
-        let offset = 0;
-        for (const chunk of chunks) {
-          buffer.set(chunk, offset);
-          offset += chunk.length;
-        }
+        // Read the file content
+        const content = await Deno.readTextFile(tempFile);
         
-        // Detect if binary and convert accordingly
-        isBinary = isBinaryFile(buffer);
-        if (isBinary) {
-          fileData = btoa(String.fromCharCode(...buffer));
-        } else {
-          fileData = new TextDecoder().decode(buffer);
-        }
+        console.log(`[getFtpFile] File downloaded successfully. Content length: ${content.length} bytes`);
         
+        // Close the FTP connection
         client.close();
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            content: content
+          }),
+          { headers: corsHeaders }
+        );
       } catch (error) {
-        console.error("FTP error:", error);
-        throw error;
+        console.error("[getFtpFile] FTP error:", error);
+        if (client) client.close();
+        return new Response(
+          JSON.stringify({ success: false, message: error.message || "Failed to get file" }),
+          { status: 500, headers: corsHeaders }
+        );
+      }
+    } catch (error) {
+      console.error("[getFtpFile] Error:", error);
+      return new Response(
+        JSON.stringify({ success: false, message: error.message || "Failed to process file" }),
+        { status: 500, headers: corsHeaders }
+      );
+    } finally {
+      // Clean up the temporary file
+      try {
+        await Deno.remove(tempFile);
+      } catch (e) {
+        console.error("[getFtpFile] Error removing temporary file:", e);
       }
     }
-    
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        content: fileData,
-        isBinary: isBinary,
-        encoding: isBinary ? 'base64' : 'utf-8',
-        path: path
-      }),
-      { headers: corsHeaders }
-    );
-    
   } catch (error) {
-    console.error("Error in getFtpFile:", error.message);
+    console.error("[getFtpFile] Request processing error:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || "Failed to get file" 
-      }),
-      { status: 500, headers: corsHeaders }
+      JSON.stringify({ success: false, message: "Invalid request" }),
+      { status: 400, headers: corsHeaders }
     );
   }
 });

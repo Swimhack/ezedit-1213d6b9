@@ -54,3 +54,13 @@ path = "supabase/functions/getFtpFile"
 verify_jwt = true
 name = "saveFtpFile"
 path = "supabase/functions/saveFtpFile"
+
+[[functions]]
+verify_jwt = false
+name = "ftp-list"
+path = "supabase/functions/ftp-list"
+
+[[functions]]
+verify_jwt = false
+name = "ftp-connect"
+path = "supabase/functions/ftp-connect"

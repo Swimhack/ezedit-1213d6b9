@@ -76,6 +76,57 @@ serve(async (req) => {
     const { siteId, path = "/" } = await req.json();
     console.log(`[FTP-LIST] Listing directory for siteId: ${siteId}, path: ${path}`);
     
+    // For direct connection parameters (backward compatibility)
+    if (req.body && typeof req.body === 'object' && 'host' in req.body) {
+      const { host, user, pass, port = 21, dir = "/" } = await req.json();
+      
+      if (!host || !user || !pass) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Missing connection parameters" }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
+      
+      const client = new Client();
+      client.ftp.verbose = true;
+      
+      try {
+        await client.access({
+          host,
+          port: Number(port),
+          user,
+          password: pass,
+          secure: false
+        });
+        
+        const list = await client.list(dir);
+        
+        const formattedEntries = list.map(entry => ({
+          name: entry.name,
+          type: entry.isDirectory ? "directory" : "file",
+          size: entry.size || 0,
+          modified: safeFormatDate(entry.date),
+          isDirectory: entry.isDirectory,
+          path: `${dir === "/" ? "" : dir}/${entry.name}`.replace(/\/+/g, "/")
+        }));
+        
+        client.close();
+        
+        return new Response(
+          JSON.stringify({ success: true, files: formattedEntries }),
+          { headers: corsHeaders }
+        );
+      } catch (e) {
+        console.error("[FTP-LIST] Error with direct connection:", e);
+        client.close();
+        return new Response(
+          JSON.stringify({ success: false, message: e.message || "FTP listing failed" }),
+          { status: 500, headers: corsHeaders }
+        );
+      }
+    }
+    
+    // Standard connection using siteId
     const creds = await getFtpCreds(siteId);
     if (!creds) {
       return new Response(
@@ -92,7 +143,7 @@ serve(async (req) => {
         host: creds.host,
         user: creds.user,
         password: creds.password,
-        port: creds.port,
+        port: creds.port || 21,
         secure: false
       });
       
