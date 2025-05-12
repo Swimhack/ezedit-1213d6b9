@@ -65,19 +65,23 @@ export function VisualEditor({
               buttons: [
                 {
                   id: 'design-btn',
-                  label: 'Design',
-                  className: 'gjs-pn-btn',
+                  // Fix: Replace 'label' prop with appropriate content
+                  // The button in the original GrapesJS uses a label property
+                  // but we need to use children for our Button component
                   command: 'show-design',
                   active: gjsView === 'design',
                   attributes: { title: 'Switch to Design View' },
+                  className: 'gjs-pn-btn',
+                  text: 'Design'  // Using text for GrapesJS internal button
                 },
                 {
                   id: 'code-btn',
-                  label: 'Code',
-                  className: 'gjs-pn-btn',
+                  // Fix: Same issue with 'label' prop
                   command: 'show-code',
                   active: gjsView === 'code',
                   attributes: { title: 'Switch to Code View' },
+                  className: 'gjs-pn-btn',
+                  text: 'Code'  // Using text for GrapesJS internal button
                 }
               ]
             }
