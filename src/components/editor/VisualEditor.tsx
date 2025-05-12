@@ -65,21 +65,19 @@ export function VisualEditor({
               buttons: [
                 {
                   id: 'design-btn',
-                  // Fix: GrapesJS buttons use label internally
                   command: 'show-design',
                   active: gjsView === 'design',
                   attributes: { title: 'Switch to Design View' },
                   className: 'gjs-pn-btn',
-                  label: 'Design'  // Use label instead of text
+                  content: 'Design'  // Use content instead of label
                 },
                 {
                   id: 'code-btn',
-                  // Fix: GrapesJS buttons use label internally
                   command: 'show-code',
                   active: gjsView === 'code',
                   attributes: { title: 'Switch to Code View' },
                   className: 'gjs-pn-btn',
-                  label: 'Code'  // Use label instead of text
+                  content: 'Code'  // Use content instead of label
                 }
               ]
             }
