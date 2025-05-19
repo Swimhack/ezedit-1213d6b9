@@ -28,7 +28,7 @@ export function VisualEditor({
   readOnly = false,
 }: VisualEditorProps) {
   const [gjsView, setGjsView] = React.useState<'design' | 'code'>('design');
-  const grapesjsEditorRef = useRef<grapesjs.Editor | null>(null);
+  const grapesjsEditorRef = useRef<any>(null);
   const containerRef       = useRef<HTMLDivElement>(null);
 
   /* ───────────── initialise GrapesJS once ───────────── */
