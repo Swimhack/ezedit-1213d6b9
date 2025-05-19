@@ -1,71 +1,102 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
 import Editor from "@monaco-editor/react";
+import { Loader } from "lucide-react";
+import { useTheme } from "@/hooks/use-theme";
 
 interface CodeEditorProps {
   content: string;
   language: string;
-  onChange: (value: string | undefined) => void;
+  onChange: (newContent: string | undefined) => void;
   editorRef?: React.MutableRefObject<any>;
   readOnly?: boolean;
 }
 
-export const CodeEditor: React.FC<CodeEditorProps> = ({ 
-  content, 
-  language, 
-  onChange, 
+export function CodeEditor({
+  content,
+  language,
+  onChange,
   editorRef,
   readOnly = false
-}) => {
-  // Force editor refresh when content changes
-  useEffect(() => {
-    if (editorRef?.current?.layout) {
-      const timer = setTimeout(() => {
-        editorRef.current.layout();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [content, editorRef]);
+}: CodeEditorProps) {
+  const { isLight } = useTheme();
 
-  // Additional useEffect to handle window resize events
-  useEffect(() => {
-    const handleResize = () => {
-      if (editorRef?.current?.layout) {
-        editorRef.current.layout();
-      }
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [editorRef]);
-
-  const handleEditorDidMount = (editor: any) => {
-    if (editorRef) {
-      editorRef.current = editor;
-      setTimeout(() => editor.layout(), 100);
+  // Determine proper language mode based on file extension
+  const detectLanguage = (lang: string) => {
+    switch (lang.toLowerCase()) {
+      case 'js':
+      case 'jsx':
+        return 'javascript';
+      case 'ts':
+      case 'tsx':
+        return 'typescript';
+      case 'html':
+      case 'htm':
+        return 'html';
+      case 'css':
+        return 'css';
+      case 'json':
+        return 'json';
+      case 'md':
+        return 'markdown';
+      case 'php':
+        return 'php';
+      case 'py':
+        return 'python';
+      case 'java':
+        return 'java';
+      case 'c':
+        return 'c';
+      case 'cpp':
+      case 'cc':
+        return 'cpp';
+      default:
+        return language || 'plaintext';
     }
   };
 
+  const handleEditorDidMount = (editor: any, monaco: any) => {
+    if (editorRef) {
+      editorRef.current = editor;
+    }
+
+    // Force layout after mounting
+    setTimeout(() => {
+      try {
+        editor.layout();
+      } catch (err) {
+        console.error('Error initializing editor layout:', err);
+      }
+    }, 100);
+  };
+
   return (
-    <div className="h-full w-full">
-      <Editor
-        height="100%"
-        language={language}
-        value={content}
-        onChange={onChange}
-        theme="vs-dark"
-        options={{
-          minimap: { enabled: false },
-          fontSize: 14,
-          wordWrap: 'on',
-          scrollBeyondLastLine: false,
-          automaticLayout: true,
-          tabSize: 2,
-          fixedOverflowWidgets: true,
-          readOnly: readOnly,
-        }}
-        onMount={handleEditorDidMount}
-      />
-    </div>
+    <Editor
+      height="100%"
+      language={detectLanguage(language)}
+      theme={isLight ? "vs" : "vs-dark"}
+      value={content}
+      onChange={onChange}
+      onMount={handleEditorDidMount}
+      options={{
+        readOnly,
+        minimap: { enabled: false },
+        fontSize: 14,
+        wordWrap: "on",
+        automaticLayout: true,
+        formatOnPaste: true,
+        formatOnType: true,
+        scrollBeyondLastLine: false,
+        tabSize: 2,
+        rulers: [80, 120],
+        renderLineHighlight: "all",
+        bracketPairColorization: { enabled: true },
+      }}
+      loading={
+        <div className="flex items-center justify-center h-full">
+          <Loader className="h-6 w-6 animate-spin text-gray-400" />
+        </div>
+      }
+    />
   );
-};
+}

@@ -1,85 +1,97 @@
 
-import { formatFileSize } from "@/lib/utils";
-import { format } from "date-fns";
-import { FileIcon, FolderIcon } from "lucide-react";
-import { TableCell, TableRow } from "@/components/ui/table";
+import React from "react";
+import { File, Folder, FolderOpen, ChevronRight, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface FileItemProps {
-  file: {
-    name: string;
-    size?: number;
-    modified?: Date | string | number;
-    isDirectory?: boolean;
-    type?: string;
-  };
-  onClick: () => void;
+  name: string;
+  path?: string;
+  isDirectory?: boolean;
+  isSelected?: boolean;
+  isExpanded?: boolean;
+  size?: number;
+  modified?: Date | string | number;
+  onSelect: () => void;
+  onExpand?: () => void;
 }
 
-export function FileListItem({ file, onClick }: FileItemProps) {
-  const formatDate = (dateValue: any) => {
-    try {
-      if (!dateValue) return "Unknown date";
-      
-      if (dateValue instanceof Date) {
-        if (isNaN(dateValue.getTime())) {
-          return "Unknown date";
-        }
-        return format(dateValue, "MMM d, yyyy HH:mm");
-      }
-      
-      if (typeof dateValue === 'string') {
-        if (!dateValue.trim()) return "Unknown date";
-        
-        const date = new Date(dateValue);
-        if (!isNaN(date.getTime())) {
-          return format(date, "MMM d, yyyy HH:mm");
-        }
-        return "Unknown date";
-      }
-      
-      if (typeof dateValue === 'number') {
-        if (isNaN(dateValue) || dateValue < 0) return "Unknown date";
-        
-        const date = new Date(dateValue);
-        if (!isNaN(date.getTime())) {
-          return format(date, "MMM d, yyyy HH:mm");
-        }
-        return "Unknown date";
-      }
-      
-      return "Unknown date";
-    } catch (error) {
-      console.error("Error formatting date:", error, "Date value:", dateValue);
-      return "Unknown date";
+export function FileListItem({
+  name,
+  path,
+  isDirectory = false,
+  isSelected = false,
+  isExpanded = false,
+  size,
+  modified,
+  onSelect,
+  onExpand
+}: FileItemProps) {
+  const handleClick = () => {
+    if (isDirectory && onExpand) {
+      onExpand();
+    } else {
+      onSelect();
     }
   };
 
-  const isFolder = file.isDirectory || file.type === "directory";
-  
+  // Format the file size for display
+  const formatSize = (size?: number) => {
+    if (!size) return "";
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  };
+
+  // Format the modified date for display
+  const formatDate = (date?: Date | string | number) => {
+    if (!date) return "";
+    try {
+      const d = new Date(date);
+      return d.toLocaleDateString();
+    } catch (e) {
+      return "";
+    }
+  };
+
   return (
-    <TableRow
-      className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
-      onClick={onClick}
+    <div
+      className={cn(
+        "flex items-center px-2 py-1.5 text-sm rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800",
+        isSelected && "bg-blue-50 dark:bg-blue-900/30"
+      )}
+      onClick={handleClick}
     >
-      <TableCell className="font-medium flex items-center">
-        {isFolder ? (
-          <FolderIcon className="h-4 w-4 mr-2 text-blue-500" />
-        ) : (
-          <FileIcon className="h-4 w-4 mr-2 text-gray-500" />
+      <div className="flex items-center mr-2">
+        {isDirectory && (
+          <div className="mr-1">
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4 text-gray-400" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            )}
+          </div>
         )}
-        <span className="truncate max-w-[200px]" title={file.name}>
-          {file.name}
-        </span>
-      </TableCell>
-      <TableCell>
-        {isFolder ? "--" : formatFileSize(file.size || 0)}
-      </TableCell>
-      <TableCell>
-        {formatDate(file.modified)}
-      </TableCell>
-      <TableCell>
-        {isFolder ? "Directory" : "File"}
-      </TableCell>
-    </TableRow>
+        <div>
+          {isDirectory ? (
+            isExpanded ? (
+              <FolderOpen className="h-4 w-4 text-yellow-400" />
+            ) : (
+              <Folder className="h-4 w-4 text-yellow-400" />
+            )
+          ) : (
+            <File className="h-4 w-4 text-blue-500" />
+          )}
+        </div>
+      </div>
+      <div className="flex-grow truncate">{name}</div>
+      <div className="flex gap-2 text-xs text-gray-500">
+        {!isDirectory && size !== undefined && (
+          <span>{formatSize(size)}</span>
+        )}
+        {modified && (
+          <span>{formatDate(modified)}</span>
+        )}
+      </div>
+    </div>
   );
 }
