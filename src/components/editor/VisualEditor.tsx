@@ -69,7 +69,7 @@ export function VisualEditor({
                   active: gjsView === 'design',
                   attributes: { title: 'Switch to Design View' },
                   className: 'gjs-pn-btn',
-                  label: 'Design'  // Using 'label' property which is the correct property in GrapesJS for older versions
+                  content: 'Design'  // Fixed: Changed 'label' to 'content' for GrapesJS
                 },
                 {
                   id: 'code-btn',
@@ -77,7 +77,7 @@ export function VisualEditor({
                   active: gjsView === 'code',
                   attributes: { title: 'Switch to Code View' },
                   className: 'gjs-pn-btn',
-                  label: 'Code'  // Using 'label' property which is the correct property in GrapesJS for older versions
+                  content: 'Code'  // Fixed: Changed 'label' to 'content' for GrapesJS
                 }
               ]
             }
