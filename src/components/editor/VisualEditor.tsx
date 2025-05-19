@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import grapesjs from 'grapesjs';
 import gjsPreset from 'grapesjs-preset-webpage';
@@ -69,7 +68,8 @@ export function VisualEditor({
                   active: gjsView === 'design',
                   attributes: { title: 'Switch to Design View' },
                   className: 'gjs-pn-btn',
-                  label: 'Design'  // Changed back to 'label' as this is for GrapesJS UI, not React components
+                  // Using plain text directly instead of label or content
+                  html: 'Design'
                 },
                 {
                   id: 'code-btn',
@@ -77,7 +77,8 @@ export function VisualEditor({
                   active: gjsView === 'code',
                   attributes: { title: 'Switch to Code View' },
                   className: 'gjs-pn-btn',
-                  label: 'Code'  // Changed back to 'label' as this is for GrapesJS UI, not React components
+                  // Using plain text directly instead of label or content
+                  html: 'Code'
                 }
               ]
             }
