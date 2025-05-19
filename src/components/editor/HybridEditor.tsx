@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import 'react-tabs/style/react-tabs.css';
-import { TabPanel } from 'react-tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { CodeEditor } from './CodeEditor';
 import './grapesjs-styles.css';
 import { EditorTabView } from './EditorTabView';
