@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { FTPFileList } from "@/components/FTPFileList";
+import { SimpleFTPFileList } from "@/components/SimpleFTPFileList";
 import { FileBrowserToolbar } from "@/components/ftp-explorer/FileBrowserToolbar";
 import { useFtpFileOperations } from "@/hooks/file-explorer/use-ftp-file-operations";
 import { FtpConnection } from "@/hooks/use-ftp-connections";
@@ -95,12 +95,13 @@ export function FileBrowser({
         isRefreshing={isLoading || isRefreshing}
       />
 
-      <FTPFileList
+      <SimpleFTPFileList
         currentPath={currentPath}
         files={files}
         onNavigate={handleNavigate}
         onSelectFile={onSelectFile}
         isLoading={isLoading || isRefreshing}
+        onRefresh={handleRefresh}
       />
       
       {error && (
