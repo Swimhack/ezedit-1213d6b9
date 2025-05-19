@@ -2,10 +2,13 @@
 import { useState, useEffect } from 'react';
 import { useLocalStorage } from './use-local-storage';
 
+type Theme = 'light' | 'dark' | 'system';
+
 export function useTheme() {
   // Default to system preference, then fall back to 'light'
-  const [theme, setTheme] = useLocalStorage('theme', 'system');
+  const [theme, setTheme] = useLocalStorage<Theme>('theme', 'system');
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+  const [isLight, setIsLight] = useState<boolean>(true);
 
   // Watch for color scheme preference changes
   useEffect(() => {
@@ -31,7 +34,7 @@ export function useTheme() {
   }, [theme]);
 
   // Function to update the theme in DOM
-  const updateTheme = (currentTheme: string) => {
+  const updateTheme = (currentTheme: Theme) => {
     const root = window.document.documentElement;
     
     // Remove both classes first
@@ -42,6 +45,7 @@ export function useTheme() {
       const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const newTheme = systemPrefersDark ? 'dark' : 'light';
       setResolvedTheme(newTheme);
+      setIsLight(newTheme === 'light');
       
       // Add the appropriate class
       root.classList.add(newTheme);
@@ -49,6 +53,7 @@ export function useTheme() {
     } else {
       const newTheme = currentTheme as 'light' | 'dark';
       setResolvedTheme(newTheme);
+      setIsLight(newTheme === 'light');
       
       // Add the theme class
       root.classList.add(newTheme);
@@ -59,10 +64,10 @@ export function useTheme() {
   return {
     theme,
     resolvedTheme,
-    setTheme: (theme: 'light' | 'dark' | 'system') => setTheme(theme),
+    setTheme: (theme: Theme) => setTheme(theme),
     toggleTheme: () => setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'),
     // Add convenience properties
-    isLight: resolvedTheme === 'light',
-    isDark: resolvedTheme === 'dark'
+    isLight,
+    isDark: !isLight
   };
 }

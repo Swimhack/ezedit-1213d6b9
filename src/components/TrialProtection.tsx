@@ -19,7 +19,11 @@ const TrialProtection = ({ children, requiresSubscription = false }: TrialProtec
   const [loading, setLoading] = useState(true);
   const trialStatus = useTrialStatus(user?.email);
   const { isSuperAdmin, loading: superAdminLoading } = useSuperAdmin(user?.email);
-  const { isPremium, subscribed, isLoading: subLoading } = useSubscription();
+  const { 
+    isPremium, 
+    isLoading: subLoading,
+    subscribed
+  } = useSubscription(user?.email);
 
   useEffect(() => {
     const checkUser = async () => {
