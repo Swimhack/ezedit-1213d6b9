@@ -69,8 +69,8 @@ export function VisualEditor({
                   active: gjsView === 'design',
                   attributes: { title: 'Switch to Design View' },
                   className: 'gjs-pn-btn',
-                  // Use label instead of content for GrapesJS buttons
-                  label: 'Design'
+                  // Use html property instead of label for button content
+                  html: 'Design'
                 },
                 {
                   id: 'code-btn',
@@ -78,8 +78,8 @@ export function VisualEditor({
                   active: gjsView === 'code',
                   attributes: { title: 'Switch to Code View' },
                   className: 'gjs-pn-btn',
-                  // Use label for button content
-                  label: 'Code'
+                  // Use html property for button content
+                  html: 'Code'
                 }
               ]
             }
