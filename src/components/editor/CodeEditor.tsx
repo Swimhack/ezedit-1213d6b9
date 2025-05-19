@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import MonacoEditor from '@monaco-editor/react';
+import Editor from "@monaco-editor/react";
 
 interface CodeEditorProps {
   content: string;
@@ -48,7 +48,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
   return (
     <div className="h-full w-full">
-      <MonacoEditor
+      <Editor
         height="100%"
         language={language}
         value={content}
