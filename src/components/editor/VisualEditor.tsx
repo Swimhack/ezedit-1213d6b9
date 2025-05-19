@@ -4,16 +4,6 @@ import grapesjs from 'grapesjs';
 import gjsPreset from 'grapesjs-preset-webpage';
 import { VisualModeToolbar } from './VisualModeToolbar';
 
-/* ──────────────────────────────────────────────────────────────
-   Extend GrapesJS types so toolbar buttons can use "label"
-   without triggering TS2353.
-──────────────────────────────────────────────────────────────── */
-declare module 'grapesjs' {
-  interface ButtonProps {
-    label?: string;
-  }
-}
-
 interface VisualEditorProps {
   content:   string;
   onChange:  (content: string) => void;
