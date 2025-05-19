@@ -1,12 +1,23 @@
+
 import React, { useEffect, useRef } from 'react';
 import grapesjs from 'grapesjs';
 import gjsPreset from 'grapesjs-preset-webpage';
 import { VisualModeToolbar } from './VisualModeToolbar';
 
+/* ──────────────────────────────────────────────────────────────
+   Extend GrapesJS types so toolbar buttons can use "label"
+   without triggering TS2353.
+──────────────────────────────────────────────────────────────── */
+declare module 'grapesjs' {
+  interface ButtonProps {
+    label?: string;
+  }
+}
+
 interface VisualEditorProps {
-  content: string;
-  onChange: (content: string) => void;
-  fileName: string | null;
+  content:   string;
+  onChange:  (content: string) => void;
+  fileName:  string | null;
   readOnly?: boolean;
 }
 
@@ -14,20 +25,21 @@ export function VisualEditor({
   content,
   onChange,
   fileName,
-  readOnly = false
+  readOnly = false,
 }: VisualEditorProps) {
   const [gjsView, setGjsView] = React.useState<'design' | 'code'>('design');
-  const grapesjsEditorRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const grapesjsEditorRef = useRef<grapesjs.Editor | null>(null);
+  const containerRef       = useRef<HTMLDivElement>(null);
 
-  // Initialize GrapesJS editor
+  /* ───────────── initialise GrapesJS once ───────────── */
   useEffect(() => {
     if (containerRef.current && !grapesjsEditorRef.current) {
       const editor = grapesjs.init({
         container: containerRef.current,
-        height: '100%',
-        width: 'auto',
+        height:    '100%',
+        width:     'auto',
         fromElement: false,
+
         storageManager: {
           type: 'remote',
           autosave: false,
@@ -35,127 +47,112 @@ export function VisualEditor({
           options: {
             remote: {
               urlStore: '/api/save',
-              urlLoad: '/api/load',
-              headers: { 
-                'Content-Type': 'application/json' 
-              },
-              onStore: (data: any) => {
-                // Add filename to the data before storing
-                return {
-                  ...data,
-                  filename: fileName
-                };
-              },
-              onLoad: (result: any) => {
-                // Process the loaded data if needed
-                return result;
-              }
-            }
-          }
+              urlLoad:  '/api/load',
+              headers:  { 'Content-Type': 'application/json' },
+              onStore:  data   => ({ ...data, filename: fileName }),
+              onLoad:   result => result,
+            },
+          },
         },
-        plugins: [gjsPreset],
-        pluginsOpts: {
-          gjsPreset: {}
-        },
-        panels: { 
+
+        plugins:     [gjsPreset],
+        pluginsOpts: { gjsPreset: {} },
+
+        panels: {
           defaults: [
             {
               id: 'views',
               buttons: [
                 {
-                  id: 'design-btn',
-                  command: 'show-design',
-                  active: gjsView === 'design',
+                  id:         'design-btn',
+                  command:    'show-design',
+                  active:     gjsView === 'design',
                   attributes: { title: 'Switch to Design View' },
-                  className: 'gjs-pn-btn',
-                  // Using plain text directly instead of label or content
-                  html: 'Design'
+                  className:  'gjs-pn-btn',
+                  label:      'Design',
                 },
                 {
-                  id: 'code-btn',
-                  command: 'show-code',
-                  active: gjsView === 'code',
+                  id:         'code-btn',
+                  command:    'show-code',
+                  active:     gjsView === 'code',
                   attributes: { title: 'Switch to Code View' },
-                  className: 'gjs-pn-btn',
-                  // Using plain text directly instead of label or content
-                  html: 'Code'
-                }
-              ]
-            }
-          ] 
+                  className:  'gjs-pn-btn',
+                  label:      'Code',
+                },
+              ],
+            },
+          ],
         },
-        deviceManager: { devices: [
-          { name: 'Desktop', width: '' },
-          { name: 'Tablet', width: '768px' },
-          { name: 'Mobile', width: '320px' }
-        ]},
+
+        deviceManager: {
+          devices: [
+            { name: 'Desktop', width: ''      },
+            { name: 'Tablet',  width: '768px' },
+            { name: 'Mobile',  width: '320px' },
+          ],
+        },
+
         styleManager: { sectors: [] },
-        blockManager: { appendTo: '#blocks' }
+        blockManager: { appendTo: '#blocks' },
       });
-      
-      // Add the toggle commands
+
+      /* ───── custom commands for Design / Code toggle ───── */
       editor.Commands.add('show-design', {
-        run: (editor) => {
-          editor.runCommand('core:open-blocks');
-          editor.runCommand('core:open-layers');
-          editor.stopCommand('core:open-code');
+        run: ed => {
+          ed.runCommand('core:open-blocks');
+          ed.runCommand('core:open-layers');
+          ed.stopCommand('core:open-code');
           setGjsView('design');
-        }
+        },
       });
 
       editor.Commands.add('show-code', {
-        run: (editor) => {
-          editor.stopCommand('core:open-blocks');
-          editor.stopCommand('core:open-layers');
-          editor.runCommand('core:open-code');
+        run: ed => {
+          ed.stopCommand('core:open-blocks');
+          ed.stopCommand('core:open-layers');
+          ed.runCommand('core:open-code');
           setGjsView('code');
-        }
+        },
       });
-      
-      // Set content
+
+      /* ───── initial content & change listener ───── */
       editor.setComponents(content);
-      
-      // Listen for changes
       editor.on('change:changesCount', () => {
-        if (!readOnly) {
-          const html = editor.getHtml();
-          onChange(html);
-        }
+        if (!readOnly) onChange(editor.getHtml());
       });
-      
+
       grapesjsEditorRef.current = editor;
-      
-      // Return cleanup function
+
       return () => {
         editor.destroy();
         grapesjsEditorRef.current = null;
       };
     }
   }, [content, fileName, onChange, readOnly, gjsView]);
-  
-  // Update GrapesJS content when external content changes
+
+  /* ───────────── keep external state in sync ───────────── */
   useEffect(() => {
-    if (grapesjsEditorRef.current && grapesjsEditorRef.current.getHtml() !== content) {
+    const currentHtml = grapesjsEditorRef.current?.getHtml();
+    if (grapesjsEditorRef.current && currentHtml !== content) {
       grapesjsEditorRef.current.setComponents(content);
     }
   }, [content]);
 
+  /* ───────────── toolbar toggle handler ───────────── */
   const handleViewChange = (view: 'design' | 'code') => {
     setGjsView(view);
-    if (grapesjsEditorRef.current) {
-      grapesjsEditorRef.current.runCommand(`show-${view}`);
-    }
+    grapesjsEditorRef.current?.runCommand(`show-${view}`);
   };
 
   return (
     <div className="h-full">
-      <VisualModeToolbar 
-        gjsView={gjsView} 
-        onViewChange={handleViewChange} 
+      <VisualModeToolbar
+        gjsView={gjsView}
+        onViewChange={handleViewChange}
         readOnly={readOnly}
       />
-      <div id="blocks" className="hidden"></div>
-      <div ref={containerRef} className="h-full"></div>
+      <div id="blocks" className="hidden" />
+      <div ref={containerRef} className="h-full" />
     </div>
   );
 }
