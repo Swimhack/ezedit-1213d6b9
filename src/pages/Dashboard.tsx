@@ -1,220 +1,188 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import DashboardLayout from '@/components/DashboardLayout';
-import { FTPConnectionCard } from '@/components/FTPConnectionCard';
-import { Button } from '@/components/ui/button';
+import FileExplorer from '@/components/editor/FileExplorer';
+import CodeEditorWithPreview from '@/components/editor/CodeEditorWithPreview';
 import { Card } from '@/components/ui/card';
-import { AddSiteModal } from '@/components/sites/AddSiteModal';
-import FTPConnectionModal from '@/components/FTPConnectionModal';
-import TrialProtection from '@/components/TrialProtection';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useSubscription } from '@/hooks/useSubscription';
-import type { FtpConnection } from '@/hooks/use-ftp-connections';
+import TrialProtection from '@/components/TrialProtection';
 
-// Define types for our site structure
-// Align Site interface with FtpConnection type
-interface Site {
-  id: string;
-  server_name: string;
-  host: string;
-  username: string;
-  password: string;
-  port: number;
-  web_url: string | null;  // Changed from optional to required but nullable
-  root_directory: string | null; // Changed from optional to required but nullable
-  created_at: string; // Added as required
-}
-
-const Dashboard = () => {
+const EditorPage = () => {
+  const { connectionId } = useParams<{ connectionId: string }>();
   const navigate = useNavigate();
-  const [sites, setSites] = useState<Site[]>([]);
+  const [connection, setConnection] = useState<any>(null);
+  const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
-  const [isAddSiteModalOpen, setIsAddSiteModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [connectionTestResults, setConnectionTestResults] = useState<Record<string, boolean>>({});
+  const [fileContent, setFileContent] = useState<string>('');
+  const [isFileLoading, setIsFileLoading] = useState(false);
   const { isPremium } = useSubscription();
+  
+  // Store panel sizes in localStorage
+  const [panelSizes, setPanelSizes] = useLocalStorage('editor-panel-sizes', {
+    explorer: 20,
+    editor: 80,
+  });
 
-  // Mock data for demonstration
   useEffect(() => {
-    const mockSites = [
-      {
-        id: '1',
-        server_name: 'My Website',
-        host: 'ftp.example.com',
-        username: 'user',
-        password: 'password',
-        port: 21,
-        web_url: 'https://example.com',
-        root_directory: '/',
-        created_at: new Date().toISOString()
-      },
-      {
-        id: '2',
-        server_name: 'Blog Site',
-        host: 'ftp.myblog.com',
-        username: 'blogger',
-        password: 'password',
-        port: 21,
-        web_url: 'https://myblog.com',
-        root_directory: '/',
-        created_at: new Date().toISOString()
+    const fetchConnection = async () => {
+      if (!connectionId) {
+        navigate('/dashboard');
+        return;
       }
-    ];
 
-    setTimeout(() => {
-      setSites(mockSites);
-      setIsLoading(false);
-    }, 800);
-  }, []);
+      try {
+        const { data, error } = await supabase
+          .from('ftp_connections')
+          .select('*')
+          .eq('id', connectionId)
+          .single();
 
-  const handleTestConnection = async (connection: Site) => {
+        if (error) throw error;
+        
+        if (data) {
+          setConnection(data);
+        } else {
+          toast.error('Connection not found');
+          navigate('/dashboard');
+        }
+      } catch (error: any) {
+        toast.error(`Error loading connection: ${error.message}`);
+        navigate('/dashboard');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchConnection();
+  }, [connectionId, navigate]);
+
+  const loadFileContent = async (filePath: string) => {
+    if (!connectionId || !filePath) return;
+    
+    setIsFileLoading(true);
+    
     try {
-      // Simulate connection test
-      const success = Math.random() > 0.3; // 70% success rate
+      const { data, error } = await supabase.functions.invoke('getFtpFile', {
+        body: {
+          connectionId,
+          filePath
+        }
+      });
       
-      if (success) {
-        toast.success('Connection successful!');
-        setConnectionTestResults(prev => ({
-          ...prev,
-          [connection.id]: true
-        }));
+      if (error) throw error;
+      
+      if (data?.content) {
+        setFileContent(data.content);
       } else {
-        toast.error(`Connection failed: Could not connect to server`);
-        setConnectionTestResults(prev => ({
-          ...prev,
-          [connection.id]: false
-        }));
+        throw new Error('Failed to load file content');
       }
     } catch (error: any) {
-      toast.error(`Connection test failed: ${error.message}`);
-      setConnectionTestResults(prev => ({
-        ...prev,
-        [connection.id]: false
-      }));
+      toast.error(`Error loading file: ${error.message}`);
+    } finally {
+      setIsFileLoading(false);
     }
   };
 
-  const handleViewFiles = (connection: Site) => {
-    navigate(`/editor/${connection.id}`);
+  const handleFileSelect = (file: any) => {
+    if (file.type === 'file') {
+      setSelectedFile(file);
+      loadFileContent(file.id);
+    }
   };
 
-  const handleEditSite = (connection: Site) => {
-    setSelectedSite(connection);
-    setIsEditModalOpen(true);
+  const handleSaveFile = async (content: string) => {
+    if (!connectionId || !selectedFile) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('saveFtpFile', {
+        body: {
+          connectionId,
+          filePath: selectedFile.id,
+          content
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success('File saved successfully');
+      return Promise.resolve();
+    } catch (error: any) {
+      toast.error(`Error saving file: ${error.message}`);
+      return Promise.reject(error);
+    }
   };
 
-  // Function to handle adding a new site
-  const handleSiteAdded = (newSite: Site) => {
-    setSites(prev => [...prev, newSite]);
-    setIsAddSiteModalOpen(false);
+  const handlePanelResize = (sizes: number[]) => {
+    setPanelSizes({
+      explorer: sizes[0],
+      editor: sizes[1],
+    });
   };
 
-  // Function to handle saving an updated site
-  const handleSiteSaved = (updatedSite: Site) => {
-    setSites(prev => prev.map(site => 
-      site.id === updatedSite.id ? updatedSite : site
-    ));
-    setIsEditModalOpen(false);
-    setSelectedSite(null);
-  };
-
-  // Convert Site to FtpConnection for the FTPConnectionModal
-  // Since we've aligned the types, this is now a simple pass-through
-  const siteToFtpConnection = (site: Site): FtpConnection => {
-    return site as FtpConnection;
-  };
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
-    <DashboardLayout>
-      <div className="p-4 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">My FTP Sites</h1>
-          <Button onClick={() => setIsAddSiteModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Site
-          </Button>
-        </div>
-
-        {!isPremium && (
-          <Card className="bg-yellow-50 border-yellow-200 p-4">
-            <p className="text-yellow-800">
-              <strong>Free Trial Mode:</strong> You can browse and edit files, but saving changes requires a premium subscription.
-            </p>
-          </Card>
-        )}
-
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="h-32 animate-pulse bg-gray-100" />
-            ))}
-          </div>
-        ) : sites.length === 0 ? (
-          <Card className="p-8 text-center">
-            <h3 className="text-lg font-medium">No FTP sites yet</h3>
-            <p className="text-gray-500 mt-2">
-              Add your first FTP site to start editing your website files.
-            </p>
-            <Button 
-              className="mt-4" 
-              onClick={() => setIsAddSiteModalOpen(true)}
+    <TrialProtection>
+      <DashboardLayout>
+        <div className="p-4 space-y-4">
+          <h1 className="text-2xl font-bold">
+            {connection?.server_name} - File Editor
+            {!isPremium && (
+              <span className="ml-2 text-sm text-orange-500 font-normal">
+                (Preview Mode - Premium Required to Save)
+              </span>
+            )}
+          </h1>
+          
+          <div className="h-[calc(100vh-180px)] border rounded-lg overflow-hidden">
+            <ResizablePanelGroup
+              direction="horizontal"
+              onLayout={handlePanelResize}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add FTP Site
-            </Button>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sites.map((site) => (
-              <FTPConnectionCard
-                key={site.id}
-                connection={site}
-                testResult={connectionTestResults[site.id]}
-                onTest={() => handleTestConnection(site)}
-                onViewFiles={() => handleViewFiles(site)}
-                onEdit={() => handleEditSite(site)}
-              />
-            ))}
+              {/* File Explorer Panel */}
+              <ResizablePanel defaultSize={panelSizes.explorer} minSize={15}>
+                <FileExplorer 
+                  connectionId={connection?.id}
+                  onSelectFile={handleFileSelect} 
+                />
+              </ResizablePanel>
+              
+              <ResizableHandle withHandle />
+              
+              {/* Code Editor Panel */}
+              <ResizablePanel defaultSize={panelSizes.editor}>
+                {selectedFile ? (
+                  <CodeEditorWithPreview 
+                    filePath={selectedFile.id}
+                    initialContent={fileContent}
+                    readOnly={!isPremium}
+                    onSave={handleSaveFile}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    Select a file to edit
+                  </div>
+                )}
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </div>
-        )}
-
-        <AddSiteModal
-          isOpen={isAddSiteModalOpen}
-          onClose={() => setIsAddSiteModalOpen(false)}
-          onSiteAdded={handleSiteAdded}
-        />
-
-        {selectedSite && (
-          <FTPConnectionModal
-            isOpen={isEditModalOpen}
-            onClose={() => {
-              setIsEditModalOpen(false);
-              setSelectedSite(null);
-            }}
-            editConnection={siteToFtpConnection(selectedSite)}
-            onSave={(updatedConnection) => {
-              // Convert FtpConnection back to Site type
-              const updatedSite: Site = {
-                id: updatedConnection.id,
-                server_name: updatedConnection.server_name,
-                host: updatedConnection.host,
-                username: updatedConnection.username,
-                password: updatedConnection.password,
-                port: updatedConnection.port,
-                web_url: updatedConnection.web_url,
-                root_directory: updatedConnection.root_directory,
-                created_at: updatedConnection.created_at
-              };
-              handleSiteSaved(updatedSite);
-            }}
-          />
-        )}
-      </div>
-    </DashboardLayout>
+        </div>
+      </DashboardLayout>
+    </TrialProtection>
   );
-};
+}
 
-export default Dashboard;
+export default EditorPage;

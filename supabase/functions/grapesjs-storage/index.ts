@@ -1,5 +1,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { Client } from "npm:basic-ftp@5.0.4";
 
 // CORS headers for all responses
 const corsHeaders = {
@@ -32,11 +33,12 @@ Deno.serve(async (req) => {
     if (operation === 'load') {
       // Handle load request
       const body = await req.json();
-      const { filename } = body;
+      const { filename, connectionId } = body;
       
       console.log(`[GrapesJS Storage] Load request for file: ${filename}`);
       
-      if (!filename) {
+      if (!filename || !connectionId) {
+        console.log('[GrapesJS Storage] Missing filename or connectionId, returning empty content');
         return new Response(
           JSON.stringify({ html: '', css: '' }),
           { 
@@ -49,12 +51,42 @@ Deno.serve(async (req) => {
         );
       }
       
-      // Implement file loading logic here
-      // This is just a placeholder - you'd use your actual file loading mechanism
-      const content = "<!DOCTYPE html><html><body><h1>Example Content</h1></body></html>";
+      // Call the Supabase Edge Function to get the file content
+      console.log(`[GrapesJS Storage] Calling getFtpFile with connectionId: ${connectionId}, filePath: ${filename}`);
+      const { data, error } = await supabase.functions.invoke("getFtpFile", {
+        body: { connectionId, filePath: filename }
+      });
       
+      if (error) {
+        console.error(`[GrapesJS Storage] Error from getFtpFile: ${error.message}`);
+        // Still return a 200 status with empty content to prevent GrapesJS from breaking
+        return new Response(
+          JSON.stringify({ 
+            html: '', 
+            css: '',
+            error: error.message
+          }),
+          { 
+            status: 200, 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }
+          }
+        );
+      }
+      
+      // Extract the content from the response
+      const content = data?.content || '';
+      
+      console.log(`[GrapesJS Storage] Successfully loaded content for: ${filename}, length: ${content.length}`);
+      
+      // Return the content in the format GrapesJS expects
       return new Response(
-        JSON.stringify({ html: content, css: '' }),
+        JSON.stringify({
+          html: content,
+          css: ''
+        }),
         { 
           status: 200, 
           headers: { 
@@ -67,13 +99,17 @@ Deno.serve(async (req) => {
     else if (operation === 'save') {
       // Handle save request
       const body = await req.json();
-      const { html, css, filename } = body;
+      const { html, css, filename, connectionId } = body;
       
-      console.log(`[GrapesJS Storage] Save request for file: ${filename}, content length: ${html?.length || 0}`);
+      console.log(`[GrapesJS Storage] Save request for file: ${filename}, connectionId: ${connectionId}, content length: ${html?.length || 0}`);
       
-      if (!filename) {
+      if (!filename || !connectionId) {
+        console.error('[GrapesJS Storage] Missing filename or connectionId');
         return new Response(
-          JSON.stringify({ error: 'Filename is required' }),
+          JSON.stringify({ 
+            success: false,
+            error: 'Filename and connectionId are required' 
+          }),
           { 
             status: 200, 
             headers: { 
@@ -84,9 +120,37 @@ Deno.serve(async (req) => {
         );
       }
       
-      // Implement file saving logic here
-      // This is just a placeholder - you'd use your actual file saving mechanism
+      // Call the Supabase Edge Function to save the file
+      console.log(`[GrapesJS Storage] Calling saveFtpFile with connectionId: ${connectionId}, filePath: ${filename}`);
+      const { data, error } = await supabase.functions.invoke("saveFtpFile", {
+        body: { 
+          connectionId, 
+          filePath: filename,
+          content: html || ''
+        }
+      });
       
+      if (error) {
+        console.error(`[GrapesJS Storage] Error from saveFtpFile: ${error.message}`);
+        // Still return a 200 status with error info to prevent GrapesJS from breaking
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: error.message 
+          }),
+          { 
+            status: 200, 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }
+          }
+        );
+      }
+      
+      console.log(`[GrapesJS Storage] Successfully saved content for: ${filename}`);
+      
+      // Return success response
       return new Response(
         JSON.stringify({ success: true }),
         { 
@@ -99,8 +163,12 @@ Deno.serve(async (req) => {
       );
     }
     else {
+      console.error(`[GrapesJS Storage] Invalid operation: ${operation}`);
       return new Response(
-        JSON.stringify({ error: 'Invalid operation' }),
+        JSON.stringify({ 
+          error: 'Invalid operation',
+          success: false
+        }),
         { 
           status: 200, 
           headers: { 
@@ -113,6 +181,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error(`[GrapesJS Storage] Error:`, error);
     
+    // Always return a 200 status with error info in the response body
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error',

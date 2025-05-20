@@ -8,28 +8,35 @@ export async function POST(request: Request) {
   try {
     // Get parameters from request body
     const body = await request.json();
-    const { html, css, filename } = body;
+    const { html, css, filename, connectionId } = body;
     
-    if (!filename) {
-      console.error("[API save] No filename provided");
-      return new Response(JSON.stringify({ error: "Filename is required" }), {
-        status: 200,  // Still return 200 to prevent GrapesJS from breaking
+    if (!filename || !connectionId) {
+      console.error("[API save] Missing filename or connectionId");
+      return new Response(JSON.stringify({ 
+        error: "Filename and connectionId are required",
+        success: false
+      }), {
+        status: 200,
         headers: { "Content-Type": "application/json" }
       });
     }
     
-    console.log(`[API save] Saving content for: ${filename}, html length: ${html?.length || 0}`);
+    console.log(`[API save] Saving content for: ${filename}, connectionId: ${connectionId}, html length: ${html?.length || 0}`);
     
     // Call the Supabase Edge Function to save the file
-    const { data, error } = await supabase.functions.invoke("saveFtpFile", {
+    console.log(`[API save] Invoking grapesjs-storage/save for: ${filename}, connectionId: ${connectionId}`);
+    const { data, error } = await supabase.functions.invoke("grapesjs-storage", {
       body: { 
-        filePath: filename,
-        content: html
+        html, 
+        css, 
+        filename,
+        connectionId,
+        operation: 'save'
       }
     });
     
     if (error) {
-      console.error("[API save] Error saving file content:", error);
+      console.error(`[API save] Error from grapesjs-storage: ${error.message}`);
       // Still return a 200 status to prevent GrapesJS from breaking
       return new Response(JSON.stringify({ 
         success: false, 

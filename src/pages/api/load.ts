@@ -8,12 +8,12 @@ export async function POST(request: Request) {
   try {
     // Get parameters from request body
     const body = await request.json();
-    const { filename } = body;
+    const { filename, connectionId } = body;
     
-    console.log(`[API load] Loading content for: ${filename || 'unnamed file'}`);
+    console.log(`[API load] Loading content for: ${filename || 'unnamed file'}, connectionId: ${connectionId || 'missing'}`);
     
-    if (!filename) {
-      console.log("[API load] No filename provided, returning empty content");
+    if (!filename || !connectionId) {
+      console.log("[API load] Missing filename or connectionId, returning empty content");
       return new Response(JSON.stringify({ html: '', css: '' }), {
         status: 200,
         headers: { 
@@ -26,12 +26,17 @@ export async function POST(request: Request) {
     }
     
     // Call the Supabase Edge Function to get the file content
-    const { data, error } = await supabase.functions.invoke("getFtpFile", {
-      body: { filePath: filename }
+    console.log(`[API load] Invoking grapesjs-storage/load for: ${filename}, connectionId: ${connectionId}`);
+    const { data, error } = await supabase.functions.invoke("grapesjs-storage", {
+      body: { 
+        filename, 
+        connectionId,
+        operation: 'load' 
+      }
     });
     
     if (error) {
-      console.error("[API load] Error loading file content:", error);
+      console.error(`[API load] Error from grapesjs-storage: ${error.message}`);
       // Still return a 200 status to prevent GrapesJS from breaking
       return new Response(JSON.stringify({ 
         html: '', 
@@ -47,8 +52,8 @@ export async function POST(request: Request) {
     
     // Return the content in the format GrapesJS expects
     return new Response(JSON.stringify({
-      html: data?.content || '',
-      css: ''  // You might extract CSS if needed
+      html: data?.html || '',
+      css: data?.css || ''
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" }
