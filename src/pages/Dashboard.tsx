@@ -88,6 +88,21 @@ const Dashboard = () => {
     setIsEditModalOpen(true);
   };
 
+  // Function to handle adding a new site
+  const handleSiteAdded = (newSite: any) => {
+    setSites(prev => [...prev, newSite]);
+    setIsAddSiteModalOpen(false);
+  };
+
+  // Function to handle saving an updated site
+  const handleSiteSaved = (updatedSite: any) => {
+    setSites(prev => prev.map(site => 
+      site.id === updatedSite.id ? updatedSite : site
+    ));
+    setIsEditModalOpen(false);
+    setSelectedSite(null);
+  };
+
   return (
     <DashboardLayout>
       <div className="p-4 space-y-6">
@@ -145,10 +160,7 @@ const Dashboard = () => {
         <AddSiteModal
           isOpen={isAddSiteModalOpen}
           onClose={() => setIsAddSiteModalOpen(false)}
-          onSiteAdded={(newSite) => {
-            setSites(prev => [...prev, newSite]);
-            setIsAddSiteModalOpen(false);
-          }}
+          onSiteAdded={handleSiteAdded}
         />
 
         {selectedSite && (
@@ -159,13 +171,7 @@ const Dashboard = () => {
               setSelectedSite(null);
             }}
             editConnection={selectedSite}
-            onSave={(updatedSite) => {
-              setSites(prev => prev.map(site => 
-                site.id === updatedSite.id ? updatedSite : site
-              ));
-              setIsEditModalOpen(false);
-              setSelectedSite(null);
-            }}
+            onSave={handleSiteSaved}
           />
         )}
       </div>

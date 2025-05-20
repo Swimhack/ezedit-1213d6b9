@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import MonacoEditor from '@monaco-editor/react';
-import TipTapWrapper from './TipTapWrapper';
+import { TipTapWrapper } from './TipTapWrapper';
 import { useFileExplorerStore } from '@/store/fileExplorerStore';
 import { TabBar } from './TabBar';
 import { useFileContent } from '@/hooks/use-file-content';
