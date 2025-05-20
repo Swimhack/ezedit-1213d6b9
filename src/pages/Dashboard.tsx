@@ -12,8 +12,9 @@ import { AddSiteModal } from '@/components/sites/AddSiteModal';
 import FTPConnectionModal from '@/components/FTPConnectionModal';
 import TrialProtection from '@/components/TrialProtection';
 import { useSubscription } from '@/hooks/useSubscription';
+import type { FtpConnection } from '@/hooks/use-ftp-connections';
 
-// Define types for our connections and modals
+// Define types for our site structure
 interface Site {
   id: string;
   server_name: string;
@@ -22,6 +23,8 @@ interface Site {
   password: string;
   port: number;
   web_url?: string | null;
+  root_directory?: string | null;
+  created_at?: string;
 }
 
 const Dashboard = () => {
@@ -44,7 +47,9 @@ const Dashboard = () => {
         username: 'user',
         password: 'password',
         port: 21,
-        web_url: 'https://example.com'
+        web_url: 'https://example.com',
+        root_directory: '/',
+        created_at: new Date().toISOString()
       },
       {
         id: '2',
@@ -53,7 +58,9 @@ const Dashboard = () => {
         username: 'blogger',
         password: 'password',
         port: 21,
-        web_url: 'https://myblog.com'
+        web_url: 'https://myblog.com',
+        root_directory: '/',
+        created_at: new Date().toISOString()
       }
     ];
 
@@ -114,6 +121,15 @@ const Dashboard = () => {
     setSelectedSite(null);
   };
 
+  // Convert Site to FtpConnection for the FTPConnectionModal
+  const siteToFtpConnection = (site: Site): FtpConnection => {
+    return {
+      ...site,
+      root_directory: site.root_directory || null,
+      created_at: site.created_at || new Date().toISOString()
+    };
+  };
+
   return (
     <DashboardLayout>
       <div className="p-4 space-y-6">
@@ -168,7 +184,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Update the prop types for AddSiteModal and FTPConnectionModal */}
         <AddSiteModal
           isOpen={isAddSiteModalOpen}
           onClose={() => setIsAddSiteModalOpen(false)}
@@ -182,8 +197,22 @@ const Dashboard = () => {
               setIsEditModalOpen(false);
               setSelectedSite(null);
             }}
-            editConnection={selectedSite}
-            onSave={handleSiteSaved}
+            editConnection={siteToFtpConnection(selectedSite)}
+            onSave={(updatedConnection) => {
+              // Convert FtpConnection back to Site type if needed
+              const updatedSite: Site = {
+                id: updatedConnection.id,
+                server_name: updatedConnection.server_name,
+                host: updatedConnection.host,
+                username: updatedConnection.username,
+                password: updatedConnection.password,
+                port: updatedConnection.port,
+                web_url: updatedConnection.web_url,
+                root_directory: updatedConnection.root_directory,
+                created_at: updatedConnection.created_at
+              };
+              handleSiteSaved(updatedSite);
+            }}
           />
         )}
       </div>
