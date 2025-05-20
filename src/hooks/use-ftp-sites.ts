@@ -31,6 +31,7 @@ export function useFTPSites() {
       if (error) throw error;
       setSites(data || []);
     } catch (error: any) {
+      console.error("Error fetching FTP sites:", error);
       toast.error(`Error fetching sites: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -39,6 +40,8 @@ export function useFTPSites() {
 
   const handleTestConnection = async (site: FTPSite) => {
     try {
+      setTestResults(prev => ({ ...prev, [site.id]: undefined })); // Set to undefined while testing
+      
       const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/test-ftp-connection`, {
         method: "POST",
         headers: {
@@ -49,7 +52,7 @@ export function useFTPSites() {
           server: site.server_url,
           port: site.port,
           user: site.username,
-          password: site.encrypted_password // Note: In a real app, you'd decrypt this
+          password: site.encrypted_password
         }),
       });
 
