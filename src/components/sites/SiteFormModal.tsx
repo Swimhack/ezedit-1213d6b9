@@ -228,7 +228,7 @@ export function SiteFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             {site ? "Edit FTP Site" : "Add FTP Site"}
@@ -244,7 +244,7 @@ export function SiteFormModal({
               value={jsonInput}
               onChange={handleJsonChange}
               className="font-mono text-sm"
-              rows={4}
+              rows={3}
             />
           </div>
 
@@ -258,52 +258,56 @@ export function SiteFormModal({
             />
           </div>
 
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="server_url">Server URL *</Label>
-            <Input
-              id="server_url"
-              placeholder="ftp.example.com"
-              value={serverUrl}
-              onChange={(e) => setServerUrl(e.target.value)}
-              required
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid w-full items-center gap-2">
+              <Label htmlFor="server_url">Server URL *</Label>
+              <Input
+                id="server_url"
+                placeholder="ftp.example.com"
+                value={serverUrl}
+                onChange={(e) => setServerUrl(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="grid w-full items-center gap-2">
+              <Label htmlFor="port">Port *</Label>
+              <Input
+                id="port"
+                type="number"
+                placeholder="21"
+                value={port}
+                onChange={(e) => setPort(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="port">Port *</Label>
-            <Input
-              id="port"
-              type="number"
-              placeholder="21"
-              value={port}
-              onChange={(e) => setPort(e.target.value)}
-              required
-            />
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid w-full items-center gap-2">
+              <Label htmlFor="username">Username *</Label>
+              <Input
+                id="username"
+                placeholder="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
 
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="username">Username *</Label>
-            <Input
-              id="username"
-              placeholder="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid w-full items-center gap-2">
-            <Label htmlFor="password">
-              {site ? "Password (leave blank to keep current)" : "Password *"}
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required={!site}
-            />
+            <div className="grid w-full items-center gap-2">
+              <Label htmlFor="password">
+                {site ? "Password (leave blank to keep current)" : "Password *"}
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required={!site}
+              />
+            </div>
           </div>
 
           <div className="grid w-full items-center gap-2">
@@ -325,7 +329,7 @@ export function SiteFormModal({
             </div>
           )}
 
-          <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 pt-4">
             <SiteConnectionTestButton
               isLoading={isLoading}
               onTestConnection={handleTest}
