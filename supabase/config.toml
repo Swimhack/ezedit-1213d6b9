@@ -64,3 +64,8 @@ path = "supabase/functions/ftp-list"
 verify_jwt = false
 name = "ftp-connect"
 path = "supabase/functions/ftp-connect"
+
+[[functions]]
+verify_jwt = false
+name = "grapesjs-storage"
+path = "supabase/functions/grapesjs-storage"
