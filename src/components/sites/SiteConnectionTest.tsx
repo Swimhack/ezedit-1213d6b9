@@ -37,7 +37,7 @@ export async function testSiteConnection(
     // Use existing password if no new one is provided
     const finalPassword = password || existingPassword || "";
 
-    // Test connection
+    // Test connection with improved error handling
     const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/test-ftp-connection`, {
       method: "POST",
       headers: {
@@ -51,6 +51,12 @@ export async function testSiteConnection(
         password: finalPassword
       }),
     });
+    
+    if (!response.ok) {
+      console.error("Test connection response error:", response.status);
+      const errorText = await response.text();
+      throw new Error(`Server error (${response.status}): ${errorText}`);
+    }
     
     const result = await response.json();
     

@@ -27,30 +27,36 @@ Deno.serve(async (req) => {
 
     console.log(`Testing connection to ${server}:${port || 21} with user ${user}`);
     
-    // We need to use a different approach in Deno environment
-    // Using FTP client but with proper error handling for Deno
+    // Create FTP client
+    const client = new Client();
+    client.ftp.verbose = true;
+    
     try {
-      const client = new Client();
-      client.ftp.verbose = true;
-      
-      // Set a timeout to avoid hanging
-      const connectionPromise = client.access({
-        host: server,
-        port: port || 21,
-        user,
-        password,
-        secure: false
+      // Set a timeout for the connection
+      const connectionPromise = new Promise(async (resolve, reject) => {
+        try {
+          await client.access({
+            host: server,
+            port: port || 21,
+            user,
+            password,
+            secure: false
+          });
+          resolve({ success: true });
+        } catch (err) {
+          reject(err);
+        }
       });
       
       // Set a timeout for the connection
       const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Connection timed out")), 10000)
+        setTimeout(() => reject(new Error("Connection timed out after 10 seconds")), 10000)
       );
       
       // Race the connection against the timeout
       await Promise.race([connectionPromise, timeout]);
       
-      // If we got here, connection was successful
+      // If we reached here, the connection was successful
       await client.close();
       
       return new Response(
@@ -62,6 +68,13 @@ Deno.serve(async (req) => {
       );
     } catch (ftpError) {
       console.error("FTP connection error:", ftpError.message);
+      
+      // Make sure the client is closed
+      try {
+        client.close();
+      } catch (e) {
+        console.error("Error closing FTP client:", e.message);
+      }
       
       return new Response(
         JSON.stringify({ 
