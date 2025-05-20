@@ -52,17 +52,29 @@ export async function testSiteConnection(
       }),
     });
     
-    if (!response.ok) {
-      console.error("Test connection response error:", response.status);
-      const errorText = await response.text();
-      throw new Error(`Server error (${response.status}): ${errorText}`);
+    // Parse response as JSON with error handling
+    let result;
+    try {
+      result = await response.json();
+    } catch (parseError) {
+      console.error("Error parsing JSON response:", parseError);
+      return {
+        success: false,
+        message: `Error parsing server response: ${await response.text()}`
+      };
     }
     
-    const result = await response.json();
+    if (!response.ok) {
+      console.error("Test connection response error:", response.status, result);
+      return {
+        success: false,
+        message: result.message || `Server error (${response.status})`
+      };
+    }
     
     return {
       success: result.success || false,
-      message: result.message || "Connection test failed"
+      message: result.message || "Connection test completed"
     };
     
   } catch (error: any) {
