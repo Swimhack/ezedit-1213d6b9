@@ -12,10 +12,17 @@ import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useSubscription } from '@/hooks/useSubscription';
 import TrialProtection from '@/components/TrialProtection';
 
+interface FTPConnection {
+  id: string;
+  server_name: string;
+  created_at?: string; // Making created_at optional
+  // other properties...
+}
+
 const EditorPage = () => {
   const { connectionId } = useParams<{ connectionId: string }>();
   const navigate = useNavigate();
-  const [connection, setConnection] = useState<any>(null);
+  const [connection, setConnection] = useState<FTPConnection | null>(null);
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fileContent, setFileContent] = useState<string>('');

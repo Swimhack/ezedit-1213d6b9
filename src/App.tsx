@@ -7,6 +7,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/NotFound";
 import Editor from "@/pages/Editor";
+import Index from "@/pages/Index";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 
 export default function App() {
   return (
@@ -14,8 +17,11 @@ export default function App() {
       <TooltipProvider>
         <Router>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/editor/:connectionId" element={<Editor />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster />

@@ -49,19 +49,13 @@ export function VisualEditor({
                   console.log('[VisualEditor] Storing content to remote, filename:', fileName);
                   return { 
                     ...data, 
-                    filename: fileName 
+                    filename: fileName,
+                    connectionId: window.location.pathname.split('/').pop() || ''
                   };
                 },
                 onLoad: result => {
                   console.log('[VisualEditor] Content loaded from remote');
                   return result;
-                },
-                // Add custom error handler to handle storage errors but do it via events instead
-                params: {
-                  errorHandler: (err: any) => {
-                    console.error('[VisualEditor] Storage error via params:', err);
-                    toast.error('Error saving or loading content');
-                  }
                 }
               },
             },
@@ -179,14 +173,18 @@ export function VisualEditor({
   const handleRefresh = () => {
     if (grapesjsEditorRef.current) {
       console.log('[VisualEditor] Refreshing editor content');
-      grapesjsEditorRef.current.load((err: any) => {
-        if (err) {
+      // Use the load method from the storage manager
+      const storage = grapesjsEditorRef.current.StorageManager;
+      if (storage) {
+        storage.load({ onError: (err) => {
           console.error('[VisualEditor] Error during refresh:', err);
           toast.error('Failed to refresh content');
-        } else {
+        }, onSuccess: () => {
           toast.success('Content refreshed successfully');
-        }
-      });
+        }});
+      } else {
+        toast.error('Storage manager not available');
+      }
     }
   };
 
