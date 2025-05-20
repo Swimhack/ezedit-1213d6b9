@@ -1,4 +1,5 @@
 
+// Import required modules
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Client } from "https://esm.sh/basic-ftp@5.0.3";
 
@@ -24,42 +25,60 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create an FTP client
-    const client = new Client();
-    client.ftp.verbose = false; // Set to true for debugging
+    console.log(`Testing connection to ${server}:${port || 21} with user ${user}`);
     
+    // We need to use a different approach in Deno environment
+    // Using FTP client but with proper error handling for Deno
     try {
-      // Set connection timeout to 10 seconds
-      await client.access({
+      const client = new Client();
+      client.ftp.verbose = true;
+      
+      // Set a timeout to avoid hanging
+      const connectionPromise = client.access({
         host: server,
         port: port || 21,
         user,
         password,
-        secure: false,
-        secureOptions: { rejectUnauthorized: false }
+        secure: false
       });
       
-      // If we made it here, connection was successful
-      await client.close();
-      
-      return new Response(
-        JSON.stringify({ success: true, message: "Connection successful" }),
-        { headers: corsHeaders, status: 200 }
+      // Set a timeout for the connection
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Connection timed out")), 10000)
       );
-    } catch (ftpError: any) {
-      console.error("[test-ftp-connection] FTP error:", ftpError);
+      
+      // Race the connection against the timeout
+      await Promise.race([connectionPromise, timeout]);
+      
+      // If we got here, connection was successful
       await client.close();
       
       return new Response(
-        JSON.stringify({ success: false, message: `FTP connection error: ${ftpError.message}` }),
-        { headers: corsHeaders, status: 200 } // Send 200 even for failed connections
+        JSON.stringify({ 
+          success: true, 
+          message: "Connection successful" 
+        }),
+        { headers: corsHeaders }
+      );
+    } catch (ftpError) {
+      console.error("FTP connection error:", ftpError.message);
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `FTP connection failed: ${ftpError.message}` 
+        }),
+        { headers: corsHeaders }
       );
     }
-  } catch (err: any) {
-    console.error("[test-ftp-connection] Error:", err);
+  } catch (error) {
+    console.error("Error in test-ftp-connection function:", error);
     
     return new Response(
-      JSON.stringify({ success: false, message: `Server error: ${err.message}` }),
+      JSON.stringify({ 
+        success: false, 
+        message: `Server error: ${error.message}` 
+      }),
       { headers: corsHeaders, status: 500 }
     );
   }
