@@ -1,4 +1,15 @@
 
+/**
+ * API endpoint for loading GrapesJS content
+ * 
+ * This API route handles requests from GrapesJS to load file content.
+ * It forwards requests to the Supabase Edge Function 'grapesjs-storage'
+ * and formats responses as expected by GrapesJS.
+ * 
+ * GrapesJS Documentation Reference:
+ * https://grapesjs.com/docs/modules/Storage.html#setup-remote-storage
+ */
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**

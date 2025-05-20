@@ -1,4 +1,19 @@
 
+/**
+ * grapesjs-storage Edge Function
+ * 
+ * This Edge Function handles the loading and saving of file content for the GrapesJS visual editor.
+ * It serves as the bridge between GrapesJS and the FTP server where website files are stored.
+ * 
+ * Operations:
+ * - load: Retrieves file content from FTP server
+ * - save: Saves GrapesJS-edited content to FTP server
+ * 
+ * References:
+ * - GrapesJS Docs: https://grapesjs.com/docs/modules/Storage.html
+ * - Basic FTP: https://github.com/patrickjuchli/basic-ftp
+ */
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { Client } from "npm:basic-ftp@5.0.4";
 
@@ -14,7 +29,12 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Helper function to get FTP credentials
+/**
+ * Get FTP credentials for a specific connection
+ * 
+ * @param siteId - The connection ID to retrieve credentials for
+ * @returns FTP connection details object
+ */
 async function getFtpCreds(siteId: string) {
   console.log(`[getFtpCreds] Fetching credentials for siteId: ${siteId}`);
   
@@ -51,6 +71,10 @@ async function getFtpCreds(siteId: string) {
   }
 }
 
+/**
+ * Main request handler
+ * Routes requests to appropriate handlers based on 'operation' parameter
+ */
 Deno.serve(async (req) => {
   console.log(`[GrapesJS Storage] Received ${req.method} request to ${req.url}`);
   
@@ -98,7 +122,13 @@ Deno.serve(async (req) => {
   }
 });
 
-// Handler for loading files from FTP
+/**
+ * Handler for loading files from FTP
+ * 
+ * @param connectionId - The FTP connection ID
+ * @param filePath - Path to the file to load
+ * @returns Response with file content or error
+ */
 async function handleLoad(connectionId: string, filePath: string) {
   if (!filePath) {
     console.error("[GrapesJS Storage:Load] Missing filePath");
@@ -178,7 +208,15 @@ async function handleLoad(connectionId: string, filePath: string) {
   }
 }
 
-// Handler for saving files to FTP
+/**
+ * Handler for saving files to FTP
+ * 
+ * @param connectionId - The FTP connection ID
+ * @param filePath - Path where to save the file
+ * @param html - HTML content to save
+ * @param css - CSS content to save (typically not used separately)
+ * @returns Response indicating success or failure
+ */
 async function handleSave(connectionId: string, filePath: string, html: string, css: string) {
   if (!filePath || html === undefined) {
     console.error("[GrapesJS Storage:Save] Missing filePath or content");
