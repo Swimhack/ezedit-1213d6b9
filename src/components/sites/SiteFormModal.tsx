@@ -2,11 +2,13 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, ClipboardPaste } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { FTPSite } from "@/hooks/use-ftp-sites";
-import { SiteFormForm, getFormData } from "./SiteFormForm";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { SiteConnectionTestButton, testSiteConnection } from "./SiteConnectionTest";
 
 interface SiteFormModalProps {
@@ -27,24 +29,109 @@ export function SiteFormModal({
     success: boolean;
     message: string;
   } | null>(null);
+  
+  // Form state
+  const [siteName, setSiteName] = useState(site?.site_name || "");
+  const [serverUrl, setServerUrl] = useState(site?.server_url || "");
+  const [port, setPort] = useState(site?.port?.toString() || "21");
+  const [username, setUsername] = useState(site?.username || "");
+  const [password, setPassword] = useState("");
+  const [rootDirectory, setRootDirectory] = useState(site?.root_directory || "");
+  const [jsonInput, setJsonInput] = useState("");
+
+  // Update form when site changes
+  useState(() => {
+    if (site) {
+      setSiteName(site.site_name || "");
+      setServerUrl(site.server_url || "");
+      setPort(site.port?.toString() || "21");
+      setUsername(site.username || "");
+      setPassword(""); // Don't prefill password for security
+      setRootDirectory(site.root_directory || "");
+    } else {
+      setSiteName("");
+      setServerUrl("");
+      setPort("21");
+      setUsername("");
+      setPassword("");
+      setRootDirectory("");
+    }
+  });
+  
+  const handleJsonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setJsonInput(value);
+    
+    if (!value.trim()) return;
+    
+    try {
+      const jsonData = JSON.parse(value);
+      
+      // Map JSON structure to form fields
+      if (jsonData.name) {
+        setSiteName(jsonData.name);
+      }
+      
+      if (jsonData.ftp) {
+        if (jsonData.ftp.host) {
+          setServerUrl(jsonData.ftp.host);
+        }
+        
+        if (jsonData.ftp.port) {
+          setPort(jsonData.ftp.port.toString());
+        }
+        
+        if (jsonData.ftp.username) {
+          setUsername(jsonData.ftp.username);
+        }
+        
+        if (jsonData.ftp.password) {
+          setPassword(jsonData.ftp.password);
+        }
+        
+        if (jsonData.ftp.directory) {
+          setRootDirectory(jsonData.ftp.directory);
+        }
+      }
+      
+      toast.success("JSON data imported successfully");
+    } catch (error) {
+      // Only show error if there's content but it's invalid JSON
+      if (value.trim()) {
+        toast.error("Invalid JSON format");
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // Get form data
-      const form = e.target as HTMLFormElement;
-      const { siteName, serverUrl, port, username, password, rootDirectory } = getFormData(form);
+      // Validate form - fix validation to properly check fields
+      const portNumber = parseInt(port, 10);
       
-      // Validate form
-      if (!serverUrl || !username || (!password && !site)) {
-        toast.error("Please fill in all required fields");
+      // Only validate server URL and username
+      if (!serverUrl) {
+        toast.error("Server URL is required");
         setIsLoading(false);
         return;
       }
 
-      if (isNaN(port) || port <= 0 || port > 65535) {
+      if (!username) {
+        toast.error("Username is required");
+        setIsLoading(false);
+        return;
+      }
+
+      // Only validate password for new sites (not editing)
+      if (!site && !password) {
+        toast.error("Password is required for new sites");
+        setIsLoading(false);
+        return;
+      }
+
+      if (isNaN(portNumber) || portNumber <= 0 || portNumber > 65535) {
         toast.error("Please enter a valid port number");
         setIsLoading(false);
         return;
@@ -67,7 +154,7 @@ export function SiteFormModal({
       const upsertData: any = {
         ...(site?.id ? { id: site.id } : {}),
         server_url: serverUrl,
-        port: port,
+        port: portNumber,
         username,
         ...passwordField,
         user_id: session.user.id,
@@ -112,20 +199,11 @@ export function SiteFormModal({
     setTestResult(null);
     
     try {
-      // Get form data without submitting the form
-      const form = document.querySelector('form') as HTMLFormElement;
-      if (!form) {
-        toast.error("Form not found");
-        setIsLoading(false);
-        return;
-      }
-      
-      const { serverUrl, port, username, password } = getFormData(form);
-      
-      // Test connection
+      // Use form values directly instead of relying on DOM
+      // This fixes the "Missing required fields" false error
       const result = await testSiteConnection(
         serverUrl, 
-        port, 
+        parseInt(port, 10), 
         username, 
         password,
         site?.encrypted_password
@@ -150,85 +228,104 @@ export function SiteFormModal({
     }
   };
 
-  const handlePasteJSON = async () => {
-    try {
-      const clipboardText = await navigator.clipboard.readText();
-      
-      try {
-        const jsonData = JSON.parse(clipboardText);
-        
-        // Fill the form with data from JSON
-        const form = document.querySelector('form') as HTMLFormElement;
-        if (!form) {
-          toast.error("Form not found");
-          return;
-        }
-        
-        // Map JSON structure to form fields
-        const siteNameInput = form.querySelector('#site_name') as HTMLInputElement;
-        const serverUrlInput = form.querySelector('#server_url') as HTMLInputElement;
-        const portInput = form.querySelector('#port') as HTMLInputElement;
-        const usernameInput = form.querySelector('#username') as HTMLInputElement;
-        const passwordInput = form.querySelector('#password') as HTMLInputElement;
-        const rootDirectoryInput = form.querySelector('#root_directory') as HTMLInputElement;
-        
-        if (jsonData.name) {
-          siteNameInput.value = jsonData.name;
-        }
-        
-        if (jsonData.ftp) {
-          if (jsonData.ftp.host) {
-            serverUrlInput.value = jsonData.ftp.host;
-          }
-          
-          if (jsonData.ftp.username) {
-            usernameInput.value = jsonData.ftp.username;
-          }
-          
-          if (jsonData.ftp.password) {
-            passwordInput.value = jsonData.ftp.password;
-          }
-
-          if (jsonData.ftp.directory) {
-            rootDirectoryInput.value = jsonData.ftp.directory;
-          }
-        }
-        
-        toast.success("JSON data imported successfully");
-      } catch (parseError) {
-        console.error("Error parsing JSON:", parseError);
-        toast.error("Invalid JSON format");
-      }
-    } catch (error) {
-      console.error("Error accessing clipboard:", error);
-      toast.error("Could not access clipboard");
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             {site ? "Edit FTP Site" : "Add FTP Site"}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8" 
-              title="Paste JSON Configuration"
-              onClick={handlePasteJSON}
-            >
-              <ClipboardPaste className="h-4 w-4" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <SiteFormForm
-            site={site}
-            isLoading={isLoading}
-            testResult={testResult}
-          />
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="grid w-full items-center gap-2">
+            <Label htmlFor="json_input">Paste JSON Configuration (Optional)</Label>
+            <Textarea
+              id="json_input"
+              placeholder='{"name": "My Site", "ftp": {"host": "ftp.example.com", "username": "user", "password": "pass", "directory": "/httpdocs"}}'
+              value={jsonInput}
+              onChange={handleJsonChange}
+              className="font-mono text-sm"
+              rows={4}
+            />
+          </div>
+
+          <div className="grid w-full items-center gap-2">
+            <Label htmlFor="site_name">Site Name (Optional)</Label>
+            <Input
+              id="site_name"
+              placeholder="My Website"
+              value={siteName}
+              onChange={(e) => setSiteName(e.target.value)}
+            />
+          </div>
+
+          <div className="grid w-full items-center gap-2">
+            <Label htmlFor="server_url">Server URL *</Label>
+            <Input
+              id="server_url"
+              placeholder="ftp.example.com"
+              value={serverUrl}
+              onChange={(e) => setServerUrl(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="grid w-full items-center gap-2">
+            <Label htmlFor="port">Port *</Label>
+            <Input
+              id="port"
+              type="number"
+              placeholder="21"
+              value={port}
+              onChange={(e) => setPort(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="grid w-full items-center gap-2">
+            <Label htmlFor="username">Username *</Label>
+            <Input
+              id="username"
+              placeholder="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="grid w-full items-center gap-2">
+            <Label htmlFor="password">
+              {site ? "Password (leave blank to keep current)" : "Password *"}
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required={!site}
+            />
+          </div>
+
+          <div className="grid w-full items-center gap-2">
+            <Label htmlFor="root_directory">Root Directory (Optional)</Label>
+            <Input
+              id="root_directory"
+              placeholder="/httpdocs"
+              value={rootDirectory}
+              onChange={(e) => setRootDirectory(e.target.value)}
+            />
+          </div>
+
+          {testResult && (
+            <div className={`p-3 rounded-md ${
+              testResult.success ? 'bg-green-50 text-green-800 border border-green-200' : 
+              'bg-red-50 text-red-800 border border-red-200'
+            }`}>
+              {testResult.message}
+            </div>
+          )}
 
           <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
             <SiteConnectionTestButton
