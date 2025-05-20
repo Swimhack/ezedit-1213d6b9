@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -15,6 +14,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import type { FtpConnection } from '@/hooks/use-ftp-connections';
 
 // Define types for our site structure
+// Align Site interface with FtpConnection type
 interface Site {
   id: string;
   server_name: string;
@@ -22,9 +22,9 @@ interface Site {
   username: string;
   password: string;
   port: number;
-  web_url?: string | null;
-  root_directory?: string | null;
-  created_at?: string;
+  web_url: string | null;  // Changed from optional to required but nullable
+  root_directory: string | null; // Changed from optional to required but nullable
+  created_at: string; // Added as required
 }
 
 const Dashboard = () => {
@@ -122,12 +122,9 @@ const Dashboard = () => {
   };
 
   // Convert Site to FtpConnection for the FTPConnectionModal
+  // Since we've aligned the types, this is now a simple pass-through
   const siteToFtpConnection = (site: Site): FtpConnection => {
-    return {
-      ...site,
-      root_directory: site.root_directory || null,
-      created_at: site.created_at || new Date().toISOString()
-    };
+    return site as FtpConnection;
   };
 
   return (
@@ -199,7 +196,7 @@ const Dashboard = () => {
             }}
             editConnection={siteToFtpConnection(selectedSite)}
             onSave={(updatedConnection) => {
-              // Convert FtpConnection back to Site type if needed
+              // Convert FtpConnection back to Site type
               const updatedSite: Site = {
                 id: updatedConnection.id,
                 server_name: updatedConnection.server_name,

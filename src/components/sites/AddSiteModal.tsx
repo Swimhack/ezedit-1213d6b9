@@ -13,8 +13,9 @@ interface Site {
   username: string;
   password: string;
   port: number;
-  web_url?: string | null;
-  root_directory?: string | null;
+  web_url: string | null;
+  root_directory: string | null;
+  created_at: string;
 }
 
 interface AddSiteModalProps {
@@ -30,9 +31,16 @@ export function AddSiteModal({ isOpen, onClose, onSiteAdded }: AddSiteModalProps
     setIsSaving(true);
     try {
       // Generate a mock ID since we're not actually saving to a database
-      const newSite = {
+      const newSite: Site = {
         id: `site-${Date.now()}`,
-        ...data
+        server_name: data.server_name,
+        host: data.host,
+        username: data.username,
+        password: data.password,
+        port: data.port,
+        web_url: data.web_url || null,
+        root_directory: data.root_directory || null,
+        created_at: new Date().toISOString()
       };
       
       // Simulate a delay
