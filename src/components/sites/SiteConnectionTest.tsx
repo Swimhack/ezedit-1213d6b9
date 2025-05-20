@@ -17,14 +17,20 @@ export async function testSiteConnection(
   existingPassword?: string
 ) {
   try {
-    // Validate inputs
-    if (!serverUrl || !username || (!password && !existingPassword)) {
-      toast.error("Please fill in all required fields");
-      return { success: false, message: "Missing required fields" };
+    // Validate only required fields: serverUrl, username, and password (or existingPassword)
+    if (!serverUrl) {
+      return { success: false, message: "Server URL is required" };
+    }
+
+    if (!username) {
+      return { success: false, message: "Username is required" };
+    }
+
+    if (!password && !existingPassword) {
+      return { success: false, message: "Password is required" };
     }
 
     if (isNaN(port) || port <= 0 || port > 65535) {
-      toast.error("Please enter a valid port number");
       return { success: false, message: "Invalid port number" };
     }
 

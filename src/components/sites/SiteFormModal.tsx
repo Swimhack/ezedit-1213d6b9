@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -40,7 +40,7 @@ export function SiteFormModal({
   const [jsonInput, setJsonInput] = useState("");
 
   // Update form when site changes
-  useState(() => {
+  useEffect(() => {
     if (site) {
       setSiteName(site.site_name || "");
       setServerUrl(site.server_url || "");
@@ -56,7 +56,7 @@ export function SiteFormModal({
       setPassword("");
       setRootDirectory("");
     }
-  });
+  }, [site]);
   
   const handleJsonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
@@ -108,10 +108,9 @@ export function SiteFormModal({
     setIsLoading(true);
     
     try {
-      // Validate form - fix validation to properly check fields
+      // Validate only required fields: serverUrl, username, and password (for new sites)
       const portNumber = parseInt(port, 10);
       
-      // Only validate server URL and username
       if (!serverUrl) {
         toast.error("Server URL is required");
         setIsLoading(false);
@@ -200,7 +199,6 @@ export function SiteFormModal({
     
     try {
       // Use form values directly instead of relying on DOM
-      // This fixes the "Missing required fields" false error
       const result = await testSiteConnection(
         serverUrl, 
         parseInt(port, 10), 
