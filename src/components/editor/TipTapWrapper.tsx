@@ -7,21 +7,15 @@ import { EditorToolbar } from './EditorToolbar';
 interface TipTapWrapperProps {
   content: string;
   onChange: (content: string) => void;
-  onSave: () => Promise<void>;
-  hasUnsavedChanges: boolean;
-  isSaving: boolean;
-  filePath: string;
-  isPremium: boolean;
+  autoFocus?: boolean;
+  editorRef?: React.MutableRefObject<any>;
 }
 
 export function TipTapWrapper({
   content,
   onChange,
-  onSave,
-  hasUnsavedChanges,
-  isSaving,
-  filePath,
-  isPremium
+  autoFocus,
+  editorRef
 }: TipTapWrapperProps) {
   const editor = useEditor({
     extensions: [
@@ -31,7 +25,15 @@ export function TipTapWrapper({
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
-  });
+    autofocus: autoFocus,
+  }, [autoFocus]);
+
+  // Set the editor reference if provided
+  React.useEffect(() => {
+    if (editorRef && editor) {
+      editorRef.current = editor;
+    }
+  }, [editor, editorRef]);
 
   const handleFormat = () => {
     // Format functionality for TipTap would go here
@@ -46,11 +48,21 @@ export function TipTapWrapper({
     editor?.commands.redo();
   };
 
+  const dummySaveHandler = async () => {
+    console.log('Save functionality not implemented');
+  };
+
+  // Dummy props for compatibility with EditorToolbar
+  const filePath = '';
+  const hasUnsavedChanges = false;
+  const isSaving = false;
+  const isPremium = true;
+
   return (
     <div className="flex flex-col h-full">
       <EditorToolbar
         filePath={filePath}
-        onSave={onSave}
+        onSave={dummySaveHandler}
         onFormat={handleFormat}
         onUndo={handleUndo}
         onRedo={handleRedo}

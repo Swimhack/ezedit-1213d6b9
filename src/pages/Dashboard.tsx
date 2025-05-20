@@ -13,11 +13,22 @@ import FTPConnectionModal from '@/components/FTPConnectionModal';
 import TrialProtection from '@/components/TrialProtection';
 import { useSubscription } from '@/hooks/useSubscription';
 
+// Define types for our connections and modals
+interface Site {
+  id: string;
+  server_name: string;
+  host: string;
+  username: string;
+  password: string;
+  port: number;
+  web_url?: string | null;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [sites, setSites] = useState<any[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedSite, setSelectedSite] = useState<any>(null);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [isAddSiteModalOpen, setIsAddSiteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [connectionTestResults, setConnectionTestResults] = useState<Record<string, boolean>>({});
@@ -52,7 +63,7 @@ const Dashboard = () => {
     }, 800);
   }, []);
 
-  const handleTestConnection = async (connection: any) => {
+  const handleTestConnection = async (connection: Site) => {
     try {
       // Simulate connection test
       const success = Math.random() > 0.3; // 70% success rate
@@ -79,23 +90,23 @@ const Dashboard = () => {
     }
   };
 
-  const handleViewFiles = (connection: any) => {
+  const handleViewFiles = (connection: Site) => {
     navigate(`/editor/${connection.id}`);
   };
 
-  const handleEditSite = (connection: any) => {
+  const handleEditSite = (connection: Site) => {
     setSelectedSite(connection);
     setIsEditModalOpen(true);
   };
 
   // Function to handle adding a new site
-  const handleSiteAdded = (newSite: any) => {
+  const handleSiteAdded = (newSite: Site) => {
     setSites(prev => [...prev, newSite]);
     setIsAddSiteModalOpen(false);
   };
 
   // Function to handle saving an updated site
-  const handleSiteSaved = (updatedSite: any) => {
+  const handleSiteSaved = (updatedSite: Site) => {
     setSites(prev => prev.map(site => 
       site.id === updatedSite.id ? updatedSite : site
     ));
@@ -157,6 +168,7 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* Update the prop types for AddSiteModal and FTPConnectionModal */}
         <AddSiteModal
           isOpen={isAddSiteModalOpen}
           onClose={() => setIsAddSiteModalOpen(false)}

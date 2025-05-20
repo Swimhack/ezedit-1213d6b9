@@ -8,20 +8,22 @@ import { Button } from "@/components/ui/button";
 import { FTPConnectionFormFields, type FTPConnectionFormData } from "./FTPConnectionForm";
 import { useFTPTestConnection } from "@/hooks/use-ftp-test-connection";
 
+interface Site {
+  id: string;
+  server_name: string;
+  host: string;
+  username: string;
+  password: string;
+  port: number;
+  web_url?: string | null;
+  root_directory?: string | null;
+}
+
 interface FTPConnectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: () => void;
-  editConnection?: {
-    id: string;
-    server_name: string;
-    host: string;
-    port: number;
-    username: string;
-    password: string;
-    root_directory: string | null;
-    web_url: string | null;
-  };
+  onSave: (site: Site) => void;
+  editConnection?: Site;
 }
 
 const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConnectionModalProps) => {
@@ -43,19 +45,23 @@ const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConn
         password: data.password || (editConnection?.password || ''),
       };
 
-      const { error } = await supabase
-        .from("ftp_connections")
-        .upsert({
-          id: editConnection?.id,
-          user_id,
-          ...finalData,
-          updated_at: new Date().toISOString(),
-        });
+      // Create the updated site object
+      const updatedSite: Site = {
+        id: editConnection?.id || `site-${Date.now()}`,
+        server_name: finalData.server_name,
+        host: finalData.host,
+        username: finalData.username,
+        password: finalData.password,
+        port: finalData.port,
+        root_directory: finalData.root_directory || null,
+        web_url: finalData.web_url || null
+      };
 
-      if (error) throw error;
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       toast.success(editConnection ? "Connection updated!" : "New connection added!");
-      onSave();
+      onSave(updatedSite);
     } catch (error: any) {
       toast.error(`Error saving connection: ${error.message}`);
     } finally {

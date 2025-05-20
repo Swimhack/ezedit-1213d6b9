@@ -116,7 +116,7 @@ export const DualEditor = ({
       <div className="flex-1">
         <div className="h-full">
           <TipTapWrapper 
-            html={currentContent}
+            content={currentContent}
             onChange={handleContentChange}
             autoFocus={isOpen}
             editorRef={tipTapEditorRef}
