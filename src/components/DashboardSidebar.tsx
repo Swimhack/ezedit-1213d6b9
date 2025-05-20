@@ -16,11 +16,11 @@ const DashboardSidebar = () => {
   
   return (
     <div className={cn(
-      "bg-white border-gray-200",
-      isMobile ? "w-full min-h-0" : "w-64 border-r min-h-[calc(100vh-4rem-3rem)]"
+      "bg-white border-r border-gray-200",
+      isMobile ? "w-full min-h-0" : "w-64 min-h-screen"
     )}>
       <div className="p-4">
-        {!isMobile && <h2 className="text-xl font-semibold text-gray-900 mb-4">Dashboard</h2>}
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Dashboard</h2>
         <nav>
           <ul className="space-y-2">
             {menuItems.map((item) => (
@@ -33,8 +33,7 @@ const DashboardSidebar = () => {
                   )}
                 >
                   <item.icon size={18} />
-                  <span>{isMobile ? null : item.label}</span>
-                  {isMobile && <span className="sr-only">{item.label}</span>}
+                  <span>{item.label}</span>
                 </Link>
               </li>
             ))}
