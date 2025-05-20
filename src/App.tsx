@@ -11,6 +11,7 @@ import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import MySites from "@/pages/MySites";
+import Settings from "@/pages/Settings";
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/sites" element={<MySites />} />
+            <Route path="/dashboard/settings" element={<Settings />} />
             <Route path="/editor/:connectionId" element={<Editor />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />

@@ -16,7 +16,7 @@ interface TrialProtectionProps {
 const TrialProtection = ({ children, requiresSubscription = false }: TrialProtectionProps) => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed to false for instant loading
   const trialStatus = useTrialStatus(user?.email);
   const { isSuperAdmin, loading: superAdminLoading } = useSuperAdmin(user?.email);
   const { 
@@ -31,10 +31,9 @@ const TrialProtection = ({ children, requiresSubscription = false }: TrialProtec
       
       if (data.session?.user) {
         setUser(data.session.user);
-      } else {
-        // If no logged in user, check if we need to redirect
-        setLoading(false);
-      }
+      } 
+      // Always ensure we're not blocking rendering
+      setLoading(false);
     };
     
     checkUser();
@@ -51,12 +50,11 @@ const TrialProtection = ({ children, requiresSubscription = false }: TrialProtec
     };
   }, [navigate]);
 
-  useEffect(() => {
-    // Skip login check for now to allow dashboard access
-    setLoading(false);
-  }, [loading, user, navigate]);
+  // We're removing this effect as it's redundant and causes delays
+  // The checkUser function above already sets loading to false
 
-  if (loading || trialStatus.loading || superAdminLoading || subLoading) {
+  // Show loader only when explicitly waiting for critical data
+  if (trialStatus.loading && requiresSubscription) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <Loader className="h-8 w-8 animate-spin text-ezblue mb-4" />
