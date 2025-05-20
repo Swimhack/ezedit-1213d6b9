@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Paste } from "lucide-react";
+import { Loader2, ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { FTPSite } from "@/hooks/use-ftp-sites";
@@ -218,7 +218,7 @@ export function SiteFormModal({
               title="Paste JSON Configuration"
               onClick={handlePasteJSON}
             >
-              <Paste className="h-4 w-4" />
+              <ClipboardPaste className="h-4 w-4" />
             </Button>
           </DialogTitle>
         </DialogHeader>
