@@ -170,7 +170,7 @@ export function SiteFormModal({
         upsertData.root_directory = rootDirectory;
       }
 
-      // Save or update site
+      // Save or update site to ftp_credentials table
       const { error } = await supabase
         .from("ftp_credentials")
         .upsert(upsertData)
