@@ -1,7 +1,7 @@
 
 // Import required modules
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Client } from "https://esm.sh/basic-ftp@5.0.3";
+import Client from "https://esm.sh/ssh2-sftp-client@9.1.0";
 import { supabase as adminClient } from "../_shared/supabaseClient.ts";
 
 const corsHeaders = {
@@ -69,24 +69,21 @@ Deno.serve(async (req) => {
 
     console.log(`Testing connection to ${server}:${port || 21} with user ${user}`);
     
-    // Create FTP client
+    // Create SFTP client
     const client = new Client();
-    client.ftp.verbose = true; // For debugging, can be turned off in production
     
     try {
-      // Use async/await with proper error handling instead of event emitters
-      await client.access({
+      // Use async/await with proper error handling
+      await client.connect({
         host: server,
         port: port || 21,
-        user,
+        username: user,
         password,
-        secure: false
+        retries: 1,
+        timeout: 10000
       });
       
       console.log("FTP connection successful");
-      
-      // Close the connection properly
-      await client.close();
       
       return new Response(
         JSON.stringify({ 
@@ -98,13 +95,6 @@ Deno.serve(async (req) => {
     } catch (ftpError) {
       console.error("FTP connection error:", ftpError.message);
       
-      // Ensure client is closed on error
-      try {
-        await client.close();
-      } catch (closeError) {
-        console.error("Error closing client:", closeError.message);
-      }
-      
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -112,6 +102,14 @@ Deno.serve(async (req) => {
         }),
         { headers: corsHeaders }
       );
+    } finally {
+      // Always ensure client is closed properly
+      try {
+        await client.end();
+        console.log("FTP client closed");
+      } catch (closeError) {
+        console.error("Error closing client:", closeError.message);
+      }
     }
   } catch (error) {
     console.error("Error in test-ftp-connection function:", error);
