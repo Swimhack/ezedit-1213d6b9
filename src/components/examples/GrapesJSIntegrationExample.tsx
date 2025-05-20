@@ -169,7 +169,7 @@ export function GrapesJSIntegrationExample({
   const handleSave = () => {
     if (editorRef.current) {
       console.log('[GrapesJSExample] Manual save triggered');
-      editorRef.current.store();
+      editorRef.current.store({ noStore: false }); // Fix: Added required parameter
     }
   };
 
