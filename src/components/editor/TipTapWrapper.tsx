@@ -1,103 +1,67 @@
 
-import React, { useLayoutEffect, Suspense, useImperativeHandle, useEffect } from 'react';
+import React from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import { EditorToolbar } from './EditorToolbar';
 
-const TipTapEditor = React.lazy(async () => {
-  const { useEditor, EditorContent } = await import('@tiptap/react');
-  const StarterKit = (await import('@tiptap/starter-kit')).default;
-  const TextAlign = (await import('@tiptap/extension-text-align')).default;
+interface TipTapWrapperProps {
+  content: string;
+  onChange: (content: string) => void;
+  onSave: () => Promise<void>;
+  hasUnsavedChanges: boolean;
+  isSaving: boolean;
+  filePath: string;
+  isPremium: boolean;
+}
 
-  return {
-    default: function TipTapWrapper({
-      html,
-      onChange,
-      autoFocus = false,
-      editorRef,
-    }: {
-      html: string;
-      onChange: (val: string) => void;
-      autoFocus?: boolean;
-      editorRef?: React.MutableRefObject<any>;
-    }) {
-      console.log('[TipTap] Initializing with content length:', html?.length || 0);
-      
-      const editor = useEditor({
-        extensions: [
-          StarterKit,
-          TextAlign.configure({
-            types: ['heading', 'paragraph'],
-            alignments: ['left', 'center', 'right'],
-          }),
-        ],
-        content: html || '<p style="color:#888;font-style:italic">[empty file]</p>',
-        editable: true,
-        onUpdate: ({ editor }) => {
-          const content = editor.getHTML();
-          console.log('[TipTap] Content updated, new length:', content.length);
-          onChange(content);
-        },
-        editorProps: {
-          attributes: {
-            class: 'prose prose-invert max-w-none focus:outline-none h-full p-6 overflow-y-auto',
-          },
-        },
-      });
+export function TipTapWrapper({
+  content,
+  onChange,
+  onSave,
+  hasUnsavedChanges,
+  isSaving,
+  filePath,
+  isPremium
+}: TipTapWrapperProps) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+    ],
+    content,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+  });
 
-      useImperativeHandle(editorRef, () => editor, [editor]);
-
-      // Update content when html prop changes
-      useEffect(() => {
-        if (editor && html !== undefined && html !== null) {
-          // Don't set content if it's already the same to avoid cursor jumps
-          if (html !== editor.getHTML()) {
-            console.log('[TipTap] Setting new content, length:', html.length);
-            editor.commands.setContent(html);
-          }
-        }
-      }, [editor, html]);
-
-      // Handle autofocus
-      useLayoutEffect(() => {
-        if (autoFocus && editor) {
-          const id = setTimeout(() => {
-            console.log('[TipTap] Autofocus set');
-            editor.commands.focus('end');
-          }, 100);
-          return () => clearTimeout(id);
-        }
-      }, [autoFocus, editor]);
-
-      if (!editor) return null;
-      
-      return (
-        <div className="flex flex-col h-full bg-background">
-          <EditorToolbar editor={editor} />
-          <EditorContent
-            editor={editor}
-            className="flex-1 overflow-auto"
-          />
-        </div>
-      );
-    }
+  const handleFormat = () => {
+    // Format functionality for TipTap would go here
+    console.log('Format not implemented for TipTap');
   };
-});
 
-export default function TipTapWrapper(props: {
-  html: string;
-  onChange: (val: string) => void;
-  autoFocus?: boolean;
-  editorRef?: React.MutableRefObject<any>;
-}) {
-  console.log('[TipTapWrapper] Rendering with html length:', props.html?.length || 0);
-  
+  const handleUndo = () => {
+    editor?.commands.undo();
+  };
+
+  const handleRedo = () => {
+    editor?.commands.redo();
+  };
+
   return (
-    <Suspense fallback={
-      <div className="p-6 text-center">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-4"></div>
-        <p>Loading editor...</p>
+    <div className="flex flex-col h-full">
+      <EditorToolbar
+        filePath={filePath}
+        onSave={onSave}
+        onFormat={handleFormat}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        isSaving={isSaving}
+        hasUnsavedChanges={hasUnsavedChanges}
+        isPremium={isPremium}
+        editor={editor}
+      />
+      <div className="p-4 flex-grow overflow-y-auto">
+        <EditorContent editor={editor} className="prose max-w-none" />
       </div>
-    }>
-      <TipTapEditor {...props} />
-    </Suspense>
+    </div>
   );
 }

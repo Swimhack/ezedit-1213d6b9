@@ -1,156 +1,128 @@
 
-import { useState, useEffect, useRef } from "react";
-import { FileCode2 } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useFileContent } from "@/hooks/use-file-content";
-import { EditorToolbar } from "@/components/editor/EditorToolbar";
-import { LoadingOverlay } from "@/components/editor/LoadingOverlay";
-import { CodeEditor } from "@/components/editor/CodeEditor";
-import ClinePane from "@/components/ClinePane";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import React, { useState, useEffect, useRef } from "react";
+import { EditorPane } from "@/components/editor/EditorPane";
+import { toast } from "sonner";
 
 interface CodeEditorPaneProps {
-  connection: {
-    id: string;
-    host: string;
-    port: number;
-    username: string;
-    password: string;
-  } | null;
+  connection: any;
   filePath: string;
-  onContentChange: (content: string) => void;
+  onContentChange?: (content: string) => void;
 }
 
-export default function CodeEditorPane({ connection, filePath, onContentChange }: CodeEditorPaneProps) {
-  const [language, setLanguage] = useState<string>("javascript");
-  const editorRef = useRef(null);
-  const isMobile = useIsMobile();
-  const {
-    content,
-    isLoading,
-    isSaving,
-    hasUnsavedChanges,
-    updateContent,
-    saveContent
-  } = useFileContent({ connection, filePath });
-
-  const [showKlein, setShowKlein] = useState(!isMobile);
-  
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setShowKlein(window.innerWidth >= 1024);
-    };
-    
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
+const CodeEditorPane: React.FC<CodeEditorPaneProps> = ({
+  connection,
+  filePath,
+  onContentChange
+}) => {
+  const [content, setContent] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+  const editorRef = useRef<any>(null);
 
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
-
-  useEffect(() => {
-    if (filePath) {
-      const extension = filePath.split('.').pop()?.toLowerCase();
-      switch (extension) {
-        case 'js':
-        case 'jsx':
-          setLanguage('javascript');
-          break;
-        case 'ts':
-        case 'tsx':
-          setLanguage('typescript');
-          break;
-        case 'html':
-          setLanguage('html');
-          break;
-        case 'css':
-          setLanguage('css');
-          break;
-        case 'json':
-          setLanguage('json');
-          break;
-        case 'md':
-          setLanguage('markdown');
-          break;
-        default:
-          setLanguage('plaintext');
-      }
+    if (filePath && connection) {
+      loadFileContent();
     }
-  }, [filePath]);
+  }, [filePath, connection]);
 
-  const handleCodeEditorChange = (value: string | undefined) => {
-    if (value !== undefined) {
-      updateContent(value);
-      onContentChange(value);
+  const loadFileContent = async () => {
+    if (!filePath || !connection) return;
+    
+    setIsLoading(true);
+    try {
+      // This is a mock implementation
+      // In a real app, this would call an API to load the file content
+      console.log(`Loading file: ${filePath} from connection: ${connection.id}`);
+      
+      // Mock file content for demo
+      const mockContent = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Mock File Content</title>
+</head>
+<body>
+  <h1>Hello from ezEdit</h1>
+  <p>This is a mock file content for ${filePath}</p>
+</body>
+</html>`;
+      
+      setTimeout(() => {
+        setContent(mockContent);
+        setIsLoading(false);
+        setHasUnsavedChanges(false);
+      }, 500);
+    } catch (error: any) {
+      toast.error(`Error loading file: ${error.message}`);
+      setIsLoading(false);
     }
   };
 
-  const handleClineResponse = (text: string) => {
-    if (content) {
-      const newContent = content + '\n' + text;
-      updateContent(newContent);
+  const handleContentChange = (newContent: string) => {
+    setContent(newContent);
+    setHasUnsavedChanges(true);
+    if (onContentChange) {
       onContentChange(newContent);
     }
   };
 
+  const handleSave = async () => {
+    if (!filePath || !connection) return;
+    
+    setIsSaving(true);
+    try {
+      // Mock save implementation
+      console.log(`Saving file: ${filePath} for connection: ${connection.id}`);
+      console.log("Content:", content);
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast.success("File saved successfully");
+      setHasUnsavedChanges(false);
+    } catch (error: any) {
+      toast.error(`Error saving file: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleFormat = () => {
+    if (!editorRef.current) return;
+    try {
+      editorRef.current.getAction('editor.action.formatDocument')?.run();
+    } catch (error) {
+      console.error("Error formatting document:", error);
+    }
+  };
+
+  const handleUndo = () => {
+    if (!editorRef.current) return;
+    editorRef.current.trigger('keyboard', 'undo');
+  };
+
+  const handleRedo = () => {
+    if (!editorRef.current) return;
+    editorRef.current.trigger('keyboard', 'redo');
+  };
+
   return (
-    <div className="h-full flex flex-col">
-      <EditorToolbar
-        editor={null}
+    <div className="flex flex-col h-full">
+      <EditorPane
         filePath={filePath}
+        content={content}
+        onChange={handleContentChange}
+        onSave={handleSave}
+        isLoading={isLoading}
         isSaving={isSaving}
         hasUnsavedChanges={hasUnsavedChanges}
-        onSave={saveContent}
+        isPremium={true} // Usually this would come from a subscription state
+        onFormat={handleFormat}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
       />
-
-      <div className="flex-1 relative overflow-hidden">
-        {isLoading ? (
-          <LoadingOverlay />
-        ) : !filePath ? (
-          <div className="flex flex-col items-center justify-center h-full text-ezgray">
-            <FileCode2 size={48} className="mb-2" />
-            <p>Select a file from the file tree to edit</p>
-          </div>
-        ) : (
-          <ResizablePanelGroup 
-            direction={isMobile ? "vertical" : "horizontal"}
-            className="h-full"
-          >
-            <ResizablePanel defaultSize={isMobile ? 60 : 70} minSize={40}>
-              <div className="h-full">
-                <CodeEditor
-                  content={content}
-                  language={language}
-                  onChange={handleCodeEditorChange}
-                  editorRef={editorRef}
-                />
-              </div>
-            </ResizablePanel>
-            {showKlein && (
-              <>
-                <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={isMobile ? 40 : 30} minSize={20}>
-                  <ClinePane 
-                    filePath={filePath}
-                    fileContent={content || ''}
-                    onApplyResponse={handleClineResponse}
-                  />
-                </ResizablePanel>
-              </>
-            )}
-          </ResizablePanelGroup>
-        )}
-      </div>
     </div>
   );
-}
+};
+
+export default CodeEditorPane;

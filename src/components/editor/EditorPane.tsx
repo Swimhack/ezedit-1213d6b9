@@ -11,6 +11,9 @@ interface EditorPaneProps {
   content: string;
   onChange: (content: string) => void;
   onSave: () => Promise<void>;
+  onFormat: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
   isLoading: boolean;
   isSaving: boolean;
   hasUnsavedChanges: boolean;
@@ -22,6 +25,9 @@ export function EditorPane({
   content,
   onChange,
   onSave,
+  onFormat,
+  onUndo,
+  onRedo,
   isLoading,
   isSaving,
   hasUnsavedChanges,
@@ -71,37 +77,14 @@ export function EditorPane({
     }
   }, [filePath]);
 
-  // Handle format document
-  const formatDocument = () => {
-    if (!editorRef.current) return;
-    
-    try {
-      editorRef.current.getAction('editor.action.formatDocument')?.run();
-    } catch (error) {
-      console.error("Error formatting document:", error);
-    }
-  };
-  
-  // Handle undo
-  const handleUndo = () => {
-    if (!editorRef.current) return;
-    editorRef.current.trigger('undo');
-  };
-  
-  // Handle redo
-  const handleRedo = () => {
-    if (!editorRef.current) return;
-    editorRef.current.trigger('redo');
-  };
-
   return (
     <div className="h-full flex flex-col">
       <EditorToolbar 
         filePath={filePath}
         onSave={onSave}
-        onFormat={formatDocument}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
+        onFormat={onFormat}
+        onUndo={onUndo}
+        onRedo={onRedo}
         isSaving={isSaving}
         hasUnsavedChanges={hasUnsavedChanges}
         isPremium={isPremium}
