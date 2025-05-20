@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Paste } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { FTPSite } from "@/hooks/use-ftp-sites";
@@ -35,7 +35,7 @@ export function SiteFormModal({
     try {
       // Get form data
       const form = e.target as HTMLFormElement;
-      const { siteName, serverUrl, port, username, password } = getFormData(form);
+      const { siteName, serverUrl, port, username, password, rootDirectory } = getFormData(form);
       
       // Validate form
       if (!serverUrl || !username || (!password && !site)) {
@@ -77,6 +77,11 @@ export function SiteFormModal({
       // Only add site_name if it's not empty
       if (siteName) {
         upsertData.site_name = siteName;
+      }
+
+      // Add root directory if provided
+      if (rootDirectory) {
+        upsertData.root_directory = rootDirectory;
       }
 
       // Save or update site
@@ -145,12 +150,76 @@ export function SiteFormModal({
     }
   };
 
+  const handlePasteJSON = async () => {
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      
+      try {
+        const jsonData = JSON.parse(clipboardText);
+        
+        // Fill the form with data from JSON
+        const form = document.querySelector('form') as HTMLFormElement;
+        if (!form) {
+          toast.error("Form not found");
+          return;
+        }
+        
+        // Map JSON structure to form fields
+        const siteNameInput = form.querySelector('#site_name') as HTMLInputElement;
+        const serverUrlInput = form.querySelector('#server_url') as HTMLInputElement;
+        const portInput = form.querySelector('#port') as HTMLInputElement;
+        const usernameInput = form.querySelector('#username') as HTMLInputElement;
+        const passwordInput = form.querySelector('#password') as HTMLInputElement;
+        const rootDirectoryInput = form.querySelector('#root_directory') as HTMLInputElement;
+        
+        if (jsonData.name) {
+          siteNameInput.value = jsonData.name;
+        }
+        
+        if (jsonData.ftp) {
+          if (jsonData.ftp.host) {
+            serverUrlInput.value = jsonData.ftp.host;
+          }
+          
+          if (jsonData.ftp.username) {
+            usernameInput.value = jsonData.ftp.username;
+          }
+          
+          if (jsonData.ftp.password) {
+            passwordInput.value = jsonData.ftp.password;
+          }
+
+          if (jsonData.ftp.directory) {
+            rootDirectoryInput.value = jsonData.ftp.directory;
+          }
+        }
+        
+        toast.success("JSON data imported successfully");
+      } catch (parseError) {
+        console.error("Error parsing JSON:", parseError);
+        toast.error("Invalid JSON format");
+      }
+    } catch (error) {
+      console.error("Error accessing clipboard:", error);
+      toast.error("Could not access clipboard");
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center justify-between">
             {site ? "Edit FTP Site" : "Add FTP Site"}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8" 
+              title="Paste JSON Configuration"
+              onClick={handlePasteJSON}
+            >
+              <Paste className="h-4 w-4" />
+            </Button>
           </DialogTitle>
         </DialogHeader>
 

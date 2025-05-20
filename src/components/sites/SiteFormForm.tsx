@@ -19,6 +19,7 @@ export function SiteFormForm({
   const [port, setPort] = useState("21");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rootDirectory, setRootDirectory] = useState("");
 
   useEffect(() => {
     if (site) {
@@ -27,6 +28,7 @@ export function SiteFormForm({
       setPort(site.port?.toString() || "21");
       setUsername(site.username || "");
       setPassword(""); // Don't prefill password for security
+      setRootDirectory(site.root_directory || "");
     } else {
       // Reset form when opening for a new site
       setSiteName("");
@@ -34,6 +36,7 @@ export function SiteFormForm({
       setPort("21");
       setUsername("");
       setPassword("");
+      setRootDirectory("");
     }
   }, [site]);
 
@@ -97,6 +100,16 @@ export function SiteFormForm({
         />
       </div>
 
+      <div className="grid w-full items-center gap-2">
+        <Label htmlFor="root_directory">Root Directory (Optional)</Label>
+        <Input
+          id="root_directory"
+          placeholder="/httpdocs"
+          value={rootDirectory}
+          onChange={(e) => setRootDirectory(e.target.value)}
+        />
+      </div>
+
       {testResult && (
         <div className={`p-3 rounded-md ${
           testResult.success ? 'bg-green-50 text-green-800 border border-green-200' : 
@@ -117,5 +130,6 @@ export function getFormData(form: HTMLFormElement) {
     port: parseInt(formData.get('port') as string, 10) || 21,
     username: formData.get('username') as string,
     password: formData.get('password') as string,
+    rootDirectory: formData.get('root_directory') as string || '',
   };
 }
