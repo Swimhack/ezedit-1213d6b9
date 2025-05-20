@@ -9,6 +9,7 @@ import { SiteCard } from "@/components/sites/SiteCard";
 import { SiteFormModal } from "@/components/sites/SiteFormModal";
 import { logEvent } from "@/utils/ftp-utils";
 import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const MySites = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const MySites = () => {
   const { 
     sites, 
     isLoading, 
+    isRefreshing,
     testResults, 
     fetchSites, 
     handleTestConnection 
@@ -41,12 +43,14 @@ const MySites = () => {
   // Refetch sites when user ID changes or when modal closes
   useEffect(() => {
     if (userId) {
-      fetchSites();
+      // Silent refresh when user ID changes
+      fetchSites(true);
     }
   }, [userId, fetchSites]);
 
   const handleSaveSite = () => {
-    fetchSites();
+    // Silent refresh when a site is saved
+    fetchSites(true);
     setIsModalOpen(false);
     setEditingSite(null);
     logEvent("Site saved", "info", "siteConfig");
@@ -66,8 +70,44 @@ const MySites = () => {
 
   const handleViewFiles = (site: any) => {
     logEvent(`Opening file explorer for: ${site.site_name}`, "info", "fileExplorer");
-    // We will implement file browsing in another step
     navigate("/editor/" + site.id);
+  };
+
+  // Render site cards or skeletons
+  const renderSites = () => {
+    if (isLoading) {
+      return Array.from({ length: 3 }).map((_, i) => (
+        <Skeleton 
+          key={i} 
+          className="border rounded-lg p-6 h-44"
+        />
+      ));
+    }
+
+    if (sites.length === 0) {
+      return (
+        <div className="col-span-full text-center py-6 md:py-8 border border-dashed border-gray-300 rounded-lg">
+          <h3 className="text-lg md:text-xl font-medium mb-2">No sites connected yet</h3>
+          <p className="text-gray-500 mb-4 px-4">
+            Add your first FTP connection to start managing your sites
+          </p>
+          <Button onClick={handleAddSite} variant="outline">
+            <PlusCircle className="mr-2" size={16} /> Connect a Site
+          </Button>
+        </div>
+      );
+    }
+
+    return sites.map((site) => (
+      <SiteCard
+        key={site.id}
+        site={site}
+        testResult={testResults[site.id]}
+        onTest={() => handleTestConnection(site)}
+        onViewFiles={() => handleViewFiles(site)}
+        onEdit={() => handleEdit(site)}
+      />
+    ));
   };
 
   return (
@@ -83,47 +123,20 @@ const MySites = () => {
           </Button>
         </div>
 
-        {/* Adding debug information */}
-        <div className="text-xs text-gray-500">
-          User ID: {userId || "Not logged in"}
-          <br />
-          Sites count: {sites.length}
-        </div>
+        {/* Debug information - only visible in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-xs text-gray-500">
+            User ID: {userId || "Not logged in"}
+            <br />
+            Sites count: {sites.length}
+            <br />
+            Loading: {isLoading ? "true" : "false"}, Refreshing: {isRefreshing ? "true" : "false"}
+          </div>
+        )}
 
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {isLoading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="border rounded-lg p-6 animate-pulse">
-                <div className="w-1/3 h-5 bg-gray-200 rounded mb-4"></div>
-                <div className="w-full h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="w-2/3 h-4 bg-gray-200 rounded mb-4"></div>
-                <div className="flex justify-between mt-6">
-                  <div className="w-1/4 h-8 bg-gray-200 rounded"></div>
-                </div>
-              </div>
-            ))
-          ) : sites.length === 0 ? (
-            <div className="col-span-full text-center py-6 md:py-8 border border-dashed border-gray-300 rounded-lg">
-              <h3 className="text-lg md:text-xl font-medium mb-2">No sites connected yet</h3>
-              <p className="text-gray-500 mb-4 px-4">
-                Add your first FTP connection to start managing your sites
-              </p>
-              <Button onClick={handleAddSite} variant="outline">
-                <PlusCircle className="mr-2" size={16} /> Connect a Site
-              </Button>
-            </div>
-          ) : (
-            sites.map((site) => (
-              <SiteCard
-                key={site.id}
-                site={site}
-                testResult={testResults[site.id]}
-                onTest={() => handleTestConnection(site)}
-                onViewFiles={() => handleViewFiles(site)}
-                onEdit={() => handleEdit(site)}
-              />
-            ))
-          )}
+        {/* Use a div that doesn't reflow when content changes */}
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 min-h-[200px]">
+          {renderSites()}
         </div>
 
         <div className="flex justify-end">

@@ -13,15 +13,23 @@ export type FTPSite = {
   user_id: string;
   created_at: string;
   updated_at: string;
+  root_directory?: string; // Add root_directory as an optional field
 };
 
 export function useFTPSites() {
   const [sites, setSites] = useState<FTPSite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [testResults, setTestResults] = useState<Record<string, boolean>>({});
 
-  const fetchSites = async () => {
-    setIsLoading(true);
+  const fetchSites = async (silent = false) => {
+    // Only show loading indicator on initial load, not refreshes
+    if (!silent) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
+    
     try {
       // Get the current user session to get the user ID
       const { data: sessionData } = await supabase.auth.getSession();
@@ -30,6 +38,7 @@ export function useFTPSites() {
         console.log("No authenticated user found");
         setSites([]);
         setIsLoading(false);
+        setIsRefreshing(false);
         return;
       }
 
@@ -45,12 +54,17 @@ export function useFTPSites() {
 
       if (error) throw error;
       console.log("Sites fetched:", data?.length || 0);
+      
+      // Update sites state
       setSites(data || []);
     } catch (error: any) {
       console.error("Error fetching FTP sites:", error);
-      toast.error(`Error fetching sites: ${error.message}`);
+      if (!silent) {
+        toast.error(`Error fetching sites: ${error.message}`);
+      }
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -100,6 +114,7 @@ export function useFTPSites() {
   return {
     sites,
     isLoading,
+    isRefreshing,
     testResults,
     fetchSites,
     handleTestConnection,
