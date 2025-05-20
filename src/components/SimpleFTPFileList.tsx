@@ -1,20 +1,15 @@
 
-import { FileListContainer } from "@/components/ftp-explorer/FileListContainer";
-
-interface FileItem {
-  name: string;
-  size?: number;
-  modified?: Date | string | number;
-  isDirectory?: boolean;
-  type?: string;
-}
+import React from "react";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Button } from "@/components/ui/button";
+import { FileExplorer } from "@/components/file-explorer/FileExplorer";
 
 interface SimpleFTPFileListProps {
   currentPath: string;
-  files: FileItem[];
-  onNavigate: (newPath: string) => void;
-  onSelectFile?: (file: { key: string; isDir: boolean }) => void;
-  isLoading: boolean;
+  files: any[];
+  onNavigate: (path: string) => void;
+  onSelectFile: (file: { key: string; isDir: boolean }) => void;
+  isLoading?: boolean;
   onRefresh?: () => void;
 }
 
@@ -24,16 +19,31 @@ export function SimpleFTPFileList({
   onNavigate,
   onSelectFile,
   isLoading,
-  onRefresh
+  onRefresh,
 }: SimpleFTPFileListProps) {
+  const [selectedFilePath, setSelectedFilePath] = useLocalStorage<string | null>("selected-file-path", null);
+
+  // Mock connection for demo
+  const mockConnection = {
+    id: "demo-connection",
+    host: "ftp.example.com",
+    username: "demo",
+    password: "password",
+  };
+
+  // Adapter function to convert from our file explorer format to the expected format
+  const handleFileSelect = (path: string, isDirectory: boolean) => {
+    setSelectedFilePath(path);
+    onSelectFile({ key: path, isDir: isDirectory });
+  };
+
   return (
-    <FileListContainer
-      currentPath={currentPath}
-      files={files}
-      onNavigate={onNavigate}
-      onSelectFile={onSelectFile}
-      isLoading={isLoading}
-      onRefresh={onRefresh}
-    />
+    <div className="h-full">
+      <FileExplorer
+        connection={mockConnection}
+        onSelectFile={handleFileSelect}
+        selectedFilePath={selectedFilePath}
+      />
+    </div>
   );
 }

@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import { Loader } from "lucide-react";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme } from "@/components/ThemeProvider";
 
 interface CodeEditorProps {
   content: string;
@@ -68,6 +68,12 @@ export function CodeEditor({
         console.error('Error initializing editor layout:', err);
       }
     }, 100);
+    
+    // Add keyboard shortcut for save
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S, () => {
+      // Trigger some external save function
+      document.dispatchEvent(new CustomEvent('monaco-save-triggered'));
+    });
   };
 
   return (

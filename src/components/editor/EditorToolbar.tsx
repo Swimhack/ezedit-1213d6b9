@@ -1,169 +1,130 @@
-import { 
-  Bold, 
-  Italic, 
-  List, 
-  ListOrdered,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Heading,
-  Undo,
-  Redo
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 
-export interface EditorToolbarProps {
-  editor?: any; // Make editor optional since code editor doesn't need it
-  filePath?: string;
-  isSaving?: boolean;
-  hasUnsavedChanges?: boolean;
-  onSave?: () => void;
+import React from "react";
+import { Save, Undo, Redo, FileCode, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+
+interface EditorToolbarProps {
+  filePath: string | null;
+  onSave: () => Promise<void>;
+  onFormat: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  isSaving: boolean;
+  hasUnsavedChanges: boolean;
+  isPremium: boolean;
 }
 
-export function EditorToolbar({ editor, filePath, isSaving, hasUnsavedChanges, onSave }: EditorToolbarProps) {
-  // Show format controls only when editor is available
-  if (!editor) {
-    return (
-      <div className="border-b border-border flex flex-wrap gap-1 p-1">
-        {onSave && (
-          <>
-            <div className="flex items-center ml-2 text-sm text-muted-foreground">
-              {filePath ? filePath : 'No file selected'}
-              {hasUnsavedChanges && <span className="ml-2 text-amber-500">●</span>}
-            </div>
-            <div className="flex-1"></div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onSave}
-              disabled={isSaving || !hasUnsavedChanges}
-              className="mr-2"
-            >
-              {isSaving ? 'Saving...' : 'Save'}
-            </Button>
-          </>
+export function EditorToolbar({
+  filePath,
+  onSave,
+  onFormat,
+  onUndo,
+  onRedo,
+  isSaving,
+  hasUnsavedChanges,
+  isPremium
+}: EditorToolbarProps) {
+  const fileName = filePath ? filePath.split('/').pop() : null;
+  
+  return (
+    <div className="border-b bg-gray-50 dark:bg-gray-800 p-2 flex items-center">
+      <div className="flex items-center space-x-2 mr-4">
+        <FileCode size={16} className="text-gray-500" />
+        <span className="font-medium text-sm">
+          {fileName || "No file selected"}
+        </span>
+        {hasUnsavedChanges && (
+          <span className="text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-1.5 py-0.5 rounded">
+            Modified
+          </span>
         )}
       </div>
-    );
-  }
-
-  return (
-    <div className="border-b border-border flex flex-wrap gap-1 p-1">
-      {/* File actions (if provided) */}
-      {onSave && (
-        <>
-          <div className="flex items-center ml-2 text-sm text-muted-foreground">
-            {filePath ? filePath : 'No file selected'}
-            {hasUnsavedChanges && <span className="ml-2 text-amber-500">●</span>}
-          </div>
-          <div className="flex-1"></div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSave}
-            disabled={isSaving || !hasUnsavedChanges}
-            className="mr-2"
-          >
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
-          <Separator orientation="vertical" className="mx-1 h-8" />
-        </>
-      )}
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        data-active={editor.isActive('bold')}
-        className="data-[active=true]:bg-accent"
-      >
-        <Bold className="h-4 w-4" />
-      </Button>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        data-active={editor.isActive('italic')}
-        className="data-[active=true]:bg-accent"
-      >
-        <Italic className="h-4 w-4" />
-      </Button>
-
-      <Separator orientation="vertical" className="mx-1 h-8" />
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        data-active={editor.isActive('bulletList')}
-        className="data-[active=true]:bg-accent"
-      >
-        <List className="h-4 w-4" />
-      </Button>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        data-active={editor.isActive('orderedList')}
-        className="data-[active=true]:bg-accent"
-      >
-        <ListOrdered className="h-4 w-4" />
-      </Button>
-
-      <Separator orientation="vertical" className="mx-1 h-8" />
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().setTextAlign('left').run()}
-        data-active={editor.isActive({ textAlign: 'left' })}
-        className="data-[active=true]:bg-accent"
-      >
-        <AlignLeft className="h-4 w-4" />
-      </Button>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().setTextAlign('center').run()}
-        data-active={editor.isActive({ textAlign: 'center' })}
-        className="data-[active=true]:bg-accent"
-      >
-        <AlignCenter className="h-4 w-4" />
-      </Button>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().setTextAlign('right').run()}
-        data-active={editor.isActive({ textAlign: 'right' })}
-        className="data-[active=true]:bg-accent"
-      >
-        <AlignRight className="h-4 w-4" />
-      </Button>
-
-      <Separator orientation="vertical" className="mx-1 h-8" />
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().undo().run()}
-        disabled={!editor.can().undo()}
-      >
-        <Undo className="h-4 w-4" />
-      </Button>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => editor.chain().focus().redo().run()}
-        disabled={!editor.can().redo()}
-      >
-        <Redo className="h-4 w-4" />
-      </Button>
+      
+      <div className="flex-grow"></div>
+      
+      <div className="flex items-center space-x-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onUndo}
+              disabled={!filePath || !isPremium}
+            >
+              <Undo size={16} />
+              <span className="sr-only">Undo</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRedo}
+              disabled={!filePath || !isPremium}
+            >
+              <Redo size={16} />
+              <span className="sr-only">Redo</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Redo (Ctrl+Y)</TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onFormat}
+              disabled={!filePath || !isPremium}
+            >
+              <span className="text-sm">{ }</span>
+              <span>Format</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Format Document (Alt+Shift+F)</TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={hasUnsavedChanges ? "default" : "ghost"}
+              size="sm"
+              onClick={onSave}
+              disabled={!filePath || isSaving || !hasUnsavedChanges || !isPremium}
+              className={cn(
+                "flex items-center gap-1", 
+                isPremium ? "" : "cursor-not-allowed"
+              )}
+            >
+              {isPremium ? (
+                isSaving ? (
+                  <>
+                    <div className="h-3 w-3 rounded-full border-2 border-t-transparent border-white animate-spin"></div>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    <span>Save</span>
+                  </>
+                )
+              ) : (
+                <>
+                  <Lock size={16} />
+                  <span>Premium</span>
+                </>
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{isPremium ? "Save (Ctrl+S)" : "Upgrade to premium to save files"}</TooltipContent>
+        </Tooltip>
+      </div>
     </div>
   );
 }
