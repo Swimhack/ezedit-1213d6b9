@@ -23,12 +23,28 @@ export function useFTPSites() {
   const fetchSites = async () => {
     setIsLoading(true);
     try {
+      // Get the current user session to get the user ID
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (!sessionData?.session?.user) {
+        console.log("No authenticated user found");
+        setSites([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const userId = sessionData.session.user.id;
+      console.log("Fetching sites for user:", userId);
+
+      // Query only sites belonging to the current user
       const { data, error } = await supabase
         .from("ftp_credentials")
         .select("*")
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      console.log("Sites fetched:", data?.length || 0);
       setSites(data || []);
     } catch (error: any) {
       console.error("Error fetching FTP sites:", error);

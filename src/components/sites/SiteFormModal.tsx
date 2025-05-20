@@ -58,12 +58,14 @@ export function SiteFormModal({
         return;
       }
 
+      console.log("Saving site with user ID:", session.user.id);
+
       // For updates, only include password if provided new one
       const passwordField = password ? { encrypted_password: password } : {};
 
       // Prepare the data object for upsert
       const upsertData: any = {
-        id: site?.id,
+        ...(site?.id ? { id: site.id } : {}),
         server_url: serverUrl,
         port: port,
         username,

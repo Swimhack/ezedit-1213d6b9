@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -7,11 +8,13 @@ import { useFTPSites } from "@/hooks/use-ftp-sites";
 import { SiteCard } from "@/components/sites/SiteCard";
 import { SiteFormModal } from "@/components/sites/SiteFormModal";
 import { logEvent } from "@/utils/ftp-utils";
+import { supabase } from "@/integrations/supabase/client";
 
 const MySites = () => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<any | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   
   const { 
     sites, 
@@ -21,10 +24,26 @@ const MySites = () => {
     handleTestConnection 
   } = useFTPSites();
   
-  // Log page view for tracking
+  // Check current user and log page view
   useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        setUserId(data.session.user.id);
+        console.log("Current user ID:", data.session.user.id);
+      }
+    };
+    
+    checkUser();
     logEvent("Viewing Sites page", "info", "navigation");
   }, []);
+
+  // Refetch sites when user ID changes or when modal closes
+  useEffect(() => {
+    if (userId) {
+      fetchSites();
+    }
+  }, [userId, fetchSites]);
 
   const handleSaveSite = () => {
     fetchSites();
@@ -48,7 +67,7 @@ const MySites = () => {
   const handleViewFiles = (site: any) => {
     logEvent(`Opening file explorer for: ${site.site_name}`, "info", "fileExplorer");
     // We will implement file browsing in another step
-    navigate("/dashboard/sites/files", { state: { site } });
+    navigate("/editor/" + site.id);
   };
 
   return (
@@ -62,6 +81,13 @@ const MySites = () => {
           <Button onClick={handleAddSite} className="gap-1">
             <PlusCircle className="h-4 w-4" /> Add Site
           </Button>
+        </div>
+
+        {/* Adding debug information */}
+        <div className="text-xs text-gray-500">
+          User ID: {userId || "Not logged in"}
+          <br />
+          Sites count: {sites.length}
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
