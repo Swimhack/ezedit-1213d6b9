@@ -14,6 +14,7 @@ interface EditorToolbarProps {
   isSaving: boolean;
   hasUnsavedChanges: boolean;
   isPremium: boolean;
+  editor?: any; // Add editor prop to support TipTap integration
 }
 
 export function EditorToolbar({
@@ -24,7 +25,8 @@ export function EditorToolbar({
   onRedo,
   isSaving,
   hasUnsavedChanges,
-  isPremium
+  isPremium,
+  editor // Accept the editor prop
 }: EditorToolbarProps) {
   const fileName = filePath ? filePath.split('/').pop() : null;
   
