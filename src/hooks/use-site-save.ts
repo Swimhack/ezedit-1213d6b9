@@ -7,6 +7,21 @@ import type { FTPSite } from "@/hooks/use-ftp-sites";
 export function useSiteSave() {
   const [isLoading, setIsLoading] = useState(false);
 
+  // Helper function to refresh the session if needed
+  const refreshSession = async () => {
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error) {
+        console.error("Error refreshing session:", error);
+        throw error;
+      }
+      return data.session;
+    } catch (error) {
+      console.error("Failed to refresh session:", error);
+      throw new Error("Your session has expired. Please log in again.");
+    }
+  };
+
   const saveSite = async (
     formData: {
       siteName: string;
@@ -47,8 +62,20 @@ export function useSiteSave() {
         return false;
       }
 
-      // Get current user ID
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get current user session with refresh attempt if needed
+      let { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // Try to refresh the session
+        try {
+          session = await refreshSession();
+        } catch (refreshError: any) {
+          toast.error(refreshError.message);
+          setIsLoading(false);
+          return false;
+        }
+      }
+      
       if (!session?.user) {
         toast.error("You must be logged in to save a site");
         setIsLoading(false);
@@ -88,6 +115,12 @@ export function useSiteSave() {
         .select().single();
 
       if (error) {
+        // Special handling for auth errors
+        if (error.message?.includes("JWT")) {
+          toast.error("Your session has expired. Please log out and log in again.");
+          return false;
+        }
+        
         console.error("Error saving site:", error);
         toast.error(`Failed to save site: ${error.message}`);
         return false;

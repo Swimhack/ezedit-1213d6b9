@@ -1,10 +1,12 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { Client } from "npm:basic-ftp@5.0.3"
+import { supabase } from "../_shared/supabaseClient.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Content-Type': 'application/json'
 }
 
 serve(async (req) => {
@@ -14,6 +16,56 @@ serve(async (req) => {
   }
 
   try {
+    // Verify JWT token from Authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "Missing authorization header" 
+        }),
+        { 
+          headers: corsHeaders, 
+          status: 401 
+        }
+      );
+    }
+
+    // Extract and verify the JWT token
+    const token = authHeader.replace('Bearer ', '');
+    try {
+      // Verify the JWT token using admin client
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (authError || !user) {
+        console.error("JWT verification failed:", authError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: "Invalid authorization token" 
+          }),
+          { 
+            headers: corsHeaders, 
+            status: 401 
+          }
+        );
+      }
+      
+      console.log("Authenticated user:", user.id);
+    } catch (authError) {
+      console.error("Error verifying JWT:", authError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "Invalid or expired JWT token" 
+        }),
+        { 
+          headers: corsHeaders, 
+          status: 401 
+        }
+      );
+    }
+    
     // Parse JSON body with error handling
     let requestBody;
     try {
@@ -24,7 +76,7 @@ serve(async (req) => {
         JSON.stringify({ success: false, message: "Invalid JSON in request body" }),
         { 
           status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: corsHeaders
         }
       );
     }
@@ -40,7 +92,7 @@ serve(async (req) => {
         }),
         { 
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: corsHeaders
         }
       );
     }
@@ -63,7 +115,7 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify({ success: true, message: 'Connection successful' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: corsHeaders }
       );
     } catch (error) {
       console.error("FTP connection error:", error.message);
@@ -72,7 +124,7 @@ serve(async (req) => {
         JSON.stringify({ success: false, message: error.message }),
         { 
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: corsHeaders
         }
       );
     } finally {
@@ -85,7 +137,7 @@ serve(async (req) => {
       JSON.stringify({ success: false, error: error.message }),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: corsHeaders
       }
     );
   }

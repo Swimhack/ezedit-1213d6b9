@@ -2,6 +2,7 @@
 // Import required modules
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Client } from "https://esm.sh/basic-ftp@5.0.3";
+import { supabase as adminClient } from "../_shared/supabaseClient.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*", 
@@ -16,6 +17,47 @@ Deno.serve(async (req) => {
   }
   
   try {
+    // Verify JWT token from Authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "Missing authorization header" 
+        }),
+        { headers: corsHeaders, status: 401 }
+      );
+    }
+
+    // Extract and verify the JWT token
+    const token = authHeader.replace('Bearer ', '');
+    try {
+      // Verify the JWT token using admin client
+      const { data: { user }, error: authError } = await adminClient.auth.getUser(token);
+      
+      if (authError || !user) {
+        console.error("JWT verification failed:", authError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: "Invalid authorization token" 
+          }),
+          { headers: corsHeaders, status: 401 }
+        );
+      }
+      
+      console.log("Authenticated user:", user.id);
+    } catch (authError) {
+      console.error("Error verifying JWT:", authError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "Invalid or expired JWT token" 
+        }),
+        { headers: corsHeaders, status: 401 }
+      );
+    }
+
     const { server, port, user, password } = await req.json();
     
     if (!server || !user || !password) {
