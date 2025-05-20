@@ -29,34 +29,21 @@ Deno.serve(async (req) => {
     
     // Create FTP client
     const client = new Client();
-    client.ftp.verbose = false; // Turn off verbose to reduce noise in logs
+    client.ftp.verbose = true; // For debugging, can be turned off in production
     
     try {
-      // Create a promise for the connection attempt
-      const connectionPromise = async () => {
-        try {
-          await client.access({
-            host: server,
-            port: port || 21,
-            user,
-            password,
-            secure: false
-          });
-          return true;
-        } catch (error) {
-          throw error;
-        }
-      };
-      
-      // Create a timeout promise
-      const timeoutPromise = () => new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Connection timed out after 10 seconds")), 10000);
+      // Use async/await with proper error handling instead of event emitters
+      await client.access({
+        host: server,
+        port: port || 21,
+        user,
+        password,
+        secure: false
       });
       
-      // Race the promises
-      await Promise.race([connectionPromise(), timeoutPromise()]);
+      console.log("FTP connection successful");
       
-      // If we get here, connection was successful
+      // Close the connection properly
       await client.close();
       
       return new Response(
@@ -69,9 +56,9 @@ Deno.serve(async (req) => {
     } catch (ftpError) {
       console.error("FTP connection error:", ftpError.message);
       
-      // Ensure client is closed on error - use try/catch to prevent additional errors
+      // Ensure client is closed on error
       try {
-        client.close();
+        await client.close();
       } catch (closeError) {
         console.error("Error closing client:", closeError.message);
       }
