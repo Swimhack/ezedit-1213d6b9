@@ -95,7 +95,7 @@ const EditorPage = () => {
     }
   };
 
-  const handleFileSelect = (file: any) => {
+  const handleSelectFile = (file: any) => {
     if (file.type === 'file') {
       setSelectedFile(file);
       loadFileContent(file.id);
@@ -163,7 +163,7 @@ const EditorPage = () => {
               <ResizablePanel defaultSize={panelSizes.explorer} minSize={15}>
                 <FileExplorer 
                   connectionId={connection?.id}
-                  onSelectFile={handleFileSelect} 
+                  onSelectFile={handleSelectFile} 
                 />
               </ResizablePanel>
               
