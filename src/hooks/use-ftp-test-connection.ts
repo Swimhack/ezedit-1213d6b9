@@ -17,7 +17,7 @@ export function useFTPTestConnection() {
   const [testResult, setTestResult] = useState<boolean | undefined>(undefined);
   const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
 
-  const testConnection = async (params: FTPConnectionParams) => {
+  const testConnection = async (params: FTPConnectionParams): Promise<{ success: boolean; message: string }> => {
     try {
       setIsTestingConnection(true);
       setTestResult(undefined);
@@ -82,7 +82,7 @@ export function useFTPTestConnection() {
         toast.error(`Connection failed: ${response.error.message || "Unknown error"}`);
         setTestResult(false);
         setLastErrorMessage(response.error.message || "Unknown error");
-        return false;
+        return { success: false, message: response.error.message || "Unknown error" };
       }
       
       const data = response.data;
@@ -93,20 +93,20 @@ export function useFTPTestConnection() {
         toast.error(msg);
         setTestResult(false);
         setLastErrorMessage(msg);
-        return false;
+        return { success: false, message: msg };
       }
       
       if (data.success) {
         toast.success("Connection successful!");
         setTestResult(true);
         setLastErrorMessage(null);
-        return true;
+        return { success: true, message: "Connection successful!" };
       } else {
         const errorMessage = data.message || "Connection failed";
         toast.error(`Connection failed: ${errorMessage}`);
         setTestResult(false);
         setLastErrorMessage(errorMessage);
-        return false;
+        return { success: false, message: errorMessage };
       }
     } catch (error: any) {
       console.error("Error testing connection:", error);
@@ -114,7 +114,7 @@ export function useFTPTestConnection() {
       toast.error(`Error testing connection: ${errorMessage}`);
       setTestResult(false);
       setLastErrorMessage(errorMessage);
-      return false;
+      return { success: false, message: errorMessage };
     } finally {
       setIsTestingConnection(false);
     }

@@ -58,7 +58,7 @@ export function SiteFormModal({
         directory: formData.rootDirectory
       });
       
-      if (!result && lastErrorMessage?.includes("530")) {
+      if (!result.success && result.message.includes("530")) {
         setErrorDetails(
           "Authentication failed. Please check the following:\n" +
           "• Verify username format (sometimes needs domain prefix/suffix)\n" +

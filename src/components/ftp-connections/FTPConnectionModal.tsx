@@ -92,12 +92,15 @@ export function FTPConnectionModal({
     const { host, port, username, password } = getFormData(form);
     
     // Use the hook-based test connection function that properly handles the response
-    await testConnection({
+    const result = await testConnection({
       host, 
       port, 
       username, 
       password
     });
+    
+    // The result is already handled by the hook including toasts,
+    // but we could use result.success and result.message here if needed
   };
 
   return (
