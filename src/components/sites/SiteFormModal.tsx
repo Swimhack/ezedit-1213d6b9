@@ -33,7 +33,7 @@ export function SiteFormModal({
     // Get form data from the form
     const formData = getFormData(e.target as HTMLFormElement);
     
-    // Save site data
+    // Save site data without requiring authentication
     const saveSuccessful = await saveSite(formData, site);
     
     if (saveSuccessful) {

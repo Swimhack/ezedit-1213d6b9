@@ -72,29 +72,24 @@ const MySites = () => {
     logEvent(`Editing site: ${site.site_name || site.server_url}`, "log", "siteConfig");
   };
 
-  const handleViewFiles = (site: any) => {
-    logEvent(`Opening file explorer for: ${site.site_name || site.server_url}`, "info", "fileExplorer");
-    navigate("/editor/" + site.id);
-  };
-
-  // Test all connections on mount, but with a delay to prevent hammering the servers
-  useEffect(() => {
-    if (sites.length > 0 && Object.keys(testResults).length === 0) {
-      // Delay connection tests to avoid overwhelming the server
-      const testTimeout = setTimeout(() => {
-        console.log("Testing all site connections on initial load");
-        // Test connections sequentially rather than all at once
-        sites.forEach((site, index) => {
-          setTimeout(() => {
-            console.log(`Testing connection for site: ${site.site_name || site.server_url}`);
-            handleTestConnection(site);
-          }, index * 1000); // Delay each test by 1 second
-        });
-      }, 1000); // Initial 1 second delay
+  const handleViewFiles = async (site: any) => {
+    logEvent(`Testing connection before opening file explorer: ${site.site_name || site.server_url}`, "info", "fileExplorer");
+    
+    // Test the connection first before opening the file explorer
+    await handleTestConnection(site);
+    
+    // Delay to allow the test to complete and update the UI
+    setTimeout(() => {
+      // Check if the connection was successful
+      if (testResults[site.id] === false) {
+        toast.error("Failed to connect to the FTP server. Please verify your credentials and try again.");
+        return;
+      }
       
-      return () => clearTimeout(testTimeout);
-    }
-  }, [sites, testResults, handleTestConnection]);
+      logEvent(`Opening file explorer for: ${site.site_name || site.server_url}`, "info", "fileExplorer");
+      navigate("/editor/" + site.id);
+    }, 200);
+  };
 
   // Render site cards or skeletons
   const renderSites = () => {

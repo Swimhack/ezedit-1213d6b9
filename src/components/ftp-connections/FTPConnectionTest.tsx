@@ -81,7 +81,8 @@ export async function testFtpConnectionHandler(
       } else {
         onTestComplete({
           success: false,
-          message: data.message || "Connection failed"
+          message: data.message || "Connection failed",
+          helpfulMessage: data.helpfulMessage
         });
       }
     }
