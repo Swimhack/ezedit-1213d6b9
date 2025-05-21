@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { logEvent } from "@/utils/ftp-utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FTPTestConnectionParams {
   host: string;
@@ -34,84 +35,38 @@ export function useFTPTestConnection() {
       // Log the request details (without password)
       logEvent(`Testing FTP connection to ${host}:${port} with user ${username}`, 'info', 'ftpTest');
       
-      const response = await fetch(`/api/test-ftp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          server: host,
-          port: port || 21,
-          user: username,
-          password: password || existingPassword || ''
-        }),
+      // Use Supabase function instead of direct API call
+      const { data, error } = await supabase.functions.invoke("ftp-test-connection", {
+        body: { 
+          host: host, 
+          port: port || 21, 
+          username: username, 
+          password: password || existingPassword || '' 
+        }
       });
       
-      // First check if response is OK
-      if (!response.ok) {
-        const errorMessage = `Server error: ${response.status} ${response.statusText}`;
-        logEvent(errorMessage, 'error', 'ftpTest');
-        throw new Error(errorMessage);
-      }
-
-      // Get the content type to detect if it's HTML instead of JSON
-      const contentType = response.headers.get('content-type') || '';
+      // Log the raw result for debugging
+      logEvent(`FTP test response: ${JSON.stringify(data || {})}`, 'info', 'ftpTest');
       
-      // Always create a clone of the response before reading it
-      const responseClone = response.clone();
-      
-      // If content looks like HTML, handle it specially
-      if (contentType.includes('text/html') || contentType.includes('application/xhtml')) {
-        logEvent('Received HTML response instead of JSON', 'warn', 'ftpTest');
+      if (error) {
+        const errorMessage = error.message || "Unknown error";
+        logEvent(`FTP test error: ${errorMessage}`, 'error', 'ftpTest');
         
-        // Read the HTML content for logging purposes
-        const htmlContent = await responseClone.text();
-        console.warn('HTML response received:', htmlContent.substring(0, 200) + '...');
-        
-        // Since we expected JSON but got HTML, this is likely an error
+        // Create and set result
         const newResult = {
           success: false,
-          message: "Server returned HTML instead of JSON. Please check API endpoint configuration."
+          message: errorMessage
         };
         
         setTestResult(newResult);
-        toast.error(newResult.message);
+        toast.error(`Connection failed: ${errorMessage}`);
         return false;
       }
-
-      // Try to parse as JSON
-      let result;
-      try {
-        // Attempt to parse JSON
-        result = await response.json();
-        
-        // Log the raw result for debugging
-        logEvent(`FTP test response: ${JSON.stringify(result)}`, 'info', 'ftpTest');
-      } catch (jsonError) {
-        // If JSON parsing fails, try to get content as text for better error reporting
-        const textContent = await responseClone.text();
-        console.error("Failed to parse response as JSON:", jsonError);
-        console.log("Raw response content:", textContent.substring(0, 500));
-        
-        // If it looks like HTML (starts with <!DOCTYPE or <html)
-        if (textContent.trim().startsWith('<!DOCTYPE') || textContent.trim().startsWith('<html')) {
-          logEvent('Received HTML when expecting JSON', 'warn', 'ftpTest');
-          
-          // Create a fallback result
-          result = {
-            success: false,
-            message: "Received HTML response instead of JSON. The API endpoint may be misconfigured."
-          };
-        } else {
-          // For any other non-JSON response
-          result = {
-            success: false,
-            message: `Unable to parse server response: ${jsonError.message || "Unknown error"}`
-          };
-        }
-      }
       
-      // Update the testResult state with our best attempt at a result
+      // Create result from data
+      const result = data || { success: false, message: "No response data" };
+      
+      // Update the testResult state
       const newResult = {
         success: !!result.success,
         message: result.message || (result.success ? "Connection successful!" : "Connection failed")
