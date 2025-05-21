@@ -39,23 +39,19 @@ export function useSiteSave() {
 
       if (existingSite) {
         // Update existing site
-        const updateData = {
-          user_id: userId,
-          site_name: formData.siteName || null,
-          server_url: formData.serverUrl,
-          port: formData.port || 21,
-          username: formData.username,
-          updated_at: new Date().toISOString(),
-          root_directory: formData.rootDirectory || null
-        };
-
-        // Only include password if it's provided
         if (formData.password) {
+          // If password is provided, update it along with other fields
           const result = await supabase
             .from("ftp_credentials")
             .update({
-              ...updateData,
-              encrypted_password: formData.password
+              user_id: userId,
+              site_name: formData.siteName || null,
+              server_url: formData.serverUrl,
+              port: formData.port || 21,
+              username: formData.username,
+              encrypted_password: formData.password,
+              root_directory: formData.rootDirectory || null
+              // Let updated_at be handled by Supabase defaults
             })
             .eq("id", existingSite.id)
             .eq("user_id", userId);
@@ -67,7 +63,15 @@ export function useSiteSave() {
           // Update without changing the password
           const result = await supabase
             .from("ftp_credentials")
-            .update(updateData)
+            .update({
+              user_id: userId,
+              site_name: formData.siteName || null,
+              server_url: formData.serverUrl,
+              port: formData.port || 21,
+              username: formData.username,
+              root_directory: formData.rootDirectory || null
+              // Let updated_at be handled by Supabase defaults
+            })
             .eq("id", existingSite.id)
             .eq("user_id", userId);
             
