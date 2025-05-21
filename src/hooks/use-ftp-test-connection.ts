@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 interface FTPTestConnectionParams {
   host: string;
@@ -28,16 +27,15 @@ export function useFTPTestConnection() {
 
     setIsTestingConnection(true);
     try {
-      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/ftp-test-connection`, {
+      const response = await fetch(`/api/test-ftp`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          host,
+          server: host,
           port: port || 21,
-          username,
+          user: username,
           password: password || existingPassword || ''
         }),
       });

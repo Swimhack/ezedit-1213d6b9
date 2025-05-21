@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { testFtpConnection } from "@/lib/ftp";
 import { toast } from "sonner";
 
 interface FTPConnectionTestProps {
@@ -29,10 +28,28 @@ export async function testFtpConnectionHandler(
       return false;
     }
 
-    // Test connection
-    const result = await testFtpConnection(host, port, username, password);
+    // Test connection using Netlify function
+    const response = await fetch(`/api/test-ftp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        server: host,
+        port: port,
+        user: username,
+        password: password
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Server error: ${response.status} ${errorText}`);
+    }
+
+    const result = await response.json();
     
-    if (result.data?.success) {
+    if (result.success) {
       onTestComplete({
         success: true,
         message: "Connection successful!"
@@ -42,9 +59,9 @@ export async function testFtpConnectionHandler(
     } else {
       onTestComplete({
         success: false,
-        message: result.data?.message || "Connection failed"
+        message: result.message || "Connection failed"
       });
-      toast.error(`Connection test failed: ${result.data?.message || "Unknown error"}`);
+      toast.error(`Connection test failed: ${result.message || "Unknown error"}`);
       return false;
     }
   } catch (error: any) {
