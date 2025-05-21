@@ -8,8 +8,7 @@ interface FTPConnectionTestProps {
   onTestComplete?: (result: { success: boolean; message: string }) => void;
 }
 
-// This function is simplified to not handle the actual API call directly
-// The API call is handled by the useFTPTestConnection hook
+// This function now includes better error handling for different response formats
 export async function testFtpConnectionHandler(
   host: string, 
   port: number, 
@@ -44,18 +43,53 @@ export async function testFtpConnectionHandler(
     });
 
     if (!response.ok) {
-      // Read response body once (not multiple times)
-      const errorData = await response.json().catch(() => ({ message: `Server error: ${response.status}` }));
-      throw new Error(errorData.message || `Server error: ${response.status}`);
+      let errorMessage = `Server error: ${response.status}`;
+      
+      try {
+        // Try to read as JSON first
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (jsonError) {
+        // If JSON parsing fails, try reading as text
+        try {
+          const textError = await response.text();
+          if (textError) errorMessage = textError;
+        } catch (textError) {
+          console.error("Failed to read error response:", textError);
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
 
-    // Parse response only once
-    const result = await response.json();
+    // Parse response with better error handling
+    let result;
+    
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      console.warn("Response is not valid JSON:", jsonError);
+      
+      // Handle non-JSON responses
+      const responseText = await response.text();
+      console.log("Raw response text:", responseText);
+      
+      // Try to determine success from text content
+      const isSuccess = responseText.toLowerCase().includes("success") || 
+                       responseText.toLowerCase().includes("connected");
+      
+      result = {
+        success: isSuccess,
+        message: isSuccess ? 
+          "Connection appears successful (non-JSON response)" : 
+          "Connection failed (non-JSON response)"
+      };
+    }
     
     if (result.success) {
       onTestComplete({
         success: true,
-        message: "Connection successful!"
+        message: result.message || "Connection successful!"
       });
       return true;
     } else {

@@ -44,13 +44,57 @@ export function useFTPTestConnection() {
       });
       
       if (!response.ok) {
-        // Read response body once and store the result
-        const errorData = await response.json().catch(() => ({ message: `Server error: ${response.status}` }));
-        throw new Error(errorData.message || `Server error: ${response.status}`);
+        // Handle non-200 responses
+        let errorMessage = `Server error: ${response.status}`;
+        
+        try {
+          // Attempt to parse response as JSON
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (parseError) {
+          // If JSON parsing fails, try to read as text
+          try {
+            const textError = await response.text();
+            if (textError) errorMessage = textError;
+          } catch (textError) {
+            // If text reading fails too, use default error message
+            console.error("Failed to read error response:", textError);
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      // Parse response only once and store the result
-      const result = await response.json();
+      // Parse response body with proper error handling
+      let result;
+      let responseText;
+      
+      try {
+        // First attempt to parse as JSON
+        result = await response.json();
+      } catch (jsonError) {
+        console.warn("Response is not valid JSON, attempting to read as text", jsonError);
+        
+        try {
+          // If JSON parsing fails, try to read as text
+          responseText = await response.text();
+          console.log("Raw response:", responseText);
+          
+          // Attempt to extract success/failure info from text
+          const isSuccess = responseText.toLowerCase().includes("success") || 
+                           responseText.toLowerCase().includes("connected");
+          
+          result = {
+            success: isSuccess,
+            message: isSuccess ? 
+              "Connection appears successful (non-JSON response)" : 
+              "Connection failed (non-JSON response)"
+          };
+        } catch (textError) {
+          console.error("Failed to read response as text:", textError);
+          throw new Error("Unable to process server response");
+        }
+      }
       
       // Update the testResult state
       const newResult = {
@@ -64,7 +108,7 @@ export function useFTPTestConnection() {
         toast.success("Connection successful!");
         return true;
       } else {
-        toast.error(`Connection failed: ${result.message}`);
+        toast.error(`Connection failed: ${result.message || "Unknown error"}`);
         return false;
       }
     } catch (error: any) {

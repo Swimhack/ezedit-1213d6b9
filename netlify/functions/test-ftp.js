@@ -31,7 +31,18 @@ exports.handler = async function(event, context) {
 
   try {
     // Parse the request body
-    const body = JSON.parse(event.body);
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch (parseError) {
+      console.error("Error parsing request body:", parseError);
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: false, message: 'Invalid JSON in request body' })
+      };
+    }
+    
     const { server, port, user, password } = body;
 
     // Validate required parameters

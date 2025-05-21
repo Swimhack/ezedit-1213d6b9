@@ -123,7 +123,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, message: error.message }),
         { 
-          status: 400,
+          status: 200, // Return 200 even for failed connections, just with success: false
           headers: corsHeaders
         }
       );
@@ -133,8 +133,12 @@ serve(async (req) => {
   } catch (error) {
     console.error("Unhandled error:", error);
     
+    // Always return properly formatted JSON even for unexpected errors
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        message: error.message || "An unexpected error occurred"
+      }),
       { 
         status: 500,
         headers: corsHeaders
