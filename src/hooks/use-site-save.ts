@@ -37,40 +37,62 @@ export function useSiteSave() {
 
       const userId = sessionData.session.user.id;
 
-      // Prepare the site data for inserting/updating
-      const siteData = {
-        user_id: userId,
-        site_name: formData.siteName || null,
-        server_url: formData.serverUrl,
-        port: formData.port || 21,
-        username: formData.username,
-        // Only include password if it's new or changed
-        ...(formData.password ? { encrypted_password: formData.password } : {}),
-        root_directory: formData.rootDirectory || null,
-        updated_at: new Date().toISOString()
-      };
-
-      let result;
-      
       if (existingSite) {
         // Update existing site
-        result = await supabase
-          .from("ftp_credentials")
-          .update(siteData)
-          .eq("id", existingSite.id)
-          .eq("user_id", userId);
+        const updateData = {
+          user_id: userId,
+          site_name: formData.siteName || null,
+          server_url: formData.serverUrl,
+          port: formData.port || 21,
+          username: formData.username,
+          updated_at: new Date().toISOString(),
+          root_directory: formData.rootDirectory || null
+        };
+
+        // Only include password if it's provided
+        if (formData.password) {
+          const result = await supabase
+            .from("ftp_credentials")
+            .update({
+              ...updateData,
+              encrypted_password: formData.password
+            })
+            .eq("id", existingSite.id)
+            .eq("user_id", userId);
+            
+          if (result.error) {
+            throw result.error;
+          }
+        } else {
+          // Update without changing the password
+          const result = await supabase
+            .from("ftp_credentials")
+            .update(updateData)
+            .eq("id", existingSite.id)
+            .eq("user_id", userId);
+            
+          if (result.error) {
+            throw result.error;
+          }
+        }
       } else {
-        // Insert new site
-        result = await supabase
+        // Insert new site - ensure encrypted_password is always provided
+        const result = await supabase
           .from("ftp_credentials")
           .insert({
-            ...siteData,
-            created_at: new Date().toISOString()
+            user_id: userId,
+            site_name: formData.siteName || null,
+            server_url: formData.serverUrl,
+            port: formData.port || 21,
+            username: formData.username,
+            encrypted_password: formData.password, // Required field in schema
+            root_directory: formData.rootDirectory || null
+            // Let created_at and updated_at be handled by Supabase defaults
           });
-      }
 
-      if (result.error) {
-        throw result.error;
+        if (result.error) {
+          throw result.error;
+        }
       }
 
       toast.success(
