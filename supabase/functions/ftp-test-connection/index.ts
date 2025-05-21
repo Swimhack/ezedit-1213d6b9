@@ -57,11 +57,16 @@ serve(async (req) => {
         port: port || 21,
         user: username,
         password,
-        secure: false
+        secure: false,
+        // Add more detailed FTP options to improve connection reliability
+        connTimeout: 10000,        // 10 seconds connection timeout
+        pasvTimeout: 10000,        // 10 seconds PASV timeout
+        keepalive: 10000,          // Keep-alive every 10 seconds
       });
       
       console.log("FTP connection successful");
       
+      // If we get here, authentication was successful
       return new Response(
         JSON.stringify({ success: true, message: 'Connection successful' }),
         { headers: corsHeaders }
@@ -69,8 +74,19 @@ serve(async (req) => {
     } catch (error) {
       console.error("FTP connection error:", error.message);
       
+      let errorMessage = error.message;
+      
+      // Enhance specific error messages
+      if (error.message.includes("530")) {
+        errorMessage = "530 User cannot log in. Please verify your username and password are correct.";
+      } else if (error.message.includes("connection timeout")) {
+        errorMessage = "Connection timed out. Please check the server address and port.";
+      } else if (error.message.includes("ENOTFOUND")) {
+        errorMessage = "Server hostname not found. Please check the server address.";
+      }
+      
       return new Response(
-        JSON.stringify({ success: false, message: error.message }),
+        JSON.stringify({ success: false, message: errorMessage }),
         { 
           status: 200, // Return 200 even for failed connections, just with success: false
           headers: corsHeaders

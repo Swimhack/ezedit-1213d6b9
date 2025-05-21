@@ -65,6 +65,14 @@ export async function testSiteConnection(
       };
     }
     
+    // If we get a specific 530 error, let's provide a more helpful message
+    if (data.message && data.message.includes("530 User cannot log in")) {
+      return {
+        success: false,
+        message: "FTP server rejected login credentials (Error 530). Please verify your username and password."
+      };
+    }
+    
     return {
       success: data.success || false,
       message: data.message || "Connection test completed"

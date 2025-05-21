@@ -82,6 +82,7 @@ const MySites = () => {
   useEffect(() => {
     if (sites.length > 0 && Object.keys(testResults).length === 0) {
       // Test the connection for all sites when the component mounts
+      console.log("Testing all site connections on initial load");
       sites.forEach(site => {
         handleTestConnection(site);
       });
