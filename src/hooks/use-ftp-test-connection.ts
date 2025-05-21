@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { logEvent } from "@/utils/ftp-utils";
 
 interface FTPTestConnectionParams {
   host: string;
@@ -30,6 +31,9 @@ export function useFTPTestConnection() {
     setTestResult(null);
     
     try {
+      // Log the request details (without password)
+      logEvent(`Testing FTP connection to ${host}:${port} with user ${username}`, 'info', 'ftpTest');
+      
       const response = await fetch(`/api/test-ftp`, {
         method: "POST",
         headers: {
@@ -43,64 +47,76 @@ export function useFTPTestConnection() {
         }),
       });
       
+      // First check if response is OK
       if (!response.ok) {
-        // Handle non-200 responses
-        let errorMessage = `Server error: ${response.status}`;
-        
-        try {
-          // Attempt to parse response as JSON
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (parseError) {
-          // If JSON parsing fails, try to read as text
-          try {
-            const textError = await response.text();
-            if (textError) errorMessage = textError;
-          } catch (textError) {
-            // If text reading fails too, use default error message
-            console.error("Failed to read error response:", textError);
-          }
-        }
-        
+        const errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        logEvent(errorMessage, 'error', 'ftpTest');
         throw new Error(errorMessage);
       }
 
-      // Parse response body with proper error handling
-      let result;
-      let responseText;
+      // Get the content type to detect if it's HTML instead of JSON
+      const contentType = response.headers.get('content-type') || '';
       
-      try {
-        // First attempt to parse as JSON
-        result = await response.json();
-      } catch (jsonError) {
-        console.warn("Response is not valid JSON, attempting to read as text", jsonError);
+      // Clone response for different processing paths
+      const responseClone = response.clone();
+      
+      // If content looks like HTML, handle it specially
+      if (contentType.includes('text/html') || contentType.includes('application/xhtml')) {
+        logEvent('Received HTML response instead of JSON', 'warn', 'ftpTest');
         
-        try {
-          // If JSON parsing fails, try to read as text
-          responseText = await response.text();
-          console.log("Raw response:", responseText);
+        // Read the HTML content for logging purposes
+        const htmlContent = await responseClone.text();
+        console.warn('HTML response received:', htmlContent.substring(0, 200) + '...');
+        
+        // Since we expected JSON but got HTML, this is likely an error
+        const newResult = {
+          success: false,
+          message: "Server returned HTML instead of JSON. Please check server configuration."
+        };
+        
+        setTestResult(newResult);
+        toast.error(newResult.message);
+        return false;
+      }
+
+      // Try to parse as JSON
+      let result;
+      try {
+        // Attempt to parse JSON
+        result = await response.json();
+        
+        // Log the raw result for debugging
+        logEvent(`FTP test response: ${JSON.stringify(result)}`, 'info', 'ftpTest');
+      } catch (jsonError) {
+        // If JSON parsing fails, try to get content as text for better error reporting
+        const textContent = await responseClone.text();
+        console.error("Failed to parse response as JSON:", jsonError);
+        console.log("Raw response content:", textContent.substring(0, 500));
+        
+        // If it looks like HTML (starts with <!DOCTYPE or <html)
+        if (textContent.trim().startsWith('<!DOCTYPE') || textContent.trim().startsWith('<html')) {
+          logEvent('Received HTML when expecting JSON', 'warn', 'ftpTest');
           
-          // Attempt to extract success/failure info from text
-          const isSuccess = responseText.toLowerCase().includes("success") || 
-                           responseText.toLowerCase().includes("connected");
-          
+          // Create a fallback result
           result = {
-            success: isSuccess,
-            message: isSuccess ? 
-              "Connection appears successful (non-JSON response)" : 
-              "Connection failed (non-JSON response)"
+            success: false,
+            message: "Received HTML response instead of JSON. The server may be misconfigured."
           };
-        } catch (textError) {
-          console.error("Failed to read response as text:", textError);
-          throw new Error("Unable to process server response");
+        } else {
+          // For any other non-JSON response
+          result = {
+            success: false,
+            message: `Unable to parse server response: ${jsonError.message || "Unknown error"}`
+          };
         }
       }
       
-      // Update the testResult state
+      // Update the testResult state with our best attempt at a result
       const newResult = {
         success: !!result.success,
         message: result.message || (result.success ? "Connection successful!" : "Connection failed")
       };
+      
       setTestResult(newResult);
       
       // Show appropriate toast based on result
@@ -114,7 +130,7 @@ export function useFTPTestConnection() {
     } catch (error: any) {
       const errorMessage = error.message || "Unknown error occurred";
       toast.error(`Error testing connection: ${errorMessage}`);
-      console.error("FTP test connection error:", error);
+      logEvent(`FTP test error: ${errorMessage}`, 'error', 'ftpTest');
       
       // Update testResult state with error
       setTestResult({

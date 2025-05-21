@@ -72,17 +72,25 @@ exports.handler = async function(event, context) {
 
       console.log("FTP connection successful");
 
+      // Ensure we explicitly set the Content-Type header to application/json
       return {
         statusCode: 200,
-        headers: corsHeaders,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ success: true, message: 'Connection successful' })
       };
     } catch (ftpError) {
       console.error("FTP connection error:", ftpError.message);
 
+      // Ensure we explicitly set the Content-Type header to application/json
       return {
         statusCode: 200, // Still return 200 but with success: false
-        headers: corsHeaders,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ 
           success: false, 
           message: `FTP connection failed: ${ftpError.message}` 
@@ -100,9 +108,13 @@ exports.handler = async function(event, context) {
   } catch (error) {
     console.error("Error in test-ftp function:", error);
 
+    // Ensure we explicitly set the Content-Type header to application/json
     return {
       statusCode: 500,
-      headers: corsHeaders,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ 
         success: false, 
         message: `Server error: ${error.message}` 

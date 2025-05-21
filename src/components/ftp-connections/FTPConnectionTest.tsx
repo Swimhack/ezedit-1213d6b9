@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { logEvent } from "@/utils/ftp-utils";
 
 interface FTPConnectionTestProps {
   isLoading: boolean;
@@ -28,6 +29,8 @@ export async function testFtpConnectionHandler(
       return false;
     }
 
+    logEvent(`Testing FTP connection handler: ${host}:${port}`, 'info', 'ftpHandler');
+    
     // Test connection using Netlify function
     const response = await fetch(`/api/test-ftp`, {
       method: "POST",
@@ -42,6 +45,24 @@ export async function testFtpConnectionHandler(
       }),
     });
 
+    // Check for HTML response by examining content-type
+    const contentType = response.headers.get('content-type') || '';
+    const responseClone = response.clone();
+    
+    if (contentType.includes('text/html') || contentType.includes('application/xhtml')) {
+      console.warn('Received HTML response instead of JSON');
+      
+      // Get first part of HTML for debugging
+      const htmlContent = await responseClone.text();
+      console.log('HTML response preview:', htmlContent.substring(0, 200) + '...');
+      
+      onTestComplete({ 
+        success: false, 
+        message: "Server returned HTML instead of JSON. Please try a direct FTP connection."
+      });
+      return false;
+    }
+    
     if (!response.ok) {
       let errorMessage = `Server error: ${response.status}`;
       
@@ -52,14 +73,15 @@ export async function testFtpConnectionHandler(
       } catch (jsonError) {
         // If JSON parsing fails, try reading as text
         try {
-          const textError = await response.text();
+          const textError = await responseClone.text();
           if (textError) errorMessage = textError;
         } catch (textError) {
           console.error("Failed to read error response:", textError);
         }
       }
       
-      throw new Error(errorMessage);
+      onTestComplete({ success: false, message: errorMessage });
+      return false;
     }
 
     // Parse response with better error handling
@@ -71,19 +93,33 @@ export async function testFtpConnectionHandler(
       console.warn("Response is not valid JSON:", jsonError);
       
       // Handle non-JSON responses
-      const responseText = await response.text();
-      console.log("Raw response text:", responseText);
-      
-      // Try to determine success from text content
-      const isSuccess = responseText.toLowerCase().includes("success") || 
-                       responseText.toLowerCase().includes("connected");
-      
-      result = {
-        success: isSuccess,
-        message: isSuccess ? 
-          "Connection appears successful (non-JSON response)" : 
-          "Connection failed (non-JSON response)"
-      };
+      try {
+        const responseText = await responseClone.text();
+        console.log("Raw response text:", responseText);
+        
+        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+          onTestComplete({ 
+            success: false, 
+            message: "Received HTML response instead of JSON. Please check your network connection."
+          });
+          return false;
+        }
+        
+        // Try to determine success from text content
+        const isSuccess = responseText.toLowerCase().includes("success") || 
+                         responseText.toLowerCase().includes("connected");
+        
+        result = {
+          success: isSuccess,
+          message: isSuccess ? 
+            "Connection appears successful (non-JSON response)" : 
+            "Connection failed (non-JSON response)"
+        };
+      } catch (textError) {
+        console.error("Failed to read response as text:", textError);
+        onTestComplete({ success: false, message: "Unable to process server response" });
+        return false;
+      }
     }
     
     if (result.success) {

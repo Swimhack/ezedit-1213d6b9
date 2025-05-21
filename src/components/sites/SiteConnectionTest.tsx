@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { logEvent } from "@/utils/ftp-utils";
 
 interface SiteConnectionTestProps {
   isLoading: boolean;
@@ -34,6 +35,8 @@ export async function testSiteConnection(
 
     // Use existing password if no new one is provided
     const finalPassword = password || existingPassword || "";
+    
+    logEvent(`Testing site connection to ${serverUrl}:${port}`, 'info', 'siteTest');
 
     // Test connection using the Netlify function
     const response = await fetch(`/api/test-ftp`, {
@@ -49,17 +52,57 @@ export async function testSiteConnection(
       }),
     });
     
-    // Read the response body only once
+    // Check content type for HTML detection
+    const contentType = response.headers.get('content-type') || '';
+    const responseClone = response.clone();
+    
+    // If content looks like HTML, handle it specially
+    if (contentType.includes('text/html') || contentType.includes('application/xhtml')) {
+      logEvent('Received HTML response instead of JSON from site test', 'warn', 'siteTest');
+      
+      // Read HTML content for debugging
+      const htmlContent = await responseClone.text();
+      console.warn('HTML response in site test:', htmlContent.substring(0, 200) + '...');
+      
+      return {
+        success: false,
+        message: "Server returned HTML instead of JSON. Please check server configuration."
+      };
+    }
+    
+    // Try to parse the response as JSON with error handling
     let responseData;
     
     try {
       responseData = await response.json();
     } catch (parseError) {
       console.error("Error parsing JSON response:", parseError);
-      return {
-        success: false,
-        message: "Error parsing server response"
-      };
+      
+      // If JSON parsing fails, try to get response as text
+      try {
+        const textContent = await responseClone.text();
+        
+        // Check if it looks like HTML
+        if (textContent.trim().startsWith('<!DOCTYPE') || textContent.trim().startsWith('<html')) {
+          return {
+            success: false,
+            message: "Received HTML response instead of JSON. The API endpoint may be misconfigured."
+          };
+        }
+        
+        logEvent(`Non-JSON response: ${textContent.substring(0, 100)}...`, 'warn', 'siteTest');
+        
+        return {
+          success: false,
+          message: "Error parsing server response"
+        };
+      } catch (textError) {
+        console.error("Error reading response as text:", textError);
+        return {
+          success: false,
+          message: "Unable to process server response"
+        };
+      }
     }
     
     if (!response.ok) {
