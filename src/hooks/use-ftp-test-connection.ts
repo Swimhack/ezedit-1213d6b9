@@ -57,7 +57,7 @@ export function useFTPTestConnection() {
       // Get the content type to detect if it's HTML instead of JSON
       const contentType = response.headers.get('content-type') || '';
       
-      // Clone response for different processing paths
+      // Always create a clone of the response before reading it
       const responseClone = response.clone();
       
       // If content looks like HTML, handle it specially
@@ -71,7 +71,7 @@ export function useFTPTestConnection() {
         // Since we expected JSON but got HTML, this is likely an error
         const newResult = {
           success: false,
-          message: "Server returned HTML instead of JSON. Please check server configuration."
+          message: "Server returned HTML instead of JSON. Please check API endpoint configuration."
         };
         
         setTestResult(newResult);
@@ -100,7 +100,7 @@ export function useFTPTestConnection() {
           // Create a fallback result
           result = {
             success: false,
-            message: "Received HTML response instead of JSON. The server may be misconfigured."
+            message: "Received HTML response instead of JSON. The API endpoint may be misconfigured."
           };
         } else {
           // For any other non-JSON response

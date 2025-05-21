@@ -66,7 +66,7 @@ export async function testSiteConnection(
       
       return {
         success: false,
-        message: "Server returned HTML instead of JSON. Please check server configuration."
+        message: "Server returned HTML instead of JSON. Check API configuration or try direct FTP."
       };
     }
     

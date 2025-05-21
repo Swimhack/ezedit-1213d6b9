@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePath, joinPath } from "@/utils/path";
 
@@ -110,8 +109,8 @@ export async function getStats(id: string) {
 }
 
 export async function testFtpConnection(host: string, port: number, user: string, password: string) {
-  return supabase.functions.invoke("test-ftp-connection", {
-    body: { server: host, port, user, password }
+  return supabase.functions.invoke("ftp-test-connection", {
+    body: { host, port, username: user, password }
   });
 }
 
