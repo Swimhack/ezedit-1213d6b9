@@ -23,9 +23,9 @@ export function FTPConnectionModal({
   onClose,
   onSave
 }: FTPConnectionModalProps) {
-  // We don't need a separate testResult state as the hook now manages it
   const [isLoading, setIsLoading] = useState(false);
-  const { testConnection, isTestingConnection, testResult } = useFTPTestConnection();
+  const { testConnection, isTestingConnection, testResult, helpfulMessage } = useFTPTestConnection();
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,15 +93,31 @@ export function FTPConnectionModal({
       const form = document.querySelector('form')!;
       const { host, port, username, password } = getFormData(form);
       
+      setErrorDetails(null);
+      
       // Use the testConnection hook that already handles toasts and proper response reading
-      await testConnection({
+      const result = await testConnection({
         host, 
         port, 
         username, 
-        password
+        password,
+        existingPassword: editingConnection?.password
       });
       
-      // The testConnection hook already handles toasts and state updates
+      // Display helpful error messages if available
+      if (!result.success) {
+        if (helpfulMessage) {
+          setErrorDetails(helpfulMessage);
+        } else if (result.message && result.message.includes("530")) {
+          setErrorDetails(
+            "Authentication failed. Please check the following:\n" +
+            "• Verify username format (sometimes needs domain prefix/suffix)\n" +
+            "• Check if password contains special characters\n" +
+            "• Confirm if the server requires FTPS instead of FTP\n" +
+            "• Check if there are IP restrictions on the FTP server"
+          );
+        }
+      }
     } catch (error) {
       console.error("Error in test handler:", error);
     }
@@ -122,6 +138,13 @@ export function FTPConnectionModal({
           testResult={testResult}
           onSubmit={handleSubmit}
         />
+
+        {errorDetails && (
+          <div className="text-sm p-3 border border-orange-200 bg-orange-50 rounded-md text-orange-800 whitespace-pre-line">
+            <p className="font-semibold mb-1">Troubleshooting tips:</p>
+            {errorDetails}
+          </div>
+        )}
 
         <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
           <FTPConnectionTestButton

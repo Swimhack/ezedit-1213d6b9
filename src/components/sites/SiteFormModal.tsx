@@ -23,9 +23,8 @@ export function SiteFormModal({
   onClose,
   onSave
 }: SiteFormModalProps) {
-  // We don't need a separate testResult state as the hook now manages it
   const { isLoading: isSaving, saveSite } = useSiteSave();
-  const { testConnection, isTestingConnection, testResult, lastErrorMessage } = useFTPTestConnection();
+  const { testConnection, isTestingConnection, testResult, lastErrorMessage, helpfulMessage } = useFTPTestConnection();
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,7 +48,7 @@ export function SiteFormModal({
       setErrorDetails(null);
       
       // Use the testConnection hook that already handles toasts and proper response reading
-      await testConnection({
+      const result = await testConnection({
         host: formData.serverUrl,
         port: formData.port,
         username: formData.username,
@@ -58,17 +57,22 @@ export function SiteFormModal({
         directory: formData.rootDirectory
       });
       
-      // Check if there was an auth error based on the lastErrorMessage
-      if (lastErrorMessage && lastErrorMessage.includes("530")) {
-        setErrorDetails(
-          "Authentication failed. Please check the following:\n" +
-          "• Verify username format (sometimes needs domain prefix/suffix)\n" +
-          "• Check if password contains special characters that need URL encoding\n" +
-          "• Confirm if the server requires FTPS instead of FTP\n" +
-          "• Check if there are IP restrictions on the FTP server"
-        );
+      // Display helpful error messages if available
+      if (!result.success) {
+        if (helpfulMessage) {
+          setErrorDetails(helpfulMessage);
+        }
+        // Also handle specific error cases
+        else if (lastErrorMessage && lastErrorMessage.includes("530")) {
+          setErrorDetails(
+            "Authentication failed. Please check the following:\n" +
+            "• Verify username format (sometimes needs domain prefix/suffix)\n" +
+            "• Check if password contains special characters that need URL encoding\n" +
+            "• Confirm if the server requires FTPS instead of FTP\n" +
+            "• Check if there are IP restrictions on the FTP server"
+          );
+        }
       }
-      
     } catch (error: any) {
       console.error("Error testing connection:", error);
       setErrorDetails(error.message);

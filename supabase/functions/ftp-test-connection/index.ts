@@ -52,17 +52,13 @@ serve(async (req) => {
     client.ftp.verbose = true;
     
     try {
-      // Connect with legacy compatibility options
+      // Connect with exact parameters as specified for compatibility
       await client.access({
         host,
         port,
         user: username,
         password,
-        secure: false,
-        // Legacy compatibility options
-        connTimeout: 30000,      // Longer timeout for slow connections
-        pasvTimeout: 30000,      // Longer timeout for PASV mode
-        forcePasv: true,         // Force passive mode for compatibility
+        secure: false
       });
       
       // Try to change directory if needed
@@ -95,7 +91,7 @@ serve(async (req) => {
         { headers: corsHeaders }
       );
     } catch (error) {
-      // Try to close client on error
+      // Always ensure connection is closed
       try {
         await client.close();
       } catch (closeError) {
@@ -104,11 +100,13 @@ serve(async (req) => {
       
       console.error("FTP connection error:", error.message);
       
-      // Improve error messages for better user feedback
+      // Improve user-friendly error messages
       let errorMessage = error.message;
+      let helpfulMessage = null;
       
       if (error.message.includes("530")) {
-        errorMessage = "530 Login authentication failed. Please verify your username and password.";
+        errorMessage = "530 Login authentication failed.";
+        helpfulMessage = "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method (e.g., SFTP, passive mode).";
         console.log("Authentication error detected. Full error:", error.message);
       } else if (error.message.includes("connection timeout") || error.message.includes("ETIMEDOUT")) {
         errorMessage = "Connection timed out. The server may be down or unreachable.";
@@ -119,7 +117,12 @@ serve(async (req) => {
       }
       
       return new Response(
-        JSON.stringify({ success: false, message: errorMessage }),
+        JSON.stringify({ 
+          success: false, 
+          message: errorMessage,
+          helpfulMessage: helpfulMessage,
+          originalError: error.message // Include original error for debugging
+        }),
         { headers: corsHeaders }
       );
     }

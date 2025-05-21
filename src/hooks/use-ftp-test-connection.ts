@@ -16,12 +16,14 @@ export function useFTPTestConnection() {
   const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | undefined>(undefined);
   const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
+  const [helpfulMessage, setHelpfulMessage] = useState<string | null>(null);
 
   const testConnection = async (params: FTPConnectionParams): Promise<{ success: boolean; message: string }> => {
     try {
       setIsTestingConnection(true);
       setTestResult(undefined);
       setLastErrorMessage(null);
+      setHelpfulMessage(null);
       
       // Validate required fields
       if (!params.host) {
@@ -51,7 +53,7 @@ export function useFTPTestConnection() {
       // Use existing password if no new one is provided
       const finalPassword = params.password || params.existingPassword || "";
       
-      console.log(`Testing connection to ${params.host}:${params.port}`);
+      console.log(`Testing connection to ${params.host}:${params.port} as ${params.username}`);
       
       let response;
       try {
@@ -118,10 +120,19 @@ export function useFTPTestConnection() {
         toast.success(message);
         setTestResult({ success: true, message });
         setLastErrorMessage(null);
+        setHelpfulMessage(null);
         return { success: true, message };
       } else {
         const errorMessage = data.message || "Connection failed";
-        toast.error(`Connection failed: ${errorMessage}`);
+        
+        // Check if there's a helpful message
+        if (data.helpfulMessage) {
+          setHelpfulMessage(data.helpfulMessage);
+          toast.error(data.helpfulMessage);
+        } else {
+          toast.error(`Connection failed: ${errorMessage}`);
+        }
+        
         setTestResult({ success: false, message: errorMessage });
         setLastErrorMessage(errorMessage);
         return { success: false, message: errorMessage };
@@ -143,5 +154,6 @@ export function useFTPTestConnection() {
     isTestingConnection,
     testResult,
     lastErrorMessage,
+    helpfulMessage,
   };
 }

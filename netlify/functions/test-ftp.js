@@ -62,17 +62,13 @@ exports.handler = async function(event, context) {
     client.ftp.verbose = true;
     
     try {
-      // Connect with legacy compatibility options
+      // Connect with basic settings first
       await client.access({
         host: server,
         port: port || 21,
         user: user,
         password: password || '',
         secure: false,
-        // Legacy compatibility options
-        connTimeout: 30000,      // Longer timeout for slow connections
-        pasvTimeout: 30000,
-        forcePasv: true,         // Force passive mode for compatibility
       });
 
       // Try to change directory if specified
@@ -84,15 +80,6 @@ exports.handler = async function(event, context) {
           console.warn(`Warning: Could not change to directory ${directory}: ${dirError.message}`);
           // Continue anyway - don't fail the connection test just because directory doesn't exist
         }
-      }
-      
-      // Test a simple list command to verify full connectivity
-      try {
-        await client.list();
-        console.log("Directory listing successful");
-      } catch (listError) {
-        console.warn(`Warning: Directory listing failed: ${listError.message}`);
-        // Continue anyway - connection was established even if listing failed
       }
       
       // Test complete - close connection
@@ -108,14 +95,22 @@ exports.handler = async function(event, context) {
         })
       };
     } catch (ftpError) {
-      await client.close().catch(e => console.error("Error closing client:", e));
+      // Always ensure connection is closed
+      try {
+        await client.close();
+      } catch (closeError) {
+        console.error("Error closing client:", closeError);
+      }
+      
       console.error("FTP connection error:", ftpError.message);
       
-      // Format error message for better user feedback
+      // Improve user-friendly error messages
       let errorMessage = ftpError.message;
+      let helpfulMessage = null;
+      
       if (errorMessage.includes('530')) {
-        errorMessage = "530 Login authentication failed. Please verify your username and password.";
-        console.log("Authentication error detected. Full error:", ftpError.message);
+        errorMessage = "530 Login authentication failed.";
+        helpfulMessage = "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method (e.g., SFTP, passive mode).";
       } else if (errorMessage.includes('timeout')) {
         errorMessage = "Connection timed out. The server may be down or unreachable.";
       } else if (errorMessage.includes('ENOTFOUND')) {
@@ -130,6 +125,7 @@ exports.handler = async function(event, context) {
         body: JSON.stringify({ 
           success: false, 
           message: errorMessage,
+          helpfulMessage: helpfulMessage,
           originalError: ftpError.message // Include original error for debugging
         })
       };

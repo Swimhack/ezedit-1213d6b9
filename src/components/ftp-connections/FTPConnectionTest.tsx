@@ -10,7 +10,7 @@ interface FTPConnectionTestProps {
   onTestComplete?: (result: { success: boolean; message: string }) => void;
 }
 
-// Updated to use Supabase function
+// Updated to use the consistent error handling approach
 export async function testFtpConnectionHandler(
   host: string, 
   port: number, 
@@ -54,18 +54,36 @@ export async function testFtpConnectionHandler(
     }
     
     // Process the result
-    const result = data || { success: false, message: "No response data" };
-    
-    if (result.success) {
-      onTestComplete({
-        success: true,
-        message: result.message || "Connection successful!"
-      });
-    } else {
+    if (!data) {
       onTestComplete({
         success: false,
-        message: result.message || "Connection failed"
+        message: "No response data"
       });
+      return;
+    }
+    
+    if (data.success) {
+      onTestComplete({
+        success: true,
+        message: data.message || "Connection successful!"
+      });
+    } else {
+      // Handle specific 530 authentication errors
+      if (data.message && data.message.includes("530")) {
+        const helpfulMessage = data.helpfulMessage || 
+          "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method.";
+        
+        onTestComplete({
+          success: false,
+          message: data.message || "Login authentication failed",
+          helpfulMessage: helpfulMessage
+        });
+      } else {
+        onTestComplete({
+          success: false,
+          message: data.message || "Connection failed"
+        });
+      }
     }
   } catch (error: any) {
     console.error("Error testing connection:", error);

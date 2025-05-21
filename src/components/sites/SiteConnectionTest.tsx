@@ -15,7 +15,7 @@ export async function testSiteConnection(
   username: string,
   password: string,
   existingPassword?: string
-): Promise<{ success: boolean; message: string }> {
+): Promise<{ success: boolean; message: string; helpfulMessage?: string }> {
   try {
     // Validate only required fields: serverUrl, username, and password (or existingPassword)
     if (!serverUrl) {
@@ -65,17 +65,31 @@ export async function testSiteConnection(
       };
     }
     
-    // If we get a specific 530 error, let's provide a more helpful message
-    if (data.message && data.message.includes("530 User cannot log in")) {
+    // If there's a success, simply return it
+    if (data.success) {
       return {
-        success: false,
-        message: "FTP server rejected login credentials (Error 530). Please verify your username and password."
+        success: true,
+        message: data.message || "Connection successful!"
       };
     }
     
+    // For specific error handling, especially 530 errors
+    if (data.message && data.message.includes("530")) {
+      const helpfulMessage = data.helpfulMessage || 
+        "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method (e.g., SFTP, passive mode).";
+      
+      return {
+        success: false,
+        message: "530 Login authentication failed",
+        helpfulMessage: helpfulMessage
+      };
+    }
+    
+    // Return the error from the server
     return {
-      success: data.success || false,
-      message: data.message || "Connection test completed"
+      success: false,
+      message: data.message || "Connection test failed",
+      helpfulMessage: data.helpfulMessage
     };
     
   } catch (error: any) {
