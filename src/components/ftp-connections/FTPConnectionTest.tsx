@@ -7,16 +7,16 @@ import { supabase } from "@/integrations/supabase/client";
 interface FTPConnectionTestProps {
   isLoading: boolean;
   onStartTest: () => void;
-  onTestComplete?: (result: { success: boolean; message: string }) => void;
+  onTestComplete?: (result: { success: boolean; message: string; helpfulMessage?: string }) => void;
 }
 
-// Updated to use the consistent error handling approach
+// Updated to use the consistent error handling approach and include helpfulMessage in return type
 export async function testFtpConnectionHandler(
   host: string, 
   port: number, 
   username: string, 
   password: string,
-  onTestComplete: (result: { success: boolean; message: string }) => void
+  onTestComplete: (result: { success: boolean; message: string; helpfulMessage?: string }) => void
 ) {
   try {
     // Validate inputs

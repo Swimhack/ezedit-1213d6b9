@@ -12,13 +12,19 @@ export interface FTPConnectionParams {
   directory?: string;
 }
 
+export interface FTPConnectionTestResult {
+  success: boolean;
+  message: string;
+  helpfulMessage?: string;
+}
+
 export function useFTPTestConnection() {
   const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | undefined>(undefined);
+  const [testResult, setTestResult] = useState<FTPConnectionTestResult | undefined>(undefined);
   const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
   const [helpfulMessage, setHelpfulMessage] = useState<string | null>(null);
 
-  const testConnection = async (params: FTPConnectionParams): Promise<{ success: boolean; message: string }> => {
+  const testConnection = async (params: FTPConnectionParams): Promise<FTPConnectionTestResult> => {
     try {
       setIsTestingConnection(true);
       setTestResult(undefined);
@@ -124,18 +130,19 @@ export function useFTPTestConnection() {
         return { success: true, message };
       } else {
         const errorMessage = data.message || "Connection failed";
+        const helpfulText = data.helpfulMessage || null;
         
         // Check if there's a helpful message
-        if (data.helpfulMessage) {
-          setHelpfulMessage(data.helpfulMessage);
-          toast.error(data.helpfulMessage);
+        if (helpfulText) {
+          setHelpfulMessage(helpfulText);
+          toast.error(helpfulText);
         } else {
           toast.error(`Connection failed: ${errorMessage}`);
         }
         
-        setTestResult({ success: false, message: errorMessage });
+        setTestResult({ success: false, message: errorMessage, helpfulMessage: helpfulText });
         setLastErrorMessage(errorMessage);
-        return { success: false, message: errorMessage };
+        return { success: false, message: errorMessage, helpfulMessage: helpfulText };
       }
     } catch (error: any) {
       console.error("Error testing connection:", error);
