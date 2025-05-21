@@ -99,8 +99,8 @@ export function FTPConnectionModal({
       password
     });
     
-    // The result is already handled by the hook including toasts,
-    // but we could use result.success and result.message here if needed
+    // The hook itself handles toasts and state updates, we're just capturing the return value
+    console.log("Test connection result:", result.success, result.message);
   };
 
   return (

@@ -22,12 +22,12 @@ export async function testFtpConnectionHandler(
     // Validate inputs
     if (!host || !username || !password) {
       onTestComplete({ success: false, message: "Please fill in all required fields" });
-      return false;
+      return;
     }
 
     if (isNaN(port) || port <= 0 || port > 65535) {
       onTestComplete({ success: false, message: "Please enter a valid port number" });
-      return false;
+      return;
     }
 
     logEvent(`Testing FTP connection handler: ${host}:${port}`, 'info', 'ftpHandler');
@@ -50,7 +50,7 @@ export async function testFtpConnectionHandler(
         success: false,
         message: errorMessage
       });
-      return false;
+      return;
     }
     
     // Process the result
@@ -61,13 +61,11 @@ export async function testFtpConnectionHandler(
         success: true,
         message: result.message || "Connection successful!"
       });
-      return true;
     } else {
       onTestComplete({
         success: false,
         message: result.message || "Connection failed"
       });
-      return false;
     }
   } catch (error: any) {
     console.error("Error testing connection:", error);
@@ -75,7 +73,6 @@ export async function testFtpConnectionHandler(
       success: false,
       message: error.message || "Connection failed"
     });
-    return false;
   }
 }
 

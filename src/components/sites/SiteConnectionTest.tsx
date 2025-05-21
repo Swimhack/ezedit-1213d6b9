@@ -15,7 +15,7 @@ export async function testSiteConnection(
   username: string,
   password: string,
   existingPassword?: string
-) {
+): Promise<{ success: boolean; message: string }> {
   try {
     // Validate only required fields: serverUrl, username, and password (or existingPassword)
     if (!serverUrl) {

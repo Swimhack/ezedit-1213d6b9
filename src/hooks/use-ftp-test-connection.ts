@@ -25,15 +25,27 @@ export function useFTPTestConnection() {
       
       // Validate required fields
       if (!params.host) {
-        throw new Error("Server URL is required");
+        const message = "Server URL is required";
+        toast.error(message);
+        setTestResult(false);
+        setLastErrorMessage(message);
+        return { success: false, message };
       }
 
       if (!params.username) {
-        throw new Error("Username is required");
+        const message = "Username is required";
+        toast.error(message);
+        setTestResult(false);
+        setLastErrorMessage(message);
+        return { success: false, message };
       }
 
       if (!params.password && !params.existingPassword) {
-        throw new Error("Password is required");
+        const message = "Password is required";
+        toast.error(message);
+        setTestResult(false);
+        setLastErrorMessage(message);
+        return { success: false, message };
       }
 
       // Use existing password if no new one is provided
@@ -71,7 +83,11 @@ export function useFTPTestConnection() {
         });
         
         if (!netlifyResponse.ok) {
-          throw new Error(`HTTP Error: ${netlifyResponse.status}`);
+          const message = `HTTP Error: ${netlifyResponse.status}`;
+          toast.error(message);
+          setTestResult(false);
+          setLastErrorMessage(message);
+          return { success: false, message };
         }
         
         response = { data: await netlifyResponse.json(), error: null };
@@ -79,28 +95,30 @@ export function useFTPTestConnection() {
       
       if (response.error) {
         console.error("Test connection response error:", response.error);
-        toast.error(`Connection failed: ${response.error.message || "Unknown error"}`);
+        const message = response.error.message || "Unknown error";
+        toast.error(`Connection failed: ${message}`);
         setTestResult(false);
-        setLastErrorMessage(response.error.message || "Unknown error");
-        return { success: false, message: response.error.message || "Unknown error" };
+        setLastErrorMessage(message);
+        return { success: false, message };
       }
       
       const data = response.data;
       
       // Make sure we have a valid response object
       if (!data) {
-        const msg = "No response from server";
-        toast.error(msg);
+        const message = "No response from server";
+        toast.error(message);
         setTestResult(false);
-        setLastErrorMessage(msg);
-        return { success: false, message: msg };
+        setLastErrorMessage(message);
+        return { success: false, message };
       }
       
       if (data.success) {
-        toast.success("Connection successful!");
+        const message = "Connection successful!";
+        toast.success(message);
         setTestResult(true);
         setLastErrorMessage(null);
-        return { success: true, message: "Connection successful!" };
+        return { success: true, message };
       } else {
         const errorMessage = data.message || "Connection failed";
         toast.error(`Connection failed: ${errorMessage}`);
