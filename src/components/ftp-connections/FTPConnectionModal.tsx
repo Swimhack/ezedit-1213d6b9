@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
 import { FTPConnectionForm, getFormData } from "./FTPConnectionForm";
 import { FTPConnectionTestButton } from "./FTPConnectionTest";
@@ -23,6 +23,7 @@ export function FTPConnectionModal({
   onClose,
   onSave
 }: FTPConnectionModalProps) {
+  // We don't need a separate testResult state as the hook now manages it
   const [isLoading, setIsLoading] = useState(false);
   const { testConnection, isTestingConnection, testResult } = useFTPTestConnection();
 
@@ -88,18 +89,22 @@ export function FTPConnectionModal({
   };
 
   const handleTest = async () => {
-    const form = document.querySelector('form')!;
-    const { host, port, username, password } = getFormData(form);
-    
-    // Use the hook-based test connection function that properly handles the response
-    await testConnection({
-      host, 
-      port, 
-      username, 
-      password
-    });
-    
-    // The testConnection hook already handles toasts and state updates
+    try {
+      const form = document.querySelector('form')!;
+      const { host, port, username, password } = getFormData(form);
+      
+      // Use the testConnection hook that already handles toasts and proper response reading
+      await testConnection({
+        host, 
+        port, 
+        username, 
+        password
+      });
+      
+      // The testConnection hook already handles toasts and state updates
+    } catch (error) {
+      console.error("Error in test handler:", error);
+    }
   };
 
   return (

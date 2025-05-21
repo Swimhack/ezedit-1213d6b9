@@ -14,7 +14,7 @@ export interface FTPConnectionParams {
 
 export function useFTPTestConnection() {
   const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
-  const [testResult, setTestResult] = useState<boolean | undefined>(undefined);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | undefined>(undefined);
   const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
 
   const testConnection = async (params: FTPConnectionParams): Promise<{ success: boolean; message: string }> => {
@@ -27,7 +27,7 @@ export function useFTPTestConnection() {
       if (!params.host) {
         const message = "Server URL is required";
         toast.error(message);
-        setTestResult(false);
+        setTestResult({ success: false, message });
         setLastErrorMessage(message);
         return { success: false, message };
       }
@@ -35,7 +35,7 @@ export function useFTPTestConnection() {
       if (!params.username) {
         const message = "Username is required";
         toast.error(message);
-        setTestResult(false);
+        setTestResult({ success: false, message });
         setLastErrorMessage(message);
         return { success: false, message };
       }
@@ -43,7 +43,7 @@ export function useFTPTestConnection() {
       if (!params.password && !params.existingPassword) {
         const message = "Password is required";
         toast.error(message);
-        setTestResult(false);
+        setTestResult({ success: false, message });
         setLastErrorMessage(message);
         return { success: false, message };
       }
@@ -85,7 +85,7 @@ export function useFTPTestConnection() {
         if (!netlifyResponse.ok) {
           const message = `HTTP Error: ${netlifyResponse.status}`;
           toast.error(message);
-          setTestResult(false);
+          setTestResult({ success: false, message });
           setLastErrorMessage(message);
           return { success: false, message };
         }
@@ -97,7 +97,7 @@ export function useFTPTestConnection() {
         console.error("Test connection response error:", response.error);
         const message = response.error.message || "Unknown error";
         toast.error(`Connection failed: ${message}`);
-        setTestResult(false);
+        setTestResult({ success: false, message });
         setLastErrorMessage(message);
         return { success: false, message };
       }
@@ -108,21 +108,21 @@ export function useFTPTestConnection() {
       if (!data) {
         const message = "No response from server";
         toast.error(message);
-        setTestResult(false);
+        setTestResult({ success: false, message });
         setLastErrorMessage(message);
         return { success: false, message };
       }
       
       if (data.success) {
-        const message = "Connection successful!";
+        const message = data.message || "Connection successful!";
         toast.success(message);
-        setTestResult(true);
+        setTestResult({ success: true, message });
         setLastErrorMessage(null);
         return { success: true, message };
       } else {
         const errorMessage = data.message || "Connection failed";
         toast.error(`Connection failed: ${errorMessage}`);
-        setTestResult(false);
+        setTestResult({ success: false, message: errorMessage });
         setLastErrorMessage(errorMessage);
         return { success: false, message: errorMessage };
       }
@@ -130,7 +130,7 @@ export function useFTPTestConnection() {
       console.error("Error testing connection:", error);
       const errorMessage = error.message || "Unknown error";
       toast.error(`Error testing connection: ${errorMessage}`);
-      setTestResult(false);
+      setTestResult({ success: false, message: errorMessage });
       setLastErrorMessage(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
