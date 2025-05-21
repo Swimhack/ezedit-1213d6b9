@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,7 +28,7 @@ export function useFTPSites() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [testResults, setTestResults] = useState<Record<string, boolean | undefined>>({});
 
-  const fetchSites = async (silent = false) => {
+  const fetchSites = useCallback(async (silent = false) => {
     // Only show loading indicator on initial load, not refreshes
     if (!silent) {
       setIsLoading(true);
@@ -83,7 +83,7 @@ export function useFTPSites() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [testResults]);
 
   const handleTestConnection = async (site: FTPSite): Promise<FTPTestConnectionResult> => {
     try {
@@ -148,9 +148,14 @@ export function useFTPSites() {
     }
   };
 
+  // Add invalidate method to allow forcing refresh from outside components
+  const invalidate = useCallback(() => {
+    fetchSites(true);
+  }, [fetchSites]);
+
   useEffect(() => {
     fetchSites();
-  }, []);
+  }, [fetchSites]);
 
   return {
     sites,
@@ -159,5 +164,6 @@ export function useFTPSites() {
     testResults,
     fetchSites,
     handleTestConnection,
+    invalidate
   };
 }

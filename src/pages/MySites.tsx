@@ -31,7 +31,8 @@ const MySites = () => {
     isRefreshing,
     testResults, 
     fetchSites, 
-    handleTestConnection 
+    handleTestConnection,
+    invalidate 
   } = useFTPSites();
   
   // Check current user and log page view
@@ -61,8 +62,8 @@ const MySites = () => {
   }, [userId, fetchSites]);
 
   const handleSaveSite = () => {
-    // Silent refresh when a site is saved
-    fetchSites(true);
+    // Refresh the list when a site is saved
+    invalidate();
     setIsModalOpen(false);
     setEditingSite(null);
     logEvent("Site saved", "info", "siteConfig");

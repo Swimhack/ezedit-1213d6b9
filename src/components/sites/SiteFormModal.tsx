@@ -27,13 +27,24 @@ export function SiteFormModal({
   const { testConnection, isTestingConnection, testResult, lastErrorMessage, helpfulMessage } = useFTPTestConnection();
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     
     // Get form data from the form
     const formData = getFormData(e.target as HTMLFormElement);
     
-    // Save site data without requiring authentication
+    // Basic validation for required fields
+    if (!formData.serverUrl || !formData.username || !formData.password) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (isNaN(formData.port) || formData.port <= 0 || formData.port > 65535) {
+      toast.error("Please enter a valid port number");
+      return;
+    }
+    
+    // Save site data without requiring successful connection test
     const saveSuccessful = await saveSite(formData, site);
     
     if (saveSuccessful) {

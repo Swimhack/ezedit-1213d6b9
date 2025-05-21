@@ -1,144 +1,90 @@
 
-import { useState } from 'react';
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import type { FTPSite } from "@/hooks/use-ftp-sites";
+
+interface SiteFormData {
+  siteName?: string;
+  serverUrl: string;
+  port: number;
+  username: string;
+  password: string;
+  rootDirectory?: string;
+}
 
 export function useSiteSave() {
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper function to refresh the session if needed
-  const refreshSession = async () => {
-    try {
-      const { data, error } = await supabase.auth.refreshSession();
-      if (error) {
-        console.error("Error refreshing session:", error);
-        throw error;
-      }
-      return data.session;
-    } catch (error) {
-      console.error("Failed to refresh session:", error);
-      throw new Error("Your session has expired. Please log in again.");
-    }
-  };
-
   const saveSite = async (
-    formData: {
-      siteName: string;
-      serverUrl: string;
-      port: number;
-      username: string;
-      password: string;
-      rootDirectory: string;
-    },
-    site: FTPSite | null
-  ) => {
+    formData: SiteFormData,
+    existingSite: FTPSite | null
+  ): Promise<boolean> => {
     setIsLoading(true);
-    
+
     try {
-      // Validate only required fields
-      if (!formData.serverUrl) {
-        toast.error("Server URL is required");
-        setIsLoading(false);
-        return false;
-      }
-
-      if (!formData.username) {
-        toast.error("Username is required");
-        setIsLoading(false);
-        return false;
-      }
-
-      // Only validate password for new sites (not editing)
-      if (!site && !formData.password) {
-        toast.error("Password is required for new sites");
-        setIsLoading(false);
-        return false;
-      }
-
-      if (isNaN(formData.port) || formData.port <= 0 || formData.port > 65535) {
-        toast.error("Please enter a valid port number");
-        setIsLoading(false);
-        return false;
-      }
-
-      // Get current user session with refresh attempt if needed
-      let { data: { session } } = await supabase.auth.getSession();
+      // Get the current user session to get the user ID
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
-      if (!session) {
-        // Try to refresh the session
-        try {
-          session = await refreshSession();
-        } catch (refreshError: any) {
-          toast.error(refreshError.message);
-          setIsLoading(false);
-          return false;
-        }
+      if (sessionError) {
+        throw new Error(`Authentication error: ${sessionError.message}`);
       }
-      
-      if (!session?.user) {
-        toast.error("You must be logged in to save a site");
-        setIsLoading(false);
+
+      if (!sessionData?.session?.user) {
+        toast.error("You must be logged in to save sites");
         return false;
       }
 
-      console.log("Saving site with user ID:", session.user.id);
+      const userId = sessionData.session.user.id;
 
-      // For updates, only include password if provided new one
-      const passwordField = formData.password ? { encrypted_password: formData.password } : {};
-
-      // Prepare the data object for upsert
-      const upsertData: any = {
-        ...(site?.id ? { id: site.id } : {}),
+      // Prepare the site data for inserting/updating
+      const siteData = {
+        user_id: userId,
+        site_name: formData.siteName || null,
         server_url: formData.serverUrl,
-        port: formData.port,
+        port: formData.port || 21,
         username: formData.username,
-        ...passwordField,
-        user_id: session.user.id,
+        // Only include password if it's new or changed
+        ...(formData.password ? { encrypted_password: formData.password } : {}),
+        root_directory: formData.rootDirectory || null,
         updated_at: new Date().toISOString()
       };
+
+      let result;
       
-      // Only add site_name if it's not empty
-      if (formData.siteName) {
-        upsertData.site_name = formData.siteName;
+      if (existingSite) {
+        // Update existing site
+        result = await supabase
+          .from("ftp_credentials")
+          .update(siteData)
+          .eq("id", existingSite.id)
+          .eq("user_id", userId);
+      } else {
+        // Insert new site
+        result = await supabase
+          .from("ftp_credentials")
+          .insert({
+            ...siteData,
+            created_at: new Date().toISOString()
+          });
       }
 
-      // Add root directory if provided
-      if (formData.rootDirectory) {
-        upsertData.root_directory = formData.rootDirectory;
+      if (result.error) {
+        throw result.error;
       }
 
-      // Save or update site to ftp_credentials table
-      const { error } = await supabase
-        .from("ftp_credentials")
-        .upsert(upsertData)
-        .select().single();
-
-      if (error) {
-        // Special handling for auth errors
-        if (error.message?.includes("JWT")) {
-          toast.error("Your session has expired. Please log out and log in again.");
-          return false;
-        }
-        
-        console.error("Error saving site:", error);
-        toast.error(`Failed to save site: ${error.message}`);
-        return false;
-      }
-
-      toast.success(`FTP site ${site ? 'updated' : 'added'} successfully`);
+      toast.success(
+        `FTP site ${existingSite ? "updated" : "saved"} successfully`
+      );
       return true;
     } catch (error: any) {
-      console.error("Error in saveSite:", error);
-      toast.error(`Failed to save site: ${error.message}`);
+      console.error("Error saving FTP site:", error);
+      toast.error(`Failed to save FTP site: ${error.message}`);
       return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  return {
-    isLoading,
-    saveSite
-  };
+  return { saveSite, isLoading };
 }
