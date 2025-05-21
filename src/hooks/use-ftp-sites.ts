@@ -57,6 +57,17 @@ export function useFTPSites() {
       
       // Update sites state
       setSites(data || []);
+
+      // Test connection for each site if we don't have test results yet
+      if (data && data.length > 0) {
+        data.forEach(site => {
+          // Only test if we don't already have a result for this site
+          if (testResults[site.id] === undefined) {
+            console.log(`No test result for site ${site.id}, will test connection`);
+            // We'll let the component handle test connections
+          }
+        });
+      }
     } catch (error: any) {
       console.error("Error fetching FTP sites:", error);
       if (!silent) {
@@ -72,32 +83,29 @@ export function useFTPSites() {
     try {
       setTestResults(prev => ({ ...prev, [site.id]: undefined })); // Set to undefined while testing
       
-      const response = await fetch(`https://natjhcqynqziccssnwim.supabase.co/functions/v1/test-ftp-connection`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          server: site.server_url,
+      // Use Supabase function directly
+      const { data, error } = await supabase.functions.invoke("ftp-test-connection", {
+        body: {
+          host: site.server_url,
           port: site.port,
-          user: site.username,
+          username: site.username,
           password: site.encrypted_password
-        }),
+        },
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(`Server error: ${response.status}`);
+      if (error) {
+        console.error("Test connection error:", error);
+        toast.error(`Connection failed: ${error.message}`);
+        setTestResults(prev => ({ ...prev, [site.id]: false }));
+        return;
       }
 
-      const result = await response.json();
-      if (result.success) {
+      if (data && data.success) {
         toast.success("Connection successful!");
         setTestResults(prev => ({ ...prev, [site.id]: true }));
       } else {
-        toast.error(`Connection failed: ${result.message}`);
+        const message = data?.message || "Unknown error";
+        toast.error(`Connection failed: ${message}`);
         setTestResults(prev => ({ ...prev, [site.id]: false }));
       }
     } catch (error: any) {

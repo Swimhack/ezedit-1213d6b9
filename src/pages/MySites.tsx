@@ -10,6 +10,7 @@ import { SiteFormModal } from "@/components/sites/SiteFormModal";
 import { logEvent } from "@/utils/ftp-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 const MySites = () => {
   const navigate = useNavigate();
@@ -33,12 +34,16 @@ const MySites = () => {
       if (data.session?.user) {
         setUserId(data.session.user.id);
         console.log("Current user ID:", data.session.user.id);
+      } else {
+        console.log("No authenticated user found");
+        toast.error("Please log in to view your sites.");
+        navigate("/login");
       }
     };
     
     checkUser();
     logEvent("Viewing Sites page", "info", "navigation");
-  }, []);
+  }, [navigate]);
 
   // Refetch sites when user ID changes or when modal closes
   useEffect(() => {
@@ -65,13 +70,23 @@ const MySites = () => {
   const handleEdit = (site: any) => {
     setEditingSite(site);
     setIsModalOpen(true);
-    logEvent(`Editing site: ${site.site_name}`, "log", "siteConfig");
+    logEvent(`Editing site: ${site.site_name || site.server_url}`, "log", "siteConfig");
   };
 
   const handleViewFiles = (site: any) => {
-    logEvent(`Opening file explorer for: ${site.site_name}`, "info", "fileExplorer");
+    logEvent(`Opening file explorer for: ${site.site_name || site.server_url}`, "info", "fileExplorer");
     navigate("/editor/" + site.id);
   };
+
+  // Test all connections on mount
+  useEffect(() => {
+    if (sites.length > 0 && Object.keys(testResults).length === 0) {
+      // Test the connection for all sites when the component mounts
+      sites.forEach(site => {
+        handleTestConnection(site);
+      });
+    }
+  }, [sites, testResults, handleTestConnection]);
 
   // Render site cards or skeletons
   const renderSites = () => {
