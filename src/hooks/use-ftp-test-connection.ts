@@ -1,102 +1,119 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { logEvent } from "@/utils/ftp-utils";
 import { supabase } from "@/integrations/supabase/client";
 
-interface FTPTestConnectionParams {
+export interface FTPConnectionParams {
   host: string;
   port: number;
   username: string;
-  password: string;
+  password?: string;
   existingPassword?: string;
+  directory?: string;
 }
 
 export function useFTPTestConnection() {
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
+  const [testResult, setTestResult] = useState<boolean | undefined>(undefined);
+  const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
 
-  const testConnection = async ({ 
-    host, 
-    port, 
-    username, 
-    password, 
-    existingPassword 
-  }: FTPTestConnectionParams) => {
-    if (!host || !username) {
-      toast.error("Please fill in host and username fields");
-      return false;
-    }
-
-    setIsTestingConnection(true);
-    setTestResult(null);
-    
+  const testConnection = async (params: FTPConnectionParams) => {
     try {
-      // Log the request details (without password)
-      logEvent(`Testing FTP connection to ${host}:${port} with user ${username}`, 'info', 'ftpTest');
+      setIsTestingConnection(true);
+      setTestResult(undefined);
+      setLastErrorMessage(null);
       
-      // Use Supabase function with proper error handling
-      const { data, error } = await supabase.functions.invoke("ftp-test-connection", {
-        body: { 
-          host: host, 
-          port: port || 21, 
-          username: username, 
-          password: password || existingPassword || '' 
+      // Validate required fields
+      if (!params.host) {
+        throw new Error("Server URL is required");
+      }
+
+      if (!params.username) {
+        throw new Error("Username is required");
+      }
+
+      if (!params.password && !params.existingPassword) {
+        throw new Error("Password is required");
+      }
+
+      // Use existing password if no new one is provided
+      const finalPassword = params.password || params.existingPassword || "";
+      
+      console.log(`Testing connection to ${params.host}:${params.port}`);
+      
+      let response;
+      try {
+        console.log("Using Supabase function for FTP test");
+        // First try using Supabase function
+        response = await supabase.functions.invoke("ftp-test-connection", {
+          body: {
+            host: params.host,
+            port: params.port,
+            username: params.username,
+            password: finalPassword,
+            directory: params.directory
+          },
+        });
+      } catch (supabaseError) {
+        console.error("Supabase function error:", supabaseError);
+        // Fall back to Netlify function if Supabase fails
+        console.log("Falling back to Netlify function");
+        const netlifyResponse = await fetch('/api/test-ftp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            server: params.host,
+            port: params.port,
+            user: params.username,
+            password: finalPassword,
+            directory: params.directory
+          })
+        });
+        
+        if (!netlifyResponse.ok) {
+          throw new Error(`HTTP Error: ${netlifyResponse.status}`);
         }
-      });
-      
-      // Log the raw result for debugging
-      if (data) {
-        logEvent(`FTP test response: ${JSON.stringify(data)}`, 'info', 'ftpTest');
+        
+        response = { data: await netlifyResponse.json(), error: null };
       }
       
-      if (error) {
-        // Handle Supabase invoke error
-        const errorMessage = error.message || "Unknown error";
-        logEvent(`FTP test invoke error: ${errorMessage}`, 'error', 'ftpTest');
-        
-        // Create and set result
-        const newResult = {
-          success: false,
-          message: errorMessage
-        };
-        
-        setTestResult(newResult);
-        toast.error(`Connection failed: ${errorMessage}`);
+      if (response.error) {
+        console.error("Test connection response error:", response.error);
+        toast.error(`Connection failed: ${response.error.message || "Unknown error"}`);
+        setTestResult(false);
+        setLastErrorMessage(response.error.message || "Unknown error");
         return false;
       }
       
-      // Create result from data (with fallbacks)
-      const result = data || { success: false, message: "No response data" };
+      const data = response.data;
       
-      // Update the testResult state
-      const newResult = {
-        success: !!result.success,
-        message: result.message || (result.success ? "Connection successful!" : "Connection failed")
-      };
+      // Make sure we have a valid response object
+      if (!data) {
+        const msg = "No response from server";
+        toast.error(msg);
+        setTestResult(false);
+        setLastErrorMessage(msg);
+        return false;
+      }
       
-      setTestResult(newResult);
-      
-      // Show appropriate toast based on result
-      if (result.success) {
+      if (data.success) {
         toast.success("Connection successful!");
+        setTestResult(true);
+        setLastErrorMessage(null);
         return true;
       } else {
-        toast.error(`Connection failed: ${result.message || "Unknown error"}`);
+        const errorMessage = data.message || "Connection failed";
+        toast.error(`Connection failed: ${errorMessage}`);
+        setTestResult(false);
+        setLastErrorMessage(errorMessage);
         return false;
       }
     } catch (error: any) {
-      // Handle any unexpected errors
-      const errorMessage = error.message || "Unknown error occurred";
+      console.error("Error testing connection:", error);
+      const errorMessage = error.message || "Unknown error";
       toast.error(`Error testing connection: ${errorMessage}`);
-      logEvent(`FTP test error: ${errorMessage}`, 'error', 'ftpTest');
-      
-      // Update testResult state with error
-      setTestResult({
-        success: false,
-        message: errorMessage
-      });
-      
+      setTestResult(false);
+      setLastErrorMessage(errorMessage);
       return false;
     } finally {
       setIsTestingConnection(false);
@@ -104,8 +121,9 @@ export function useFTPTestConnection() {
   };
 
   return {
-    isTestingConnection,
     testConnection,
-    testResult
+    isTestingConnection,
+    testResult,
+    lastErrorMessage,
   };
 }

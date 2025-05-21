@@ -25,7 +25,8 @@ export function SiteFormModal({
 }: SiteFormModalProps) {
   // We don't need a separate testResult state as the hook now manages it
   const { isLoading: isSaving, saveSite } = useSiteSave();
-  const { testConnection, isTestingConnection, testResult } = useFTPTestConnection();
+  const { testConnection, isTestingConnection, testResult, lastErrorMessage } = useFTPTestConnection();
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,18 +46,31 @@ export function SiteFormModal({
     try {
       const form = document.querySelector('form') as HTMLFormElement;
       const formData = getFormData(form);
+      setErrorDetails(null);
       
       // Use the testConnection hook that already handles toasts and proper response reading
-      await testConnection({
+      const result = await testConnection({
         host: formData.serverUrl,
         port: formData.port,
         username: formData.username,
         password: formData.password,
-        existingPassword: site?.encrypted_password
+        existingPassword: site?.encrypted_password,
+        directory: formData.rootDirectory
       });
+      
+      if (!result && lastErrorMessage?.includes("530")) {
+        setErrorDetails(
+          "Authentication failed. Please check the following:\n" +
+          "• Verify username format (sometimes needs domain prefix/suffix)\n" +
+          "• Check if password contains special characters that need URL encoding\n" +
+          "• Confirm if the server requires FTPS instead of FTP\n" +
+          "• Check if there are IP restrictions on the FTP server"
+        );
+      }
       
     } catch (error: any) {
       console.error("Error testing connection:", error);
+      setErrorDetails(error.message);
     }
   };
 
@@ -74,6 +88,13 @@ export function SiteFormModal({
             site={site} 
             testResult={testResult} 
           />
+
+          {errorDetails && (
+            <div className="text-sm p-3 border border-orange-200 bg-orange-50 rounded-md text-orange-800 whitespace-pre-line">
+              <p className="font-semibold mb-1">Troubleshooting tips:</p>
+              {errorDetails}
+            </div>
+          )}
 
           <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 pt-4">
             <SiteConnectionTestButton

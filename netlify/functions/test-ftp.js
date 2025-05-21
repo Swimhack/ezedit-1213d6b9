@@ -34,6 +34,7 @@ exports.handler = async function(event, context) {
     let body;
     try {
       body = JSON.parse(event.body);
+      console.log("Request body received:", JSON.stringify(body));
     } catch (parseError) {
       console.error("Error parsing request body:", parseError);
       return {
@@ -85,6 +86,15 @@ exports.handler = async function(event, context) {
         }
       }
       
+      // Test a simple list command to verify full connectivity
+      try {
+        await client.list();
+        console.log("Directory listing successful");
+      } catch (listError) {
+        console.warn(`Warning: Directory listing failed: ${listError.message}`);
+        // Continue anyway - connection was established even if listing failed
+      }
+      
       // Test complete - close connection
       await client.close();
       console.log("FTP connection successful");
@@ -105,10 +115,13 @@ exports.handler = async function(event, context) {
       let errorMessage = ftpError.message;
       if (errorMessage.includes('530')) {
         errorMessage = "530 Login authentication failed. Please verify your username and password.";
+        console.log("Authentication error detected. Full error:", ftpError.message);
       } else if (errorMessage.includes('timeout')) {
         errorMessage = "Connection timed out. The server may be down or unreachable.";
       } else if (errorMessage.includes('ENOTFOUND')) {
         errorMessage = "Server hostname not found. Please check your server address.";
+      } else if (errorMessage.includes('ECONNREFUSED')) {
+        errorMessage = "Connection refused. Please verify the server address and port.";
       }
       
       return {
@@ -116,7 +129,8 @@ exports.handler = async function(event, context) {
         headers: corsHeaders,
         body: JSON.stringify({ 
           success: false, 
-          message: errorMessage
+          message: errorMessage,
+          originalError: ftpError.message // Include original error for debugging
         })
       };
     }

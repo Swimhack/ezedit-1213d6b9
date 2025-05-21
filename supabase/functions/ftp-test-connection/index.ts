@@ -11,7 +11,7 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -19,6 +19,7 @@ serve(async (req) => {
     let requestBody;
     try {
       requestBody = await req.json();
+      console.log("Request body received:", JSON.stringify(requestBody));
     } catch (error) {
       console.error("Error parsing request JSON:", error);
       return new Response(
@@ -108,6 +109,7 @@ serve(async (req) => {
       
       if (error.message.includes("530")) {
         errorMessage = "530 Login authentication failed. Please verify your username and password.";
+        console.log("Authentication error detected. Full error:", error.message);
       } else if (error.message.includes("connection timeout") || error.message.includes("ETIMEDOUT")) {
         errorMessage = "Connection timed out. The server may be down or unreachable.";
       } else if (error.message.includes("ENOTFOUND")) {
