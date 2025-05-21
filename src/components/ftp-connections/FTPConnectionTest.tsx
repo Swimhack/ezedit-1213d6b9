@@ -10,13 +10,19 @@ interface FTPConnectionTestProps {
   onTestComplete?: (result: { success: boolean; message: string; helpfulMessage?: string }) => void;
 }
 
+export interface FTPTestConnectionResult {
+  success: boolean;
+  message: string;
+  helpfulMessage?: string;
+}
+
 // Updated to use the consistent error handling approach and include helpfulMessage in return type
 export async function testFtpConnectionHandler(
   host: string, 
   port: number, 
   username: string, 
   password: string,
-  onTestComplete: (result: { success: boolean; message: string; helpfulMessage?: string }) => void
+  onTestComplete: (result: FTPTestConnectionResult) => void
 ) {
   try {
     // Validate inputs
@@ -48,7 +54,8 @@ export async function testFtpConnectionHandler(
       
       onTestComplete({
         success: false,
-        message: errorMessage
+        message: errorMessage,
+        helpfulMessage: "Unable to connect to the FTP server. Please verify your credentials or try again later."
       });
       return;
     }
@@ -57,7 +64,8 @@ export async function testFtpConnectionHandler(
     if (!data) {
       onTestComplete({
         success: false,
-        message: "No response data"
+        message: "No response data",
+        helpfulMessage: "The server did not return any response. Please try again later."
       });
       return;
     }
@@ -71,7 +79,7 @@ export async function testFtpConnectionHandler(
       // Handle specific 530 authentication errors
       if (data.message && data.message.includes("530")) {
         const helpfulMessage = data.helpfulMessage || 
-          "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method.";
+          "Login failed. Double-check your FTP username and password. You may need to contact your hosting provider.";
         
         onTestComplete({
           success: false,
@@ -82,7 +90,7 @@ export async function testFtpConnectionHandler(
         onTestComplete({
           success: false,
           message: data.message || "Connection failed",
-          helpfulMessage: data.helpfulMessage
+          helpfulMessage: data.helpfulMessage || "Unable to connect to the FTP server. Please verify your credentials or try again later."
         });
       }
     }
@@ -90,7 +98,8 @@ export async function testFtpConnectionHandler(
     console.error("Error testing connection:", error);
     onTestComplete({
       success: false,
-      message: error.message || "Connection failed"
+      message: error.message || "Connection failed",
+      helpfulMessage: "An unexpected error occurred. Please try again or check your network connection."
     });
   }
 }

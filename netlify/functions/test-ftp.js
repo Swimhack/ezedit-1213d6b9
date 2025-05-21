@@ -110,13 +110,16 @@ exports.handler = async function(event, context) {
       
       if (errorMessage.includes('530')) {
         errorMessage = "530 Login authentication failed.";
-        helpfulMessage = "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method (e.g., SFTP, passive mode).";
+        helpfulMessage = "Login failed. Double-check your FTP username and password. You may need to contact your hosting provider.";
       } else if (errorMessage.includes('timeout')) {
         errorMessage = "Connection timed out. The server may be down or unreachable.";
+        helpfulMessage = "The server is not responding. Please check if the server is online and accessible, or if there are any network restrictions.";
       } else if (errorMessage.includes('ENOTFOUND')) {
         errorMessage = "Server hostname not found. Please check your server address.";
+        helpfulMessage = "The server address could not be resolved. Please verify the hostname is correct and your DNS is working properly.";
       } else if (errorMessage.includes('ECONNREFUSED')) {
         errorMessage = "Connection refused. Please verify the server address and port.";
+        helpfulMessage = "The server actively refused the connection. This usually means the FTP service is not running or the port is incorrect.";
       }
       
       return {
@@ -138,7 +141,8 @@ exports.handler = async function(event, context) {
       headers: corsHeaders,
       body: JSON.stringify({ 
         success: false, 
-        message: `Error: ${error.message}` 
+        message: `Error: ${error.message}`,
+        helpfulMessage: "An unexpected error occurred while communicating with the FTP server. Please try again later."
       })
     };
   }

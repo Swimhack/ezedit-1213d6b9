@@ -40,7 +40,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: "Missing required fields: host or username" 
+          message: "Missing required fields: host or username",
+          helpfulMessage: "Please provide both the server address and username to test the connection."
         }),
         { headers: corsHeaders }
       );
@@ -106,14 +107,17 @@ serve(async (req) => {
       
       if (error.message.includes("530")) {
         errorMessage = "530 Login authentication failed.";
-        helpfulMessage = "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method (e.g., SFTP, passive mode).";
+        helpfulMessage = "Login failed. Double-check your FTP username and password. You may need to contact your hosting provider.";
         console.log("Authentication error detected. Full error:", error.message);
       } else if (error.message.includes("connection timeout") || error.message.includes("ETIMEDOUT")) {
         errorMessage = "Connection timed out. The server may be down or unreachable.";
+        helpfulMessage = "The server is not responding. Please check if the server is online and accessible, or if there are any network restrictions.";
       } else if (error.message.includes("ENOTFOUND")) {
         errorMessage = "Server hostname not found. Please check your server address.";
+        helpfulMessage = "The server address could not be resolved. Please verify the hostname is correct and your DNS is working properly.";
       } else if (error.message.includes("ECONNREFUSED")) {
         errorMessage = "Connection refused. Please verify the server address and port.";
+        helpfulMessage = "The server actively refused the connection. This usually means the FTP service is not running or the port is incorrect.";
       }
       
       return new Response(
@@ -132,7 +136,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: error.message || "An unexpected error occurred"
+        message: error.message || "An unexpected error occurred",
+        helpfulMessage: "An unexpected error occurred while communicating with the FTP server. Please try again later."
       }),
       { headers: corsHeaders }
     );

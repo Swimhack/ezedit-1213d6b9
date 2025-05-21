@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -10,12 +11,19 @@ import { logEvent } from "@/utils/ftp-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 const MySites = () => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<any | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [connectionErrorModal, setConnectionErrorModal] = useState({
+    isOpen: false,
+    siteName: '',
+    errorMessage: '',
+    helpfulMessage: ''
+  });
   
   const { 
     sites, 
@@ -75,20 +83,35 @@ const MySites = () => {
   const handleViewFiles = async (site: any) => {
     logEvent(`Testing connection before opening file explorer: ${site.site_name || site.server_url}`, "info", "fileExplorer");
     
-    // Test the connection first before opening the file explorer
-    await handleTestConnection(site);
-    
-    // Delay to allow the test to complete and update the UI
-    setTimeout(() => {
+    try {
+      // Test the connection first before opening the file explorer
+      const result = await handleTestConnection(site);
+      
       // Check if the connection was successful
-      if (testResults[site.id] === false) {
-        toast.error("Failed to connect to the FTP server. Please verify your credentials and try again.");
+      if (!result.success) {
+        // Show error dialog with helpful message if available
+        setConnectionErrorModal({
+          isOpen: true,
+          siteName: site.site_name || site.server_url,
+          errorMessage: result.message,
+          helpfulMessage: result.helpfulMessage || "Unable to connect to the FTP server. Please verify your credentials or try again later."
+        });
         return;
       }
       
+      // If successful, navigate to the file editor
       logEvent(`Opening file explorer for: ${site.site_name || site.server_url}`, "info", "fileExplorer");
       navigate("/editor/" + site.id);
-    }, 200);
+    } catch (error: any) {
+      console.error("Error testing connection:", error);
+      // Show error dialog for unexpected errors
+      setConnectionErrorModal({
+        isOpen: true,
+        siteName: site.site_name || site.server_url,
+        errorMessage: "Connection error",
+        helpfulMessage: "An unexpected error occurred while connecting to the FTP server. Please try again later."
+      });
+    }
   };
 
   // Render site cards or skeletons
@@ -168,6 +191,42 @@ const MySites = () => {
             View System Logs
           </Button>
         </div>
+
+        {/* Connection Error Modal */}
+        <Dialog 
+          open={connectionErrorModal.isOpen} 
+          onOpenChange={(isOpen) => setConnectionErrorModal(prev => ({ ...prev, isOpen }))}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Connection Failed</DialogTitle>
+              <DialogDescription>
+                Could not connect to {connectionErrorModal.siteName}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              <p className="font-medium text-red-600 mb-2">{connectionErrorModal.errorMessage}</p>
+              <p className="text-muted-foreground whitespace-pre-line">{connectionErrorModal.helpfulMessage}</p>
+            </div>
+            
+            <DialogFooter className="flex justify-between gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => handleEdit(sites.find(site => 
+                  (site.site_name || site.server_url) === connectionErrorModal.siteName
+                ))}
+              >
+                Edit Connection
+              </Button>
+              <Button 
+                onClick={() => setConnectionErrorModal(prev => ({ ...prev, isOpen: false }))}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <SiteFormModal
           isOpen={isModalOpen}

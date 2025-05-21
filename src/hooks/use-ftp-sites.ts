@@ -16,6 +16,12 @@ export type FTPSite = {
   root_directory?: string; // Add root_directory as an optional field
 };
 
+export interface FTPTestConnectionResult {
+  success: boolean;
+  message: string;
+  helpfulMessage?: string;
+}
+
 export function useFTPSites() {
   const [sites, setSites] = useState<FTPSite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,7 +85,7 @@ export function useFTPSites() {
     }
   };
 
-  const handleTestConnection = async (site: FTPSite) => {
+  const handleTestConnection = async (site: FTPSite): Promise<FTPTestConnectionResult> => {
     try {
       setTestResults(prev => ({ ...prev, [site.id]: undefined })); // Set to undefined while testing
       
@@ -100,25 +106,45 @@ export function useFTPSites() {
 
       if (error) {
         console.error("Test connection error:", error);
-        toast.error(`Connection failed: ${error.message}`);
         setTestResults(prev => ({ ...prev, [site.id]: false }));
-        return;
+        return {
+          success: false,
+          message: error.message,
+          helpfulMessage: "Unable to connect to the FTP server. Please verify your credentials or try again later."
+        };
       }
 
       console.log("Test response:", data);
       
       if (data && data.success) {
-        toast.success("Connection successful!");
         setTestResults(prev => ({ ...prev, [site.id]: true }));
+        return {
+          success: true,
+          message: data.message || "Connection successful!"
+        };
       } else {
         const message = data?.message || "Unknown error";
-        toast.error(`Connection failed: ${message}`);
+        const helpfulMessage = data?.helpfulMessage || (
+          message.includes("530") ? 
+          "Login failed. Double-check your FTP username and password. You may need to contact your hosting provider." : 
+          "Unable to connect to the FTP server. Please verify your credentials or try again later."
+        );
+        
         setTestResults(prev => ({ ...prev, [site.id]: false }));
+        return {
+          success: false,
+          message: message,
+          helpfulMessage: helpfulMessage
+        };
       }
     } catch (error: any) {
-      toast.error(`Error testing connection: ${error.message}`);
-      setTestResults(prev => ({ ...prev, [site.id]: false }));
       console.error("Test connection error:", error);
+      setTestResults(prev => ({ ...prev, [site.id]: false }));
+      return {
+        success: false,
+        message: error.message || "Connection failed",
+        helpfulMessage: "An unexpected error occurred. Please try again or check your network connection."
+      };
     }
   };
 
