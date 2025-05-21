@@ -85,13 +85,16 @@ export function useFTPSites() {
       
       console.log(`Testing connection to ${site.server_url}:${site.port}`);
       
-      // Use Supabase function directly
+      // Use Supabase function directly with more compatible parameter naming
       const { data, error } = await supabase.functions.invoke("ftp-test-connection", {
         body: {
           host: site.server_url,
+          server: site.server_url, // Include both names for compatibility
           port: site.port,
           username: site.username,
-          password: site.encrypted_password
+          user: site.username, // Include both names for compatibility
+          password: site.encrypted_password,
+          root_directory: site.root_directory
         },
       });
 
@@ -102,8 +105,6 @@ export function useFTPSites() {
         return;
       }
 
-      // Even if we get a "530 User cannot log in" error, the test itself completed successfully
-      // The user should just see that the connection failed but the test is working properly
       console.log("Test response:", data);
       
       if (data && data.success) {
@@ -113,7 +114,6 @@ export function useFTPSites() {
         const message = data?.message || "Unknown error";
         toast.error(`Connection failed: ${message}`);
         setTestResults(prev => ({ ...prev, [site.id]: false }));
-        // We still mark this as false (failed) but at least the test completed
       }
     } catch (error: any) {
       toast.error(`Error testing connection: ${error.message}`);

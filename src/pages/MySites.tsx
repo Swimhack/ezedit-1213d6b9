@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -78,14 +77,22 @@ const MySites = () => {
     navigate("/editor/" + site.id);
   };
 
-  // Test all connections on mount
+  // Test all connections on mount, but with a delay to prevent hammering the servers
   useEffect(() => {
     if (sites.length > 0 && Object.keys(testResults).length === 0) {
-      // Test the connection for all sites when the component mounts
-      console.log("Testing all site connections on initial load");
-      sites.forEach(site => {
-        handleTestConnection(site);
-      });
+      // Delay connection tests to avoid overwhelming the server
+      const testTimeout = setTimeout(() => {
+        console.log("Testing all site connections on initial load");
+        // Test connections sequentially rather than all at once
+        sites.forEach((site, index) => {
+          setTimeout(() => {
+            console.log(`Testing connection for site: ${site.site_name || site.server_url}`);
+            handleTestConnection(site);
+          }, index * 1000); // Delay each test by 1 second
+        });
+      }, 1000); // Initial 1 second delay
+      
+      return () => clearTimeout(testTimeout);
     }
   }, [sites, testResults, handleTestConnection]);
 

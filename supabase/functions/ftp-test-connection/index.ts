@@ -23,91 +23,113 @@ serve(async (req) => {
       console.error("Error parsing request JSON:", error);
       return new Response(
         JSON.stringify({ success: false, message: "Invalid JSON in request body" }),
-        { 
-          status: 200, // Return 200 even for errors to avoid non-2xx issues 
-          headers: corsHeaders
-        }
+        { headers: corsHeaders }
       );
     }
     
-    const { host, port, username, password } = requestBody;
+    // Extract credentials - support multiple parameter name formats for compatibility
+    const host = requestBody.host || requestBody.server || requestBody.server_url;
+    const port = Number(requestBody.port) || 21;
+    const username = requestBody.username || requestBody.user;
+    const password = requestBody.password || requestBody.encrypted_password || '';
+    const directory = requestBody.directory || requestBody.root_directory || '/';
     
     // Validate required fields
-    if (!host || !username || !password) {
+    if (!host || !username) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: "Missing required fields: host, username, or password" 
+          message: "Missing required fields: host or username" 
         }),
-        { 
-          status: 200, // Return 200 even for validation errors
-          headers: corsHeaders
-        }
+        { headers: corsHeaders }
       );
     }
     
-    console.log(`Attempting FTP connection to: ${host}:${port || 21}`);
+    console.log(`Attempting FTP connection to: ${host}:${port} as ${username}`);
     
     const client = new Client();
     client.ftp.verbose = true;
     
     try {
+      // Connect with legacy compatibility options
       await client.access({
         host,
-        port: port || 21,
+        port,
         user: username,
         password,
         secure: false,
-        // Add more detailed FTP options to improve connection reliability
-        connTimeout: 10000,        // 10 seconds connection timeout
-        pasvTimeout: 10000,        // 10 seconds PASV timeout
-        keepalive: 10000,          // Keep-alive every 10 seconds
+        // Legacy compatibility options
+        connTimeout: 30000,      // Longer timeout for slow connections
+        pasvTimeout: 30000,      // Longer timeout for PASV mode
+        forcePasv: true,         // Force passive mode for compatibility
       });
+      
+      // Try to change directory if needed
+      if (directory && directory !== '/') {
+        try {
+          await client.cd(directory);
+          console.log(`Successfully changed to directory: ${directory}`);
+        } catch (dirError) {
+          console.warn(`Warning: Could not change to directory ${directory}: ${dirError.message}`);
+          // Continue anyway - don't fail just because directory doesn't exist
+        }
+      }
+      
+      // Test a simple list command to verify full connectivity
+      try {
+        await client.list();
+        console.log("Directory listing successful");
+      } catch (listError) {
+        console.warn(`Warning: Directory listing failed: ${listError.message}`);
+        // Continue anyway - connection was established even if listing failed
+      }
       
       console.log("FTP connection successful");
       
-      // If we get here, authentication was successful
+      // Close connection after successful test
+      await client.close();
+      
       return new Response(
         JSON.stringify({ success: true, message: 'Connection successful' }),
         { headers: corsHeaders }
       );
     } catch (error) {
+      // Try to close client on error
+      try {
+        await client.close();
+      } catch (closeError) {
+        console.error("Error closing client:", closeError);
+      }
+      
       console.error("FTP connection error:", error.message);
       
+      // Improve error messages for better user feedback
       let errorMessage = error.message;
       
-      // Enhance specific error messages
       if (error.message.includes("530")) {
-        errorMessage = "530 User cannot log in. Please verify your username and password are correct.";
-      } else if (error.message.includes("connection timeout")) {
-        errorMessage = "Connection timed out. Please check the server address and port.";
+        errorMessage = "530 Login authentication failed. Please verify your username and password.";
+      } else if (error.message.includes("connection timeout") || error.message.includes("ETIMEDOUT")) {
+        errorMessage = "Connection timed out. The server may be down or unreachable.";
       } else if (error.message.includes("ENOTFOUND")) {
-        errorMessage = "Server hostname not found. Please check the server address.";
+        errorMessage = "Server hostname not found. Please check your server address.";
+      } else if (error.message.includes("ECONNREFUSED")) {
+        errorMessage = "Connection refused. Please verify the server address and port.";
       }
       
       return new Response(
         JSON.stringify({ success: false, message: errorMessage }),
-        { 
-          status: 200, // Return 200 even for failed connections, just with success: false
-          headers: corsHeaders
-        }
+        { headers: corsHeaders }
       );
-    } finally {
-      client.close();
     }
   } catch (error) {
     console.error("Unhandled error:", error);
     
-    // Always return properly formatted JSON even for unexpected errors
     return new Response(
       JSON.stringify({ 
         success: false, 
         message: error.message || "An unexpected error occurred"
       }),
-      { 
-        status: 200, // Return 200 even for errors
-        headers: corsHeaders
-      }
+      { headers: corsHeaders }
     );
   }
 })

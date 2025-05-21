@@ -1,6 +1,6 @@
 
 // Netlify serverless function for FTP connection testing
-const Client = require('ssh2-sftp-client');
+const { Client } = require('basic-ftp');
 
 exports.handler = async function(event, context) {
   // Set CORS headers for browser compatibility
@@ -37,18 +37,18 @@ exports.handler = async function(event, context) {
     } catch (parseError) {
       console.error("Error parsing request body:", parseError);
       return {
-        statusCode: 400,
+        statusCode: 200, // Return 200 to avoid CORS issues
         headers: corsHeaders,
         body: JSON.stringify({ success: false, message: 'Invalid JSON in request body' })
       };
     }
     
-    const { server, port, user, password } = body;
+    const { server, port, user, password, directory } = body;
 
     // Validate required parameters
-    if (!server || !user || !password) {
+    if (!server || !user) {
       return {
-        statusCode: 400,
+        statusCode: 200, // Return 200 to avoid CORS issues
         headers: corsHeaders,
         body: JSON.stringify({ success: false, message: 'Missing required connection details' })
       };
@@ -56,59 +56,79 @@ exports.handler = async function(event, context) {
 
     console.log(`Testing connection to ${server}:${port || 21} with user ${user}`);
 
-    // Create SFTP client
+    // Create FTP client
     const client = new Client();
-
+    client.ftp.verbose = true;
+    
     try {
-      // Use async/await with proper error handling
-      await client.connect({
+      // Connect with legacy compatibility options
+      await client.access({
         host: server,
         port: port || 21,
-        username: user,
-        password,
-        retries: 1,
-        timeout: 10000
+        user: user,
+        password: password || '',
+        secure: false,
+        // Legacy compatibility options
+        connTimeout: 30000,      // Longer timeout for slow connections
+        pasvTimeout: 30000,
+        forcePasv: true,         // Force passive mode for compatibility
       });
 
+      // Try to change directory if specified
+      if (directory) {
+        try {
+          await client.cd(directory);
+          console.log(`Successfully changed to directory: ${directory}`);
+        } catch (dirError) {
+          console.warn(`Warning: Could not change to directory ${directory}: ${dirError.message}`);
+          // Continue anyway - don't fail the connection test just because directory doesn't exist
+        }
+      }
+      
+      // Test complete - close connection
+      await client.close();
       console.log("FTP connection successful");
-
-      // Ensure we explicitly set the Content-Type header to application/json
+      
       return {
         statusCode: 200,
         headers: corsHeaders,
-        body: JSON.stringify({ success: true, message: 'Connection successful' })
+        body: JSON.stringify({ 
+          success: true, 
+          message: 'Connection successful' 
+        })
       };
     } catch (ftpError) {
+      await client.close().catch(e => console.error("Error closing client:", e));
       console.error("FTP connection error:", ftpError.message);
-
-      // Ensure we explicitly set the Content-Type header to application/json
+      
+      // Format error message for better user feedback
+      let errorMessage = ftpError.message;
+      if (errorMessage.includes('530')) {
+        errorMessage = "530 Login authentication failed. Please verify your username and password.";
+      } else if (errorMessage.includes('timeout')) {
+        errorMessage = "Connection timed out. The server may be down or unreachable.";
+      } else if (errorMessage.includes('ENOTFOUND')) {
+        errorMessage = "Server hostname not found. Please check your server address.";
+      }
+      
       return {
-        statusCode: 200, // Still return 200 but with success: false
+        statusCode: 200, // Return 200 for client-side error handling
         headers: corsHeaders,
         body: JSON.stringify({ 
           success: false, 
-          message: `FTP connection failed: ${ftpError.message}` 
+          message: errorMessage
         })
       };
-    } finally {
-      // Always ensure client is closed properly
-      try {
-        await client.end();
-        console.log("FTP client closed");
-      } catch (closeError) {
-        console.error("Error closing client:", closeError.message);
-      }
     }
   } catch (error) {
-    console.error("Error in test-ftp function:", error);
-
-    // Ensure we explicitly set the Content-Type header to application/json
+    console.error("General error:", error);
+    
     return {
-      statusCode: 500,
+      statusCode: 200, // Use 200 status with error flag for cleaner client handling
       headers: corsHeaders,
       body: JSON.stringify({ 
         success: false, 
-        message: `Server error: ${error.message}` 
+        message: `Error: ${error.message}` 
       })
     };
   }
