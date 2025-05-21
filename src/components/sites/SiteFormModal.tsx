@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { FTPSite } from "@/hooks/use-ftp-sites";
 import { SiteForm, getFormData } from "./SiteForm";
-import { SiteConnectionTestButton, testSiteConnection } from "./SiteConnectionTest";
+import { SiteConnectionTestButton } from "./SiteConnectionTest";
 import { useSiteSave } from "@/hooks/use-site-save";
 import { useFTPTestConnection } from "@/hooks/use-ftp-test-connection";
 
@@ -23,14 +23,9 @@ export function SiteFormModal({
   onClose,
   onSave
 }: SiteFormModalProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [testResult, setTestResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
-  
+  // We don't need a separate testResult state as the hook now manages it
   const { isLoading: isSaving, saveSite } = useSiteSave();
-  const { testConnection, isTestingConnection } = useFTPTestConnection();
+  const { testConnection, isTestingConnection, testResult } = useFTPTestConnection();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,15 +42,12 @@ export function SiteFormModal({
   };
 
   const handleTest = async () => {
-    setIsLoading(true);
-    setTestResult(null);
-    
     try {
       const form = document.querySelector('form') as HTMLFormElement;
       const formData = getFormData(form);
       
       // Use the testConnection hook that already handles toasts and proper response reading
-      const success = await testConnection({
+      await testConnection({
         host: formData.serverUrl,
         port: formData.port,
         username: formData.username,
@@ -63,20 +55,8 @@ export function SiteFormModal({
         existingPassword: site?.encrypted_password
       });
       
-      if (success) {
-        setTestResult({
-          success: true,
-          message: "Connection test successful!"
-        });
-      }
     } catch (error: any) {
       console.error("Error testing connection:", error);
-      setTestResult({
-        success: false,
-        message: error.message || "Connection failed"
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -97,7 +77,7 @@ export function SiteFormModal({
 
           <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 pt-4">
             <SiteConnectionTestButton
-              isLoading={isLoading || isTestingConnection}
+              isLoading={isTestingConnection}
               onTestConnection={handleTest}
             />
             <div className="flex gap-2">
@@ -105,13 +85,13 @@ export function SiteFormModal({
                 type="button" 
                 variant="outline" 
                 onClick={onClose}
-                disabled={isLoading || isSaving}
+                disabled={isSaving}
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
-                disabled={isLoading || isSaving}
+                disabled={isSaving}
               >
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 {site ? "Update" : "Save"}

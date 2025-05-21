@@ -8,7 +8,7 @@ interface FTPConnectionTestProps {
   onTestComplete?: (result: { success: boolean; message: string }) => void;
 }
 
-// This function is now simplified to not handle the actual API call directly
+// This function is simplified to not handle the actual API call directly
 // The API call is handled by the useFTPTestConnection hook
 export async function testFtpConnectionHandler(
   host: string, 
@@ -44,7 +44,7 @@ export async function testFtpConnectionHandler(
     });
 
     if (!response.ok) {
-      // Get error message without reading body multiple times
+      // Read response body once (not multiple times)
       const errorData = await response.json().catch(() => ({ message: `Server error: ${response.status}` }));
       throw new Error(errorData.message || `Server error: ${response.status}`);
     }

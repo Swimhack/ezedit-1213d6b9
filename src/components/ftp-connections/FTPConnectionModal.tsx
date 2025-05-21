@@ -24,12 +24,7 @@ export function FTPConnectionModal({
   onSave
 }: FTPConnectionModalProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [testResult, setTestResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
-  
-  const { testConnection, isTestingConnection, testResult: hookTestResult } = useFTPTestConnection();
+  const { testConnection, isTestingConnection, testResult } = useFTPTestConnection();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,17 +92,12 @@ export function FTPConnectionModal({
     const { host, port, username, password } = getFormData(form);
     
     // Use the hook-based test connection function that properly handles the response
-    const success = await testConnection({
+    await testConnection({
       host, 
       port, 
       username, 
       password
     });
-    
-    // Set local test result state based on the hook's result
-    if (hookTestResult) {
-      setTestResult(hookTestResult);
-    }
   };
 
   return (
@@ -122,7 +112,7 @@ export function FTPConnectionModal({
         <FTPConnectionForm
           editingConnection={editingConnection}
           isLoading={isLoading || isTestingConnection}
-          testResult={testResult || hookTestResult}
+          testResult={testResult}
           onSubmit={handleSubmit}
         />
 

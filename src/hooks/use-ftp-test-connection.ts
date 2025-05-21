@@ -44,11 +44,12 @@ export function useFTPTestConnection() {
       });
       
       if (!response.ok) {
+        // Read response body once and store the result
         const errorData = await response.json().catch(() => ({ message: `Server error: ${response.status}` }));
         throw new Error(errorData.message || `Server error: ${response.status}`);
       }
 
-      // Parse response once and store the result
+      // Parse response only once and store the result
       const result = await response.json();
       
       // Update the testResult state

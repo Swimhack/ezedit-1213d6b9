@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 
 interface SiteConnectionTestProps {
   isLoading: boolean;
@@ -50,8 +49,9 @@ export async function testSiteConnection(
       }),
     });
     
-    // Use a single read of the response
+    // Read the response body only once
     let responseData;
+    
     try {
       responseData = await response.json();
     } catch (parseError) {
