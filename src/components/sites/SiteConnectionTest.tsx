@@ -9,13 +9,19 @@ interface SiteConnectionTestProps {
   onTestConnection: () => void;
 }
 
+export interface FTPTestConnectionResult {
+  success: boolean; 
+  message: string;
+  helpfulMessage?: string;
+}
+
 export async function testSiteConnection(
   serverUrl: string,
   port: number,
   username: string,
   password: string,
   existingPassword?: string
-): Promise<{ success: boolean; message: string; helpfulMessage?: string }> {
+): Promise<FTPTestConnectionResult> {
   try {
     // Validate only required fields: serverUrl, username, and password (or existingPassword)
     if (!serverUrl) {

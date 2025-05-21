@@ -132,17 +132,35 @@ export function useFTPTestConnection() {
         const errorMessage = data.message || "Connection failed";
         const helpfulText = data.helpfulMessage || null;
         
+        // Special handling for 530 authentication errors
+        if (errorMessage.includes("530")) {
+          const authHelpText = "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method (e.g., SFTP, passive mode).";
+          setHelpfulMessage(authHelpText);
+          toast.error(authHelpText);
+        }
         // Check if there's a helpful message
-        if (helpfulText) {
+        else if (helpfulText) {
           setHelpfulMessage(helpfulText);
           toast.error(helpfulText);
         } else {
           toast.error(`Connection failed: ${errorMessage}`);
         }
         
-        setTestResult({ success: false, message: errorMessage, helpfulMessage: helpfulText });
+        setTestResult({ 
+          success: false, 
+          message: errorMessage, 
+          helpfulMessage: helpfulText || (errorMessage.includes("530") ? 
+            "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method (e.g., SFTP, passive mode)." : 
+            undefined)
+        });
         setLastErrorMessage(errorMessage);
-        return { success: false, message: errorMessage, helpfulMessage: helpfulText };
+        return { 
+          success: false, 
+          message: errorMessage, 
+          helpfulMessage: helpfulText || (errorMessage.includes("530") ? 
+            "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method (e.g., SFTP, passive mode)." : 
+            undefined)
+        };
       }
     } catch (error: any) {
       console.error("Error testing connection:", error);
