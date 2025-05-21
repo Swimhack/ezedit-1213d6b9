@@ -10,7 +10,7 @@ interface FTPConnectionTestProps {
   onTestComplete?: (result: { success: boolean; message: string }) => void;
 }
 
-// Updated to use Supabase function instead of Netlify
+// Updated to use Supabase function
 export async function testFtpConnectionHandler(
   host: string, 
   port: number, 
@@ -32,7 +32,7 @@ export async function testFtpConnectionHandler(
 
     logEvent(`Testing FTP connection handler: ${host}:${port}`, 'info', 'ftpHandler');
     
-    // Use Supabase function instead of Netlify
+    // Use Supabase function for testing
     const { data, error } = await supabase.functions.invoke("ftp-test-connection", {
       body: {
         host: host,

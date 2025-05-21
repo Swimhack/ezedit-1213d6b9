@@ -35,7 +35,7 @@ export function useFTPTestConnection() {
       // Log the request details (without password)
       logEvent(`Testing FTP connection to ${host}:${port} with user ${username}`, 'info', 'ftpTest');
       
-      // Use Supabase function instead of direct API call
+      // Use Supabase function with proper error handling
       const { data, error } = await supabase.functions.invoke("ftp-test-connection", {
         body: { 
           host: host, 
@@ -46,11 +46,14 @@ export function useFTPTestConnection() {
       });
       
       // Log the raw result for debugging
-      logEvent(`FTP test response: ${JSON.stringify(data || {})}`, 'info', 'ftpTest');
+      if (data) {
+        logEvent(`FTP test response: ${JSON.stringify(data)}`, 'info', 'ftpTest');
+      }
       
       if (error) {
+        // Handle Supabase invoke error
         const errorMessage = error.message || "Unknown error";
-        logEvent(`FTP test error: ${errorMessage}`, 'error', 'ftpTest');
+        logEvent(`FTP test invoke error: ${errorMessage}`, 'error', 'ftpTest');
         
         // Create and set result
         const newResult = {
@@ -63,7 +66,7 @@ export function useFTPTestConnection() {
         return false;
       }
       
-      // Create result from data
+      // Create result from data (with fallbacks)
       const result = data || { success: false, message: "No response data" };
       
       // Update the testResult state
@@ -83,6 +86,7 @@ export function useFTPTestConnection() {
         return false;
       }
     } catch (error: any) {
+      // Handle any unexpected errors
       const errorMessage = error.message || "Unknown error occurred";
       toast.error(`Error testing connection: ${errorMessage}`);
       logEvent(`FTP test error: ${errorMessage}`, 'error', 'ftpTest');

@@ -109,8 +109,14 @@ export async function getStats(id: string) {
 }
 
 export async function testFtpConnection(host: string, port: number, user: string, password: string) {
+  console.log(`[ftp.testFtpConnection] Testing connection to ${host}:${port}`);
   return supabase.functions.invoke("ftp-test-connection", {
-    body: { host, port, username: user, password }
+    body: { 
+      host, 
+      port: port || 21, 
+      username: user, 
+      password 
+    }
   });
 }
 

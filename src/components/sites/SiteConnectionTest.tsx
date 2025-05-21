@@ -39,7 +39,7 @@ export async function testSiteConnection(
     
     logEvent(`Testing site connection to ${serverUrl}:${port}`, 'info', 'siteTest');
 
-    // Test connection using Supabase function instead of Netlify
+    // Test connection using Supabase function
     const { data, error } = await supabase.functions.invoke("ftp-test-connection", {
       body: {
         host: serverUrl,
@@ -57,9 +57,17 @@ export async function testSiteConnection(
       };
     }
     
+    // Make sure we have a valid response object
+    if (!data) {
+      return {
+        success: false,
+        message: "No response from server"
+      };
+    }
+    
     return {
-      success: data?.success || false,
-      message: data?.message || "Connection test completed"
+      success: data.success || false,
+      message: data.message || "Connection test completed"
     };
     
   } catch (error: any) {

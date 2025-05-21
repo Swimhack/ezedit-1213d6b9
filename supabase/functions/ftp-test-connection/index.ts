@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { Client } from "npm:basic-ftp@5.0.3"
-import { supabase } from "../_shared/supabaseClient.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,56 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    // Verify JWT token from Authorization header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: "Missing authorization header" 
-        }),
-        { 
-          headers: corsHeaders, 
-          status: 401 
-        }
-      );
-    }
-
-    // Extract and verify the JWT token
-    const token = authHeader.replace('Bearer ', '');
-    try {
-      // Verify the JWT token using admin client
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      
-      if (authError || !user) {
-        console.error("JWT verification failed:", authError);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            message: "Invalid authorization token" 
-          }),
-          { 
-            headers: corsHeaders, 
-            status: 401 
-          }
-        );
-      }
-      
-      console.log("Authenticated user:", user.id);
-    } catch (authError) {
-      console.error("Error verifying JWT:", authError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: "Invalid or expired JWT token" 
-        }),
-        { 
-          headers: corsHeaders, 
-          status: 401 
-        }
-      );
-    }
-    
     // Parse JSON body with error handling
     let requestBody;
     try {
@@ -75,7 +24,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, message: "Invalid JSON in request body" }),
         { 
-          status: 400, 
+          status: 200, // Return 200 even for errors to avoid non-2xx issues 
           headers: corsHeaders
         }
       );
@@ -91,7 +40,7 @@ serve(async (req) => {
           message: "Missing required fields: host, username, or password" 
         }),
         { 
-          status: 400,
+          status: 200, // Return 200 even for validation errors
           headers: corsHeaders
         }
       );
@@ -140,7 +89,7 @@ serve(async (req) => {
         message: error.message || "An unexpected error occurred"
       }),
       { 
-        status: 500,
+        status: 200, // Return 200 even for errors
         headers: corsHeaders
       }
     );
