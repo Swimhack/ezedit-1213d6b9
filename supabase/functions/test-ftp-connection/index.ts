@@ -1,7 +1,7 @@
 
 // Import required modules
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import Client from "https://esm.sh/ssh2-sftp-client@9.1.0";
+import { connect } from "https://deno.land/x/ftpc/mod.ts";
 import { supabase as adminClient } from "../_shared/supabaseClient.ts";
 
 const corsHeaders = {
@@ -69,19 +69,21 @@ Deno.serve(async (req) => {
 
     console.log(`Testing connection to ${server}:${port || 21} with user ${user}`);
     
-    // Create SFTP client
-    const client = new Client();
-    
     try {
-      // Use async/await with proper error handling
-      await client.connect({
+      // Use Deno's FTP client to test connection
+      const client = await connect({
         host: server,
         port: port || 21,
-        username: user,
-        password,
-        retries: 1,
-        timeout: 10000
+        user: user,
+        password: password,
+        secure: false,
       });
+      
+      // Test connection with a basic ls command
+      await client.list();
+      
+      // Close the connection properly
+      await client.close();
       
       console.log("FTP connection successful");
       
@@ -102,14 +104,6 @@ Deno.serve(async (req) => {
         }),
         { headers: corsHeaders }
       );
-    } finally {
-      // Always ensure client is closed properly
-      try {
-        await client.end();
-        console.log("FTP client closed");
-      } catch (closeError) {
-        console.error("Error closing client:", closeError.message);
-      }
     }
   } catch (error) {
     console.error("Error in test-ftp-connection function:", error);

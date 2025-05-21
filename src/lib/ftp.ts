@@ -110,8 +110,8 @@ export async function getStats(id: string) {
 }
 
 export async function testFtpConnection(host: string, port: number, user: string, password: string) {
-  return supabase.functions.invoke("e2eTest", {
-    body: { host, port, user, password }
+  return supabase.functions.invoke("test-ftp-connection", {
+    body: { server: host, port, user, password }
   });
 }
 
