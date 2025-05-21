@@ -37,11 +37,13 @@ export function useSiteSave() {
 
       const userId = sessionData.session.user.id;
 
+      // Prepare the data object based on whether it's a new site or an update
       if (existingSite) {
-        // Update existing site
+        let result;
+        
+        // Update existing site with or without password change
         if (formData.password) {
-          // If password is provided, update it along with other fields
-          const result = await supabase
+          result = await supabase
             .from("ftp_credentials")
             .update({
               user_id: userId,
@@ -51,17 +53,11 @@ export function useSiteSave() {
               username: formData.username,
               encrypted_password: formData.password,
               root_directory: formData.rootDirectory || null
-              // Let updated_at be handled by Supabase defaults
             })
             .eq("id", existingSite.id)
             .eq("user_id", userId);
-            
-          if (result.error) {
-            throw result.error;
-          }
         } else {
-          // Update without changing the password
-          const result = await supabase
+          result = await supabase
             .from("ftp_credentials")
             .update({
               user_id: userId,
@@ -70,17 +66,16 @@ export function useSiteSave() {
               port: formData.port || 21,
               username: formData.username,
               root_directory: formData.rootDirectory || null
-              // Let updated_at be handled by Supabase defaults
             })
             .eq("id", existingSite.id)
             .eq("user_id", userId);
-            
-          if (result.error) {
-            throw result.error;
-          }
+        }
+        
+        if (result.error) {
+          throw result.error;
         }
       } else {
-        // Insert new site - ensure encrypted_password is always provided
+        // Insert new site
         const result = await supabase
           .from("ftp_credentials")
           .insert({
@@ -89,19 +84,17 @@ export function useSiteSave() {
             server_url: formData.serverUrl,
             port: formData.port || 21,
             username: formData.username,
-            encrypted_password: formData.password, // Required field in schema
+            encrypted_password: formData.password,
             root_directory: formData.rootDirectory || null
-            // Let created_at and updated_at be handled by Supabase defaults
           });
 
         if (result.error) {
+          console.error("Error inserting site:", result.error);
           throw result.error;
         }
       }
 
-      toast.success(
-        `FTP site ${existingSite ? "updated" : "saved"} successfully`
-      );
+      console.log("Site saved successfully");
       return true;
     } catch (error: any) {
       console.error("Error saving FTP site:", error);

@@ -26,29 +26,41 @@ export function SiteFormModal({
   const { isLoading: isSaving, saveSite } = useSiteSave();
   const { testConnection, isTestingConnection, testResult, lastErrorMessage, helpfulMessage } = useFTPTestConnection();
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    setFormSubmitted(true);
     
     // Get form data from the form
     const formData = getFormData(e.target as HTMLFormElement);
     
     // Basic validation for required fields
-    if (!formData.serverUrl || !formData.username || !formData.password) {
+    if (!formData.serverUrl || !formData.username || !formData.password && !site) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    if (isNaN(formData.port) || formData.port <= 0 || formData.port > 65535) {
+    if (formData.port && (isNaN(formData.port) || formData.port <= 0 || formData.port > 65535)) {
       toast.error("Please enter a valid port number");
       return;
     }
     
-    // Save site data without requiring successful connection test
-    const saveSuccessful = await saveSite(formData, site);
-    
-    if (saveSuccessful) {
-      onSave();
+    try {
+      // Save site data without requiring successful connection test
+      const saveSuccessful = await saveSite(formData, site);
+      
+      if (saveSuccessful) {
+        toast.success(`FTP site ${site ? "updated" : "saved"} successfully`);
+        onSave();
+      } else {
+        toast.error("Failed to save FTP site");
+      }
+    } catch (error: any) {
+      console.error("Error saving site:", error);
+      toast.error(`Failed to save FTP site: ${error.message}`);
+    } finally {
+      setFormSubmitted(false);
     }
   };
 
@@ -122,13 +134,13 @@ export function SiteFormModal({
                 type="button" 
                 variant="outline" 
                 onClick={onClose}
-                disabled={isSaving}
+                disabled={formSubmitted || isSaving}
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
-                disabled={isSaving}
+                disabled={formSubmitted || isSaving}
               >
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 {site ? "Update" : "Save"}
