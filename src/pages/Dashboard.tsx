@@ -1,195 +1,141 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import DashboardLayout from '@/components/DashboardLayout';
-import FileExplorer from '@/components/editor/FileExplorer';
-import CodeEditorWithPreview from '@/components/editor/CodeEditorWithPreview';
-import { Card } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { useSubscription } from '@/hooks/useSubscription';
-import TrialProtection from '@/components/TrialProtection';
 
-interface FTPConnection {
-  id: string;
-  server_name: string;
-  created_at?: string; // Making created_at optional
-  // other properties...
-}
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { toast } from "sonner";
 
-const EditorPage = () => {
-  const { connectionId } = useParams<{ connectionId: string }>();
+const Dashboard = () => {
   const navigate = useNavigate();
-  const [connection, setConnection] = useState<FTPConnection | null>(null);
-  const [selectedFile, setSelectedFile] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fileContent, setFileContent] = useState<string>('');
-  const [isFileLoading, setIsFileLoading] = useState(false);
-  const { isPremium } = useSubscription();
-  
-  // Store panel sizes in localStorage
-  const [panelSizes, setPanelSizes] = useLocalStorage('editor-panel-sizes', {
-    explorer: 20,
-    editor: 80,
-  });
+  const { stats, isLoading } = useDashboardStats();
+  const [user, setUser] = useState<any>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
+  // Check authentication state once on mount
   useEffect(() => {
-    const fetchConnection = async () => {
-      if (!connectionId) {
-        navigate('/dashboard');
-        return;
-      }
-
+    const checkAuth = async () => {
       try {
-        const { data, error } = await supabase
-          .from('ftp_connections')
-          .select('*')
-          .eq('id', connectionId)
-          .single();
-
-        if (error) throw error;
-        
-        if (data) {
-          setConnection(data);
-        } else {
-          toast.error('Connection not found');
-          navigate('/dashboard');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          // Not logged in, redirect to login
+          toast.error("Please login to access the dashboard");
+          navigate("/login");
+          return;
         }
-      } catch (error: any) {
-        toast.error(`Error loading connection: ${error.message}`);
-        navigate('/dashboard');
+        setUser(session.user);
+      } catch (error) {
+        console.error("Auth check error:", error);
+        toast.error("Authentication error");
       } finally {
-        setIsLoading(false);
+        // Always set authChecked to true, even if there was an error
+        setAuthChecked(true);
       }
     };
 
-    fetchConnection();
-  }, [connectionId, navigate]);
+    checkAuth();
+  }, [navigate]);
 
-  const loadFileContent = async (filePath: string) => {
-    if (!connectionId || !filePath) return;
-    
-    setIsFileLoading(true);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('getFtpFile', {
-        body: {
-          connectionId,
-          filePath
-        }
-      });
-      
-      if (error) throw error;
-      
-      if (data?.content) {
-        setFileContent(data.content);
-      } else {
-        throw new Error('Failed to load file content');
-      }
-    } catch (error: any) {
-      toast.error(`Error loading file: ${error.message}`);
-    } finally {
-      setIsFileLoading(false);
-    }
-  };
-
-  const handleFileSelect = (file: any) => {
-    if (file.type === 'file') {
-      setSelectedFile(file);
-      loadFileContent(file.id);
-    }
-  };
-
-  const handleSaveFile = async (content: string) => {
-    if (!connectionId || !selectedFile) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('saveFtpFile', {
-        body: {
-          connectionId,
-          filePath: selectedFile.id,
-          content
-        }
-      });
-      
-      if (error) throw error;
-      
-      toast.success('File saved successfully');
-      return Promise.resolve();
-    } catch (error: any) {
-      toast.error(`Error saving file: ${error.message}`);
-      return Promise.reject(error);
-    }
-  };
-
-  const handlePanelResize = (sizes: number[]) => {
-    setPanelSizes({
-      explorer: sizes[0],
-      editor: sizes[1],
-    });
-  };
-
-  if (isLoading) {
+  // Show loading state only during initial auth check
+  if (!authChecked) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>
       </DashboardLayout>
     );
   }
 
   return (
-    <TrialProtection>
-      <DashboardLayout>
-        <div className="p-4 space-y-4">
-          <h1 className="text-2xl font-bold">
-            {connection?.server_name} - File Editor
-            {!isPremium && (
-              <span className="ml-2 text-sm text-orange-500 font-normal">
-                (Preview Mode - Premium Required to Save)
-              </span>
-            )}
-          </h1>
-          
-          <div className="h-[calc(100vh-180px)] border rounded-lg overflow-hidden">
-            <ResizablePanelGroup
-              direction="horizontal"
-              onLayout={handlePanelResize}
-            >
-              {/* File Explorer Panel */}
-              <ResizablePanel defaultSize={panelSizes.explorer} minSize={15}>
-                <FileExplorer 
-                  connectionId={connection?.id}
-                  onSelectFile={handleFileSelect} 
-                />
-              </ResizablePanel>
-              
-              <ResizableHandle withHandle />
-              
-              {/* Code Editor Panel */}
-              <ResizablePanel defaultSize={panelSizes.editor}>
-                {selectedFile ? (
-                  <CodeEditorWithPreview 
-                    filePath={selectedFile.id}
-                    initialContent={fileContent}
-                    readOnly={!isPremium}
-                    onSave={handleSaveFile}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-400">
-                    Select a file to edit
-                  </div>
-                )}
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </div>
-        </div>
-      </DashboardLayout>
-    </TrialProtection>
-  );
-}
+    <DashboardLayout>
+      <div className="container py-6">
+        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {/* Storage Usage Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Storage Usage</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isLoading ? "..." : `${stats.storageUsage} MB`}
+              </div>
+              <Progress
+                value={Math.min((stats.storageUsage / 100) * 100, 100)}
+                className="h-2 mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                {isLoading ? "Loading..." : `${stats.storageUsage}MB used of 100MB`}
+              </p>
+            </CardContent>
+          </Card>
 
-export default EditorPage;
+          {/* Sites Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Files</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {isLoading ? "..." : stats.totalFiles}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Files stored across all sites
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Connected Sites Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Connected Sites</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                <a 
+                  href="/dashboard/sites" 
+                  className="text-blue-500 hover:underline"
+                >
+                  Visit My Sites
+                </a>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Manage your FTP connections
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <h2 className="text-xl font-bold mt-8 mb-4">Recent Activity</h2>
+        <Card>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+              </div>
+            ) : stats.recentActivity.length > 0 ? (
+              <ul className="divide-y">
+                {stats.recentActivity.map((activity, index) => (
+                  <li key={index} className="p-4 flex justify-between">
+                    <span className="font-medium">{activity.name}</span>
+                    <span className="text-sm text-gray-500">{activity.timestamp}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="p-4 text-center text-gray-500">
+                No recent activity
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default Dashboard;
