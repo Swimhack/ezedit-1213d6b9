@@ -28,7 +28,7 @@ interface FTPConnectionModalProps {
 
 const FTPConnectionModal = ({ isOpen, onClose, onSave, editConnection }: FTPConnectionModalProps) => {
   const [isSaving, setIsSaving] = useState(false);
-  const { isTestingConnection, testConnection } = useFTPTestConnection();
+  const { isTestingConnection, testConnection, testResult } = useFTPTestConnection();
 
   const handleSubmit = async (data: FTPConnectionFormData) => {
     setIsSaving(true);

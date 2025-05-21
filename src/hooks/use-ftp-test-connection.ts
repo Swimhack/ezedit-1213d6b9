@@ -12,6 +12,7 @@ interface FTPTestConnectionParams {
 
 export function useFTPTestConnection() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const testConnection = async ({ 
     host, 
@@ -26,6 +27,8 @@ export function useFTPTestConnection() {
     }
 
     setIsTestingConnection(true);
+    setTestResult(null);
+    
     try {
       const response = await fetch(`/api/test-ftp`, {
         method: "POST",
@@ -41,11 +44,21 @@ export function useFTPTestConnection() {
       });
       
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} ${errorText}`);
+        const errorData = await response.json().catch(() => ({ message: `Server error: ${response.status}` }));
+        throw new Error(errorData.message || `Server error: ${response.status}`);
       }
 
+      // Parse response once and store the result
       const result = await response.json();
+      
+      // Update the testResult state
+      const newResult = {
+        success: !!result.success,
+        message: result.message || (result.success ? "Connection successful!" : "Connection failed")
+      };
+      setTestResult(newResult);
+      
+      // Show appropriate toast based on result
       if (result.success) {
         toast.success("Connection successful!");
         return true;
@@ -54,8 +67,16 @@ export function useFTPTestConnection() {
         return false;
       }
     } catch (error: any) {
-      toast.error(`Error testing connection: ${error.message}`);
+      const errorMessage = error.message || "Unknown error occurred";
+      toast.error(`Error testing connection: ${errorMessage}`);
       console.error("FTP test connection error:", error);
+      
+      // Update testResult state with error
+      setTestResult({
+        success: false,
+        message: errorMessage
+      });
+      
       return false;
     } finally {
       setIsTestingConnection(false);
@@ -64,6 +85,7 @@ export function useFTPTestConnection() {
 
   return {
     isTestingConnection,
-    testConnection
+    testConnection,
+    testResult
   };
 }

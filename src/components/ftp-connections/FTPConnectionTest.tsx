@@ -1,14 +1,15 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 
 interface FTPConnectionTestProps {
   isLoading: boolean;
   onStartTest: () => void;
-  onTestComplete: (result: { success: boolean; message: string }) => void;
+  onTestComplete?: (result: { success: boolean; message: string }) => void;
 }
 
+// This function is now simplified to not handle the actual API call directly
+// The API call is handled by the useFTPTestConnection hook
 export async function testFtpConnectionHandler(
   host: string, 
   port: number, 
@@ -19,12 +20,12 @@ export async function testFtpConnectionHandler(
   try {
     // Validate inputs
     if (!host || !username || !password) {
-      toast.error("Please fill in all required fields");
+      onTestComplete({ success: false, message: "Please fill in all required fields" });
       return false;
     }
 
     if (isNaN(port) || port <= 0 || port > 65535) {
-      toast.error("Please enter a valid port number");
+      onTestComplete({ success: false, message: "Please enter a valid port number" });
       return false;
     }
 
@@ -43,10 +44,12 @@ export async function testFtpConnectionHandler(
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Server error: ${response.status} ${errorText}`);
+      // Get error message without reading body multiple times
+      const errorData = await response.json().catch(() => ({ message: `Server error: ${response.status}` }));
+      throw new Error(errorData.message || `Server error: ${response.status}`);
     }
 
+    // Parse response only once
     const result = await response.json();
     
     if (result.success) {
@@ -54,14 +57,12 @@ export async function testFtpConnectionHandler(
         success: true,
         message: "Connection successful!"
       });
-      toast.success("Connection test successful!");
       return true;
     } else {
       onTestComplete({
         success: false,
         message: result.message || "Connection failed"
       });
-      toast.error(`Connection test failed: ${result.message || "Unknown error"}`);
       return false;
     }
   } catch (error: any) {
@@ -70,7 +71,6 @@ export async function testFtpConnectionHandler(
       success: false,
       message: error.message || "Connection failed"
     });
-    toast.error(`Connection test failed: ${error.message}`);
     return false;
   }
 }

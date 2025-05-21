@@ -8,6 +8,7 @@ import type { FTPSite } from "@/hooks/use-ftp-sites";
 import { SiteForm, getFormData } from "./SiteForm";
 import { SiteConnectionTestButton, testSiteConnection } from "./SiteConnectionTest";
 import { useSiteSave } from "@/hooks/use-site-save";
+import { useFTPTestConnection } from "@/hooks/use-ftp-test-connection";
 
 interface SiteFormModalProps {
   isOpen: boolean;
@@ -27,8 +28,9 @@ export function SiteFormModal({
     success: boolean;
     message: string;
   } | null>(null);
-
+  
   const { isLoading: isSaving, saveSite } = useSiteSave();
+  const { testConnection, isTestingConnection } = useFTPTestConnection();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,20 +54,20 @@ export function SiteFormModal({
       const form = document.querySelector('form') as HTMLFormElement;
       const formData = getFormData(form);
       
-      const result = await testSiteConnection(
-        formData.serverUrl, 
-        formData.port, 
-        formData.username, 
-        formData.password,
-        site?.encrypted_password
-      );
+      // Use the testConnection hook that already handles toasts and proper response reading
+      const success = await testConnection({
+        host: formData.serverUrl,
+        port: formData.port,
+        username: formData.username,
+        password: formData.password,
+        existingPassword: site?.encrypted_password
+      });
       
-      setTestResult(result);
-      
-      if (result.success) {
-        toast.success("Connection test successful!");
-      } else {
-        toast.error(`Connection test failed: ${result.message || "Unknown error"}`);
+      if (success) {
+        setTestResult({
+          success: true,
+          message: "Connection test successful!"
+        });
       }
     } catch (error: any) {
       console.error("Error testing connection:", error);
@@ -73,7 +75,6 @@ export function SiteFormModal({
         success: false,
         message: error.message || "Connection failed"
       });
-      toast.error(`Connection test failed: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +97,7 @@ export function SiteFormModal({
 
           <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 pt-4">
             <SiteConnectionTestButton
-              isLoading={isLoading}
+              isLoading={isLoading || isTestingConnection}
               onTestConnection={handleTest}
             />
             <div className="flex gap-2">

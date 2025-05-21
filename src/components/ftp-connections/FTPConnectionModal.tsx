@@ -7,7 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { FtpConnection } from "@/hooks/use-ftp-connections";
 import { FTPConnectionForm, getFormData } from "./FTPConnectionForm";
-import { FTPConnectionTestButton, testFtpConnectionHandler } from "./FTPConnectionTest";
+import { FTPConnectionTestButton } from "./FTPConnectionTest";
+import { useFTPTestConnection } from "@/hooks/use-ftp-test-connection";
 
 interface FTPConnectionModalProps {
   isOpen: boolean;
@@ -27,6 +28,8 @@ export function FTPConnectionModal({
     success: boolean;
     message: string;
   } | null>(null);
+  
+  const { testConnection, isTestingConnection, testResult: hookTestResult } = useFTPTestConnection();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,22 +93,21 @@ export function FTPConnectionModal({
   };
 
   const handleTest = async () => {
-    setIsLoading(true);
-    setTestResult(null);
-    
     const form = document.querySelector('form')!;
     const { host, port, username, password } = getFormData(form);
     
-    await testFtpConnectionHandler(
+    // Use the hook-based test connection function that properly handles the response
+    const success = await testConnection({
       host, 
       port, 
       username, 
-      password, 
-      (result) => {
-        setTestResult(result);
-        setIsLoading(false);
-      }
-    );
+      password
+    });
+    
+    // Set local test result state based on the hook's result
+    if (hookTestResult) {
+      setTestResult(hookTestResult);
+    }
   };
 
   return (
@@ -119,14 +121,14 @@ export function FTPConnectionModal({
 
         <FTPConnectionForm
           editingConnection={editingConnection}
-          isLoading={isLoading}
-          testResult={testResult}
+          isLoading={isLoading || isTestingConnection}
+          testResult={testResult || hookTestResult}
           onSubmit={handleSubmit}
         />
 
         <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
           <FTPConnectionTestButton
-            isLoading={isLoading}
+            isLoading={isTestingConnection}
             onStartTest={handleTest}
           />
           <div className="flex gap-2">
@@ -134,13 +136,13 @@ export function FTPConnectionModal({
               type="button" 
               variant="outline" 
               onClick={onClose}
-              disabled={isLoading}
+              disabled={isLoading || isTestingConnection}
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
-              disabled={isLoading}
+              disabled={isLoading || isTestingConnection}
               onClick={(e) => {
                 const form = document.querySelector('form');
                 if (form) {

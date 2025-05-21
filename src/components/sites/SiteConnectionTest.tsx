@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface SiteConnectionTestProps {
@@ -37,7 +36,7 @@ export async function testSiteConnection(
     // Use existing password if no new one is provided
     const finalPassword = password || existingPassword || "";
 
-    // Test connection using the Netlify function instead of Supabase Edge Function
+    // Test connection using the Netlify function
     const response = await fetch(`/api/test-ftp`, {
       method: "POST",
       headers: {
@@ -51,29 +50,29 @@ export async function testSiteConnection(
       }),
     });
     
-    // Parse response as JSON with error handling
-    let result;
+    // Use a single read of the response
+    let responseData;
     try {
-      result = await response.json();
+      responseData = await response.json();
     } catch (parseError) {
       console.error("Error parsing JSON response:", parseError);
       return {
         success: false,
-        message: `Error parsing server response: ${await response.text()}`
+        message: "Error parsing server response"
       };
     }
     
     if (!response.ok) {
-      console.error("Test connection response error:", response.status, result);
+      console.error("Test connection response error:", response.status, responseData);
       return {
         success: false,
-        message: result.message || `Server error (${response.status})`
+        message: responseData?.message || `Server error (${response.status})`
       };
     }
     
     return {
-      success: result.success || false,
-      message: result.message || "Connection test completed"
+      success: responseData?.success || false,
+      message: responseData?.message || "Connection test completed"
     };
     
   } catch (error: any) {
