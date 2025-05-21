@@ -49,7 +49,7 @@ export function SiteFormModal({
       setErrorDetails(null);
       
       // Use the testConnection hook that already handles toasts and proper response reading
-      const result = await testConnection({
+      await testConnection({
         host: formData.serverUrl,
         port: formData.port,
         username: formData.username,
@@ -58,7 +58,8 @@ export function SiteFormModal({
         directory: formData.rootDirectory
       });
       
-      if (!result.success && result.message.includes("530")) {
+      // Check if there was an auth error based on the lastErrorMessage
+      if (lastErrorMessage && lastErrorMessage.includes("530")) {
         setErrorDetails(
           "Authentication failed. Please check the following:\n" +
           "• Verify username format (sometimes needs domain prefix/suffix)\n" +
