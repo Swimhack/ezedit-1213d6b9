@@ -32,24 +32,24 @@ export function SiteFormModal({
     e.preventDefault();
     setFormSubmitted(true);
     
-    // Get form data from the form
-    const formData = getFormData(e.target as HTMLFormElement);
-    console.log("Form submission data:", formData); // Debug log
-    
-    // Basic validation for required fields
-    if (!formData.serverUrl || !formData.username || (!formData.password && !site)) {
-      toast.error("Please fill in all required fields");
-      setFormSubmitted(false);
-      return;
-    }
-
-    if (formData.port && (isNaN(formData.port) || formData.port <= 0 || formData.port > 65535)) {
-      toast.error("Please enter a valid port number");
-      setFormSubmitted(false);
-      return;
-    }
-    
     try {
+      // Get form data from the form
+      const formData = getFormData(e.target as HTMLFormElement);
+      console.log("Form submission data:", formData); // Debug log
+      
+      // Basic validation for required fields
+      if (!formData.serverUrl || !formData.username || (!formData.password && !site)) {
+        toast.error("Please fill in all required fields");
+        setFormSubmitted(false);
+        return;
+      }
+
+      if (formData.port && (isNaN(formData.port) || formData.port <= 0 || formData.port > 65535)) {
+        toast.error("Please enter a valid port number");
+        setFormSubmitted(false);
+        return;
+      }
+      
       // Save site data without requiring successful connection test
       console.log("Calling saveSite with:", { formData, site }); // Debug log
       const saveSuccessful = await saveSite(formData, site);
@@ -60,11 +60,11 @@ export function SiteFormModal({
         onSave();
       } else {
         toast.error("Failed to save FTP site");
+        setFormSubmitted(false);
       }
     } catch (error: any) {
-      console.error("Error saving site:", error);
+      console.error("Error in form submission:", error);
       toast.error(`Failed to save FTP site: ${error.message}`);
-    } finally {
       setFormSubmitted(false);
     }
   };

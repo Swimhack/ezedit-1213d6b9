@@ -44,14 +44,14 @@ export function useSiteSave() {
       const userId = sessionData.session.user.id;
       console.log("User ID for save operation:", userId);
 
-      // Format data for database consistency
+      // Format data for database consistency with exact field names matching the DB schema
       const preparedData = {
         user_id: userId,
         site_name: formData.siteName || null,
         server_url: formData.serverUrl,
         port: formData.port || 21,
         username: formData.username,
-        encrypted_password: formData.password, // Name matches DB schema
+        encrypted_password: formData.password, // Match exactly with DB column name
         root_directory: formData.rootDirectory || null
       };
       
