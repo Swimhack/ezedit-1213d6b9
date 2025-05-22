@@ -1,0 +1,14 @@
+
+{
+  "version": 1,
+  "servers": {
+    "localfs": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fs"]
+    },
+    "ftp": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-ftp"]
+    }
+  }
+}
