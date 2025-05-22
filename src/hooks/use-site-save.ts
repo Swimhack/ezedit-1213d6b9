@@ -20,84 +20,84 @@ export function useSiteSave() {
     formData: SiteFormData,
     existingSite: FTPSite | null
   ): Promise<boolean> => {
+    console.log("Starting saveSite with formData:", formData); 
+    console.log("Existing site:", existingSite);
+    
     setIsLoading(true);
 
     try {
       // Get the current user session to get the user ID
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      console.log("Session data:", sessionData);
       
       if (sessionError) {
+        console.error("Session error:", sessionError);
         throw new Error(`Authentication error: ${sessionError.message}`);
       }
 
       if (!sessionData?.session?.user) {
+        console.error("No user in session");
         toast.error("You must be logged in to save sites");
         return false;
       }
 
       const userId = sessionData.session.user.id;
+      console.log("User ID for save operation:", userId);
 
+      // Format data for database consistency
+      const preparedData = {
+        user_id: userId,
+        site_name: formData.siteName || null,
+        server_url: formData.serverUrl,
+        port: formData.port || 21,
+        username: formData.username,
+        encrypted_password: formData.password, // Name matches DB schema
+        root_directory: formData.rootDirectory || null
+      };
+      
+      console.log("Prepared data for Supabase:", preparedData);
+
+      let result;
+      
       // Prepare the data object based on whether it's a new site or an update
       if (existingSite) {
-        let result;
+        console.log("Updating existing site with ID:", existingSite.id);
         
         // Update existing site with or without password change
         if (formData.password) {
           result = await supabase
             .from("ftp_credentials")
-            .update({
-              user_id: userId,
-              site_name: formData.siteName || null,
-              server_url: formData.serverUrl,
-              port: formData.port || 21,
-              username: formData.username,
-              encrypted_password: formData.password,
-              root_directory: formData.rootDirectory || null
-            })
+            .update(preparedData)
             .eq("id", existingSite.id)
             .eq("user_id", userId);
         } else {
+          // If no password provided, don't update the password field
+          const { encrypted_password, ...dataWithoutPassword } = preparedData;
           result = await supabase
             .from("ftp_credentials")
-            .update({
-              user_id: userId,
-              site_name: formData.siteName || null,
-              server_url: formData.serverUrl,
-              port: formData.port || 21,
-              username: formData.username,
-              root_directory: formData.rootDirectory || null
-            })
+            .update(dataWithoutPassword)
             .eq("id", existingSite.id)
             .eq("user_id", userId);
         }
-        
-        if (result.error) {
-          throw result.error;
-        }
       } else {
-        // Insert new site
-        const result = await supabase
+        console.log("Inserting new site");
+        // Insert new site - password is required for new sites
+        result = await supabase
           .from("ftp_credentials")
-          .insert({
-            user_id: userId,
-            site_name: formData.siteName || null,
-            server_url: formData.serverUrl,
-            port: formData.port || 21,
-            username: formData.username,
-            encrypted_password: formData.password,
-            root_directory: formData.rootDirectory || null
-          });
-
-        if (result.error) {
-          console.error("Error inserting site:", result.error);
-          throw result.error;
-        }
+          .insert(preparedData);
+      }
+      
+      console.log("Supabase operation result:", result);
+      
+      if (result.error) {
+        console.error("Supabase error:", result.error);
+        throw result.error;
       }
 
       console.log("Site saved successfully");
       return true;
     } catch (error: any) {
-      console.error("Error saving FTP site:", error);
+      console.error("Error in saveSite function:", error);
       toast.error(`Failed to save FTP site: ${error.message}`);
       return false;
     } finally {
