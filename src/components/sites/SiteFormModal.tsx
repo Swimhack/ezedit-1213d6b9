@@ -35,35 +35,40 @@ export function SiteFormModal({
     try {
       // Get form data from the form
       const formData = getFormData(e.target as HTMLFormElement);
-      console.log("Form submission data:", formData); // Debug log
+      console.log("[SiteFormModal] Form submission data:", formData);
       
       // Basic validation for required fields
       if (!formData.serverUrl || !formData.username || (!formData.password && !site)) {
+        console.error("[SiteFormModal] Validation failed - missing required fields");
         toast.error("Please fill in all required fields");
         setFormSubmitted(false);
         return;
       }
 
       if (formData.port && (isNaN(formData.port) || formData.port <= 0 || formData.port > 65535)) {
+        console.error("[SiteFormModal] Validation failed - invalid port number");
         toast.error("Please enter a valid port number");
         setFormSubmitted(false);
         return;
       }
       
       // Save site data without requiring successful connection test
-      console.log("Calling saveSite with:", { formData, site }); // Debug log
+      console.log("[SiteFormModal] Calling saveSite with:", { formData, site });
       const saveSuccessful = await saveSite(formData, site);
-      console.log("Save result:", saveSuccessful); // Debug log
+      console.log("[SiteFormModal] Save result:", saveSuccessful);
       
       if (saveSuccessful) {
+        console.log("[SiteFormModal] Save successful, calling onSave callback");
         toast.success(`FTP site ${site ? "updated" : "saved"} successfully`);
         onSave();
+        onClose();
       } else {
-        toast.error("Failed to save FTP site");
+        console.error("[SiteFormModal] Save failed");
+        toast.error("Failed to save FTP site. Please check console for details.");
         setFormSubmitted(false);
       }
     } catch (error: any) {
-      console.error("Error in form submission:", error);
+      console.error("[SiteFormModal] Error in form submission:", error);
       toast.error(`Failed to save FTP site: ${error.message}`);
       setFormSubmitted(false);
     }
@@ -102,7 +107,7 @@ export function SiteFormModal({
         }
       }
     } catch (error: any) {
-      console.error("Error testing connection:", error);
+      console.error("[SiteFormModal] Error testing connection:", error);
       setErrorDetails(error.message);
     }
   };

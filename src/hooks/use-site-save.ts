@@ -87,11 +87,11 @@ export function useSiteSave() {
           .insert(preparedData);
       }
       
-      console.log("Supabase operation result:", result);
+      console.log("Supabase operation complete. Result:", result);
       
       if (result.error) {
-        console.error("Supabase error:", result.error);
-        throw result.error;
+        console.error("Supabase error on save:", result.error);
+        throw new Error(`Database error: ${result.error.message}`);
       }
 
       console.log("Site saved successfully");
