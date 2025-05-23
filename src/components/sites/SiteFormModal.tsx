@@ -52,14 +52,21 @@ export function SiteFormModal({
         return;
       }
       
-      // Save site data without requiring successful connection test
-      console.log("[SiteFormModal] Calling saveSite with:", { formData, site });
+      // Always save the site data, regardless of test connection result
+      console.log("[SiteFormModal] Saving site data...");
       const saveSuccessful = await saveSite(formData, site);
       console.log("[SiteFormModal] Save result:", saveSuccessful);
       
       if (saveSuccessful) {
         console.log("[SiteFormModal] Save successful, calling onSave callback");
-        toast.success(`FTP site ${site ? "updated" : "saved"} successfully`);
+        
+        // Show appropriate success message based on test result
+        if (testResult?.success === false && testResult.message.includes("530")) {
+          toast.success(`FTP site ${site ? "updated" : "saved"} successfully (authentication test failed but credentials saved)`);
+        } else {
+          toast.success(`FTP site ${site ? "updated" : "saved"} successfully`);
+        }
+        
         onSave();
         onClose();
       } else {
@@ -98,11 +105,13 @@ export function SiteFormModal({
         // Also handle specific error cases
         else if (lastErrorMessage && lastErrorMessage.includes("530")) {
           setErrorDetails(
-            "Authentication failed. Please check the following:\n" +
-            "• Verify username format (sometimes needs domain prefix/suffix)\n" +
-            "• Check if password contains special characters that need URL encoding\n" +
-            "• Confirm if the server requires FTPS instead of FTP\n" +
-            "• Check if there are IP restrictions on the FTP server"
+            "530 Login authentication failed. Common solutions:\n" +
+            "• Verify username format (some hosts require domain prefix/suffix)\n" +
+            "• Check if password contains special characters that need escaping\n" +
+            "• Confirm the server supports standard FTP (not just SFTP)\n" +
+            "• Check if there are IP restrictions on the FTP server\n" +
+            "• Contact your hosting provider to verify FTP access is enabled\n\n" +
+            "Note: You can still save these credentials and try connecting later."
           );
         }
       }

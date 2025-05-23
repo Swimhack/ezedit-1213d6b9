@@ -134,14 +134,15 @@ export function useFTPTestConnection() {
         
         // Special handling for 530 authentication errors
         if (errorMessage.includes("530")) {
-          const authHelpText = "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method (e.g., SFTP, passive mode).";
+          const authHelpText = helpfulText || 
+            "530 Login authentication failed. Please verify your FTP username and password. Contact your hosting provider if credentials are correct but connection still fails.";
           setHelpfulMessage(authHelpText);
-          toast.error(authHelpText);
+          toast.error("Authentication failed - credentials will still be saved");
         }
         // Check if there's a helpful message
         else if (helpfulText) {
           setHelpfulMessage(helpfulText);
-          toast.error(helpfulText);
+          toast.error(`Connection failed: ${helpfulText}`);
         } else {
           toast.error(`Connection failed: ${errorMessage}`);
         }
@@ -150,7 +151,7 @@ export function useFTPTestConnection() {
           success: false, 
           message: errorMessage, 
           helpfulMessage: helpfulText || (errorMessage.includes("530") ? 
-            "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method (e.g., SFTP, passive mode)." : 
+            "530 Login authentication failed. Please verify your FTP username and password. Contact your hosting provider if credentials are correct but connection still fails." : 
             undefined)
         });
         setLastErrorMessage(errorMessage);
@@ -158,14 +159,14 @@ export function useFTPTestConnection() {
           success: false, 
           message: errorMessage, 
           helpfulMessage: helpfulText || (errorMessage.includes("530") ? 
-            "Login failed. Please double-check your FTP username and password. If the credentials are correct, your host may require a special connection method (e.g., SFTP, passive mode)." : 
+            "530 Login authentication failed. Please verify your FTP username and password. Contact your hosting provider if credentials are correct but connection still fails." : 
             undefined)
         };
       }
     } catch (error: any) {
       console.error("Error testing connection:", error);
       const errorMessage = error.message || "Unknown error";
-      toast.error(`Error testing connection: ${errorMessage}`);
+      toast.error(`Error testing connection: ${errorMessage} - credentials will still be saved`);
       setTestResult({ success: false, message: errorMessage });
       setLastErrorMessage(errorMessage);
       return { success: false, message: errorMessage };
