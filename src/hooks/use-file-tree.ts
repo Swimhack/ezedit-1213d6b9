@@ -20,7 +20,7 @@ interface UseFileTreeProps {
   connection: {
     id: string;
   };
-  disabled?: boolean; // Add disabled prop
+  disabled?: boolean;
 }
 
 export function useFileTree({ connection, disabled = false }: UseFileTreeProps) {
@@ -34,11 +34,13 @@ export function useFileTree({ connection, disabled = false }: UseFileTreeProps) 
   const loadDirectory = useCallback(async (path: string) => {
     if (!connectionId || disabled) {
       if (disabled) {
-        setError('Directory loading is disabled');
+        console.log('[useFileTree] Directory loading is disabled');
+        setError(null); // Clear any existing errors when disabled
+        return;
       } else {
         setError('No connection selected');
+        return;
       }
-      return;
     }
     
     // Sanitize path - ensure it starts with a slash
@@ -114,6 +116,7 @@ export function useFileTree({ connection, disabled = false }: UseFileTreeProps) 
 
   const toggleDirectory = useCallback((nodeId: string) => {
     if (disabled) {
+      console.log('[useFileTree] Directory toggle is disabled');
       return;
     }
     

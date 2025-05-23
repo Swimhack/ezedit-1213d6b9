@@ -21,6 +21,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/my-sites" element={<MySites />} />
             <Route path="/dashboard/sites" element={<MySites />} />
             <Route path="/dashboard/settings" element={<Settings />} />
             <Route path="/editor/:connectionId" element={<Editor />} />
