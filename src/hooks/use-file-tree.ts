@@ -20,9 +20,10 @@ interface UseFileTreeProps {
   connection: {
     id: string;
   };
+  disabled?: boolean; // Add disabled prop
 }
 
-export function useFileTree({ connection }: UseFileTreeProps) {
+export function useFileTree({ connection, disabled = false }: UseFileTreeProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [treeData, setTreeData] = useState<TreeNode[]>([]);
@@ -31,8 +32,12 @@ export function useFileTree({ connection }: UseFileTreeProps) {
   const connectionId = connection?.id;
 
   const loadDirectory = useCallback(async (path: string) => {
-    if (!connectionId) {
-      setError('No connection selected');
+    if (!connectionId || disabled) {
+      if (disabled) {
+        setError('Directory loading is disabled');
+      } else {
+        setError('No connection selected');
+      }
       return;
     }
     
@@ -105,9 +110,13 @@ export function useFileTree({ connection }: UseFileTreeProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [connectionId, cacheTreeData, getCachedTreeData]);
+  }, [connectionId, disabled, cacheTreeData, getCachedTreeData]);
 
   const toggleDirectory = useCallback((nodeId: string) => {
+    if (disabled) {
+      return;
+    }
+    
     setTreeData(prevData => {
       return prevData.map(node => {
         if (node.path === nodeId) {
@@ -123,11 +132,13 @@ export function useFileTree({ connection }: UseFileTreeProps) {
     if (node && node.isFolder && !node.isLoaded) {
       loadDirectory(nodeId);
     }
-  }, [treeData, loadDirectory]);
+  }, [treeData, loadDirectory, disabled]);
 
   const refreshDirectory = useCallback(() => {
-    loadDirectory(currentPath);
-  }, [currentPath, loadDirectory]);
+    if (!disabled) {
+      loadDirectory(currentPath);
+    }
+  }, [currentPath, loadDirectory, disabled]);
 
   return {
     treeData,

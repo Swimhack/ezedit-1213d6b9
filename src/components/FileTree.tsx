@@ -36,7 +36,7 @@ export default function FileTree({
   const [ftpError, setFtpError] = useState<string | null>(null);
   const [currentPath, setCurrentPath] = useState<string>('/');
 
-  // Use the local file tree hook for local mode
+  // Use the local file tree hook for local mode - now properly pass disabled prop
   const { treeData, isLoading: isLoadingLocal, toggleDirectory } = useFileTree({ 
     connection,
     disabled: mode === 'ftp' 
